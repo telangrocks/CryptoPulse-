@@ -12,27 +12,9 @@ export default defineConfig({
     },
   },
   build: {
-    // CDN optimization settings
-    rollupOptions: {
-      output: {
-        // Enable code splitting for better caching
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
-          ui: ['@radix-ui/react-accordion', '@radix-ui/react-alert-dialog', '@radix-ui/react-avatar'],
-          charts: ['recharts'],
-          utils: ['clsx', 'tailwind-merge', 'class-variance-authority']
-        },
-        // Add content hash for cache busting
-        chunkFileNames: 'assets/[name]-[hash].js',
-        entryFileNames: 'assets/[name]-[hash].js',
-        assetFileNames: 'assets/[name]-[hash].[ext]'
-      }
-    },
-    // Enable source maps for production debugging
-    sourcemap: true,
-    // Optimize bundle size
+    // Simplified build configuration
     minify: 'esbuild',
-    // Set chunk size warning limit
+    sourcemap: false,
     chunkSizeWarningLimit: 1000
   },
   // GitHub Pages configuration
