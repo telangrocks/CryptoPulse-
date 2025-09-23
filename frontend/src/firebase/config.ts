@@ -16,7 +16,7 @@ if (missingVars.length > 0) {
   throw new Error(`Missing required environment variables: ${missingVars.join(', ')}. Please check your .env.local file.`);
 }
 
-const Back4AppConfig = {
+export const Back4AppConfig = {
   appId: requiredEnvVars.VITE_BACK4APP_APP_ID!,
   clientKey: requiredEnvVars.VITE_BACK4APP_CLIENT_KEY!,
   masterKey: requiredEnvVars.VITE_BACK4APP_MASTER_KEY!,

@@ -324,3 +324,115 @@ export function initializeSecurity(): void {
     features: ['rate_limiting', 'csrf_protection', 'session_management', 'secure_storage']
   })
 }
+
+// Security Test Types
+export interface SecurityTestResult {
+  testName: string
+  passed: boolean
+  message: string
+  details?: any
+}
+
+// Security Test Functions
+export async function runSecurityTests(): Promise<SecurityTestResult[]> {
+  const results: SecurityTestResult[] = []
+  
+  // Test 1: Rate Limiting
+  try {
+    const testKey = 'security_test_' + Date.now()
+    const isAllowed = rateLimiter.isAllowed(testKey)
+    results.push({
+      testName: 'Rate Limiting',
+      passed: isAllowed,
+      message: isAllowed ? 'Rate limiting is working correctly' : 'Rate limiting failed'
+    })
+  } catch (error) {
+    results.push({
+      testName: 'Rate Limiting',
+      passed: false,
+      message: 'Rate limiting test failed',
+      details: error
+    })
+  }
+  
+  // Test 2: CSRF Protection
+  try {
+    const token = csrfManager.generateToken()
+    const isValid = csrfManager.validateToken(token)
+    results.push({
+      testName: 'CSRF Protection',
+      passed: isValid,
+      message: isValid ? 'CSRF protection is working correctly' : 'CSRF protection failed'
+    })
+  } catch (error) {
+    results.push({
+      testName: 'CSRF Protection',
+      passed: false,
+      message: 'CSRF protection test failed',
+      details: error
+    })
+  }
+  
+  // Test 3: Session Management
+  try {
+    const sessionId = sessionManager.startSession()
+    const isValid = sessionManager.isSessionValid()
+    results.push({
+      testName: 'Session Management',
+      passed: isValid && !!sessionId,
+      message: isValid ? 'Session management is working correctly' : 'Session management failed'
+    })
+  } catch (error) {
+    results.push({
+      testName: 'Session Management',
+      passed: false,
+      message: 'Session management test failed',
+      details: error
+    })
+  }
+  
+  // Test 4: Secure Storage
+  try {
+    const testKey = 'security_test_storage'
+    const testValue = 'test_value_' + Date.now()
+    secureStorage.setItem(testKey, testValue)
+    const retrieved = secureStorage.getItem(testKey)
+    const isWorking = retrieved === testValue
+    secureStorage.removeItem(testKey)
+    
+    results.push({
+      testName: 'Secure Storage',
+      passed: isWorking,
+      message: isWorking ? 'Secure storage is working correctly' : 'Secure storage failed'
+    })
+  } catch (error) {
+    results.push({
+      testName: 'Secure Storage',
+      passed: false,
+      message: 'Secure storage test failed',
+      details: error
+    })
+  }
+  
+  // Test 5: Input Validation
+  try {
+    const testInput = '<script>alert("xss")</script>'
+    const sanitized = sanitizeInput(testInput)
+    const isSafe = !sanitized.includes('<script>')
+    
+    results.push({
+      testName: 'Input Sanitization',
+      passed: isSafe,
+      message: isSafe ? 'Input sanitization is working correctly' : 'Input sanitization failed'
+    })
+  } catch (error) {
+    results.push({
+      testName: 'Input Sanitization',
+      passed: false,
+      message: 'Input sanitization test failed',
+      details: error
+    })
+  }
+  
+  return results
+}
