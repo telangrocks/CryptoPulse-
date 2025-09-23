@@ -1,0 +1,24 @@
+{
+  "name": "cryptopulse-trading-bot",
+  "version": "1.0.0",
+  "description": "AI-Powered Cryptocurrency Trading Bot with Real-time Market Analysis",
+  "main": "index.js",
+  "scripts": {
+    "build": "cd frontend && npm install && npm run build",
+    "deploy": "vercel --prod",
+    "dev": "cd frontend && npm run dev"
+  },
+  "keywords": [
+    "cryptocurrency",
+    "trading",
+    "bot",
+    "ai",
+    "blockchain",
+    "crypto"
+  ],
+  "author": "Shrikant Telang",
+  "license": "MIT",
+  "devDependencies": {
+    "vercel": "^32.0.0"
+  }
+}
