@@ -5,7 +5,15 @@
   "main": "index.js",
   "scripts": {
     "build": "cd frontend && npm install && npm run build",
-    "dev": "cd frontend && npm run dev"
+    "dev": "cd frontend && npm run dev",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "docker:restart": "docker-compose restart",
+    "docker:clean": "docker-compose down -v --rmi all",
+    "deploy": "chmod +x deploy.sh && ./deploy.sh",
+    "health": "curl -f http://localhost:3000/health && curl -f http://localhost:8080/health"
   },
   "keywords": [
     "cryptocurrency",

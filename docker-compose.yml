@@ -1,0 +1,171 @@
+version: '3.8'
+
+services:
+  # Frontend Service
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: frontend-builder
+    container_name: cryptopulse-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - VITE_BACK4APP_APP_ID=${VITE_BACK4APP_APP_ID}
+      - VITE_BACK4APP_CLIENT_KEY=${VITE_BACK4APP_CLIENT_KEY}
+      - VITE_BACK4APP_MASTER_KEY=${VITE_BACK4APP_MASTER_KEY}
+      - VITE_BACK4APP_SERVER_URL=${VITE_BACK4APP_SERVER_URL}
+      - VITE_API_URL=${VITE_API_URL}
+      - VITE_CASHFREE_MODE=${VITE_CASHFREE_MODE}
+      - VITE_CASHFREE_SANDBOX_APP_ID=${VITE_CASHFREE_SANDBOX_APP_ID}
+      - VITE_CASHFREE_LIVE_APP_ID=${VITE_CASHFREE_LIVE_APP_ID}
+      - VITE_BINANCE_API_URL=${VITE_BINANCE_API_URL}
+      - VITE_COINGECKO_API_URL=${VITE_COINGECKO_API_URL}
+    volumes:
+      - frontend_dist:/app/dist
+    networks:
+      - cryptopulse-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Backend Service
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: backend-builder
+    container_name: cryptopulse-backend
+    ports:
+      - "8080:8080"
+    environment:
+      - NODE_ENV=production
+      - PORT=8080
+      - APP_ID=${APP_ID}
+      - JAVASCRIPT_KEY=${JAVASCRIPT_KEY}
+      - MASTER_KEY=${MASTER_KEY}
+      - SERVER_URL=${SERVER_URL}
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - SESSION_SECRET=${SESSION_SECRET}
+      - BINANCE_API_KEY=${BINANCE_API_KEY}
+      - BINANCE_SECRET_KEY=${BINANCE_SECRET_KEY}
+    volumes:
+      - backend_logs:/app/logs
+      - backend_tmp:/app/tmp
+    networks:
+      - cryptopulse-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: cryptopulse-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - cryptopulse-network
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-cryptopulse_redis_2024}
+
+  # MongoDB Database
+  mongodb:
+    image: mongo:7
+    container_name: cryptopulse-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_USERNAME:-cryptopulse}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD:-cryptopulse_mongo_2024}
+      - MONGO_INITDB_DATABASE=${MONGO_DATABASE:-cryptopulse}
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+    networks:
+      - cryptopulse-network
+    restart: unless-stopped
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: cryptopulse-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - cryptopulse-network
+    restart: unless-stopped
+
+  # Monitoring with Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: cryptopulse-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    networks:
+      - cryptopulse-network
+    restart: unless-stopped
+
+  # Grafana Dashboard
+  grafana:
+    image: grafana/grafana:latest
+    container_name: cryptopulse-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-cryptopulse_grafana_2024}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    networks:
+      - cryptopulse-network
+    restart: unless-stopped
+
+volumes:
+  frontend_dist:
+  backend_logs:
+  backend_tmp:
+  redis_data:
+  mongodb_data:
+  mongodb_config:
+  nginx_logs:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  cryptopulse-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
