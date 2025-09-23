@@ -4,13 +4,114 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CryptoPulse - AI Trading Bot</title>
-    <meta name="description" content="Advanced AI-powered cryptocurrency trading bot with real-time market analysis and automated trading strategies.">
-    <script>
-        // Redirect to the proper GitHub Pages URL
-        window.location.replace('https://telangrocks.github.io/Crypto-Bot-/');
-    </script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #8b5cf6 50%, #0f172a 100%);
+            color: white;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            text-align: center;
+            max-width: 600px;
+            padding: 2rem;
+        }
+        .logo {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+        .subtitle {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+        .status {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 2rem 0;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #8b5cf6;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+        .feature {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+    </style>
 </head>
 <body>
-    <p>Redirecting to CryptoPulse Trading Bot...</p>
+    <div class="container">
+        <div class="logo">🚀</div>
+        <h1>CryptoPulse Trading Bot</h1>
+        <p class="subtitle">AI-Powered Cryptocurrency Trading Platform</p>
+        
+        <div class="status">
+            <div class="loading"></div>
+            <p>Deploying your live test URL...</p>
+            <p><strong>URL:</strong> https://telangrocks.github.io/Crypto-Test-/</p>
+        </div>
+        
+        <div class="features">
+            <div class="feature">
+                <div class="feature-icon">🤖</div>
+                <h3>AI Trading</h3>
+                <p>Advanced AI-powered trading strategies</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">📊</div>
+                <h3>Real-time Analysis</h3>
+                <p>Live market data and technical analysis</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">⚡</div>
+                <h3>Automation</h3>
+                <p>Automated trading and risk management</p>
+            </div>
+        </div>
+        
+        <p style="margin-top: 2rem; opacity: 0.7;">
+            If this page loads, your deployment is working! 
+            The full React app will be available shortly.
+        </p>
+    </div>
+    
+    <script>
+        // Auto-refresh to check for deployment
+        setTimeout(() => {
+            window.location.reload();
+        }, 10000);
+    </script>
 </body>
 </html>
