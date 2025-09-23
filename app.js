@@ -223,3 +223,4 @@ document.addEventListener('DOMContentLoaded', function() {
     window.app = new CryptoPulseApp();
     console.log('CryptoPulse Trading Bot - Full App Loaded!');
 });
+
