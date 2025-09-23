@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "cd frontend && npm install && npm run build",
+    "build:frontend": "cd frontend && npm install && npm run build",
     "dev": "cd frontend && npm run dev",
     "docker:build": "docker-compose build",
     "docker:up": "docker-compose up -d",

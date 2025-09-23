@@ -7,7 +7,7 @@
     "main": "cloud/main.js",
     "functions": [
       "tradingBot",
-      "marketAnalysis",
+      "marketAnalysis", 
       "userAuthentication",
       "portfolioManagement",
       "riskAssessment"
@@ -24,7 +24,7 @@
     "adapter": "mongo",
     "collections": [
       "User",
-      "TradingBot",
+      "TradingBot", 
       "Portfolio",
       "Transaction",
       "MarketData",
