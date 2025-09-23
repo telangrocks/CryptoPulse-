@@ -5,7 +5,6 @@
   "main": "index.js",
   "scripts": {
     "build": "cd frontend && npm install && npm run build",
-    "deploy": "vercel --prod",
     "dev": "cd frontend && npm run dev"
   },
   "keywords": [
@@ -18,7 +17,5 @@
   ],
   "author": "Shrikant Telang",
   "license": "MIT",
-  "devDependencies": {
-    "vercel": "^32.0.0"
-  }
+  "devDependencies": {}
 }

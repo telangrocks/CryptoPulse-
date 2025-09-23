@@ -17,8 +17,8 @@ export default defineConfig({
     sourcemap: false,
     chunkSizeWarningLimit: 1000
   },
-  // GitHub Pages configuration
-  base: '/Crypto-Test-/',
+  // Back4App configuration
+  base: '/',
   // Optimize dependencies
   optimizeDeps: {
     include: [
