@@ -35,8 +35,8 @@ export default defineConfig({
     // Set chunk size warning limit
     chunkSizeWarningLimit: 1000
   },
-  // Back4App configuration
-  base: '/',
+  // GitHub Pages configuration
+  base: '/Crypto-Test-/',
   // Optimize dependencies
   optimizeDeps: {
     include: [
