@@ -4,75 +4,22 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    
-    <!-- Primary Meta Tags -->
-    <title>CryptoPulse - AI-Powered Trading Bot | Professional Cryptocurrency Trading Platform</title>
-    <meta name="title" content="CryptoPulse - AI-Powered Trading Bot | Professional Cryptocurrency Trading Platform" />
-    <meta name="description" content="Advanced AI-powered cryptocurrency trading bot with real-time market analysis, automated trading strategies, and comprehensive risk management. Built with cutting-edge technology for professional traders." />
-    <meta name="keywords" content="cryptocurrency trading, AI trading bot, crypto bot, trading automation, bitcoin trading, ethereum trading, trading strategies, risk management, market analysis" />
-    <meta name="author" content="Shrikant Telang" />
-    <meta name="robots" content="index, follow" />
-    
-    <!-- Open Graph / Facebook -->
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://telangrocks.github.io/Crypto-Test-/" />
-    <meta property="og:title" content="CryptoPulse - AI-Powered Trading Bot" />
-    <meta property="og:description" content="Advanced AI-powered cryptocurrency trading bot with real-time market analysis and automated trading strategies." />
-    <meta property="og:image" content="https://telangrocks.github.io/Crypto-Test-/og-image.png" />
-    <meta property="og:site_name" content="CryptoPulse Trading Bot" />
-    
-    <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:url" content="https://telangrocks.github.io/Crypto-Test-/" />
-    <meta property="twitter:title" content="CryptoPulse - AI-Powered Trading Bot" />
-    <meta property="twitter:description" content="Advanced AI-powered cryptocurrency trading bot with real-time market analysis and automated trading strategies." />
-    <meta property="twitter:image" content="https://telangrocks.github.io/Crypto-Test-/og-image.png" />
-    
-    <!-- Additional Meta Tags -->
-    <meta name="theme-color" content="#1a1a1a" />
-    <meta name="msapplication-TileColor" content="#1a1a1a" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="CryptoPulse" />
-    
-    <!-- Preconnect to external domains for performance -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    
-    <!-- Structured Data for SEO -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "WebApplication",
-      "name": "CryptoPulse Trading Bot",
-      "description": "AI-powered cryptocurrency trading bot with advanced market analysis and automated trading strategies",
-      "url": "https://telangrocks.github.io/Crypto-Test-/",
-      "applicationCategory": "FinanceApplication",
-      "operatingSystem": "Web Browser",
-      "author": {
-        "@type": "Person",
-        "name": "Shrikant Telang"
-      },
-      "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "USD"
-      },
-      "featureList": [
-        "AI-Powered Trading",
-        "Real-time Market Analysis",
-        "Automated Trading Strategies",
-        "Risk Management",
-        "Performance Analytics",
-        "Multi-Exchange Support"
-      ]
-    }
-    </script>
-  </head>
-  <body>
-    <div id="root">
-      <!-- Loading screen while React app loads -->
-      <div style="
+    <title>CryptoPulse - AI-Powered Trading Bot</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #0f172a;
+        color: white;
+        line-height: 1.6;
+      }
+      
+      .loading-container {
         position: fixed;
         top: 0;
         left: 0;
@@ -82,37 +29,122 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        color: white;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         z-index: 9999;
-      ">
-        <div style="text-align: center;">
-          <div style="font-size: 4rem; margin-bottom: 1rem; animation: pulse 2s infinite;">🚀</div>
-          <h1 style="font-size: 2rem; margin-bottom: 0.5rem; background: linear-gradient(45deg, #8b5cf6, #06b6d4); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">CryptoPulse Trading Bot</h1>
-          <p style="opacity: 0.8; margin-bottom: 2rem;">Loading your AI-powered trading platform...</p>
-          <div style="
-            width: 40px;
-            height: 40px;
-            border: 4px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            border-top-color: #8b5cf6;
-            animation: spin 1s ease-in-out infinite;
-            margin: 0 auto;
-          "></div>
-        </div>
-      </div>
-    </div>
-    
-    <style>
+      }
+      
+      .loading-content {
+        text-align: center;
+        max-width: 400px;
+        padding: 2rem;
+      }
+      
+      .logo {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        animation: pulse 2s infinite;
+      }
+      
       @keyframes pulse {
         0%, 100% { transform: scale(1); }
         50% { transform: scale(1.05); }
       }
+      
+      h1 {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+        background: linear-gradient(45deg, #8b5cf6, #06b6d4);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      
+      .subtitle {
+        color: rgba(255, 255, 255, 0.7);
+        margin-bottom: 2rem;
+      }
+      
+      .spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top-color: #8b5cf6;
+        animation: spin 1s ease-in-out infinite;
+        margin: 0 auto;
+      }
+      
       @keyframes spin {
         to { transform: rotate(360deg); }
       }
+      
+      .status {
+        margin-top: 1rem;
+        color: rgba(255, 255, 255, 0.8);
+      }
+      
+      .error-message {
+        background: rgba(239, 68, 68, 0.1);
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        color: #ef4444;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-top: 1rem;
+      }
+      
+      .retry-btn {
+        background: linear-gradient(45deg, #8b5cf6, #06b6d4);
+        color: white;
+        border: none;
+        padding: 0.75rem 2rem;
+        border-radius: 6px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        margin-top: 1rem;
+        transition: transform 0.3s ease;
+      }
+      
+      .retry-btn:hover {
+        transform: translateY(-2px);
+      }
     </style>
+  </head>
+  <body>
+    <div id="root">
+      <div class="loading-container">
+        <div class="loading-content">
+          <div class="logo">🚀</div>
+          <h1>CryptoPulse Trading Bot</h1>
+          <p class="subtitle">AI-Powered Cryptocurrency Trading Platform</p>
+          <div class="spinner"></div>
+          <div class="status">Loading your trading platform...</div>
+          <div class="error-message" id="error-message" style="display: none;">
+            <strong>Build Error Detected</strong><br>
+            The React app build failed. This is a temporary issue with the deployment process.<br>
+            <button class="retry-btn" onclick="location.reload()">Retry Loading</button>
+          </div>
+        </div>
+      </div>
+    </div>
     
-    <script type="module" src="/src/main.tsx"></script>
+    <!-- React and ReactDOM from CDN -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel for JSX transformation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Load the actual React app -->
+    <script type="text/babel" src="app.js"></script>
+    
+    <script>
+      // Show error message after 15 seconds if app doesn't load
+      setTimeout(() => {
+        const root = document.getElementById('root');
+        if (root && root.innerHTML.includes('loading-container')) {
+          document.getElementById('error-message').style.display = 'block';
+        }
+      }, 15000);
+    </script>
   </body>
 </html>
