@@ -1,0 +1,22 @@
+{
+  "name": "cryptopulse-backend",
+  "version": "1.0.0",
+  "description": "Backend cloud functions for CryptoPulse Trading Bot",
+  "main": "cloud-functions.js",
+  "scripts": {
+    "start": "node cloud-functions.js",
+    "dev": "node cloud-functions.js"
+  },
+  "dependencies": {
+    "parse": "^3.5.1"
+  },
+  "keywords": [
+    "cryptocurrency",
+    "trading",
+    "bot",
+    "backend",
+    "cloud-functions"
+  ],
+  "author": "Shrikant Telang",
+  "license": "MIT"
+}

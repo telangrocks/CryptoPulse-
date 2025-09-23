@@ -26,20 +26,27 @@ export default defineConfig({
         warn(warning);
       },
       output: {
-        manualChunks: {
+        manualChunks: (id) => {
           // Group common libraries
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'ui-vendor': ['@radix-ui/react-accordion', '@radix-ui/react-alert-dialog', '@radix-ui/react-avatar'],
-          'utils-vendor': ['clsx', 'tailwind-merge', 'zod'],
-          'parse-vendor': ['parse'],
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
+              return 'react-vendor';
+            }
+            if (id.includes('@radix-ui')) {
+              return 'ui-vendor';
+            }
+            if (id.includes('clsx') || id.includes('tailwind-merge') || id.includes('zod')) {
+              return 'utils-vendor';
+            }
+            if (id.includes('parse')) {
+              return 'parse-vendor';
+            }
+            return 'vendor';
+          }
           // Group our lib modules to avoid mixed import issues
-          'lib-utils': [
-            './src/lib/logger.ts',
-            './src/lib/encryption.ts',
-            './src/lib/csrfProtection.ts',
-            './src/lib/secureStorage.ts',
-            './src/lib/riskManagement.ts'
-          ]
+          if (id.includes('/src/lib/')) {
+            return 'lib-utils';
+          }
         }
       }
     }
