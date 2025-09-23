@@ -5,6 +5,7 @@ import path from 'path'
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
+  logLevel: 'warn', // Reduce log verbosity during build
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
@@ -15,7 +16,33 @@ export default defineConfig({
     // Simplified build configuration
     minify: 'esbuild',
     sourcemap: false,
-    chunkSizeWarningLimit: 1000
+    chunkSizeWarningLimit: 1000,
+    // Don't fail build on warnings
+    rollupOptions: {
+      onwarn(warning, warn) {
+        // Suppress mixed import warnings
+        if (warning.code === 'MODULE_LEVEL_DIRECTIVE') return;
+        if (warning.message.includes('dynamic import will not move module into another chunk')) return;
+        warn(warning);
+      },
+      output: {
+        manualChunks: {
+          // Group common libraries
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'ui-vendor': ['@radix-ui/react-accordion', '@radix-ui/react-alert-dialog', '@radix-ui/react-avatar'],
+          'utils-vendor': ['clsx', 'tailwind-merge', 'zod'],
+          'parse-vendor': ['parse'],
+          // Group our lib modules to avoid mixed import issues
+          'lib-utils': [
+            './src/lib/logger.ts',
+            './src/lib/encryption.ts',
+            './src/lib/csrfProtection.ts',
+            './src/lib/secureStorage.ts',
+            './src/lib/riskManagement.ts'
+          ]
+        }
+      }
+    }
   },
   // Back4App configuration
   base: '/',
