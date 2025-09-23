@@ -2,7 +2,7 @@
 FROM node:18-alpine
 
 # Install system dependencies
-RUN apk add --no-cache curl
+RUN apk add --no-cache curl python3
 
 # Set working directory
 WORKDIR /app
@@ -41,4 +41,4 @@ ENV NODE_ENV=production
 ENV PORT=3000
 
 # Start the application (serve frontend)
-CMD ["sh", "-c", "cd frontend && npm run preview"]
+CMD ["sh", "-c", "cd frontend && npx serve -s dist -l 3000"]
