@@ -2,6 +2,8 @@
  * Advanced WebSocket manager for real-time data
  */
 
+import React from 'react'
+
 interface WebSocketConfig {
   url: string
   protocols?: string | string[]

@@ -40,6 +40,15 @@ export default function TradeExecution() {
 
   const initializeTrading = async () => {
     try {
+      // Check if live trading is enabled
+      const liveTradingEnabled = import.meta.env.VITE_ENABLE_LIVE_TRADING === 'true'
+      if (!liveTradingEnabled) {
+        logWarn('Live trading is disabled in environment configuration', 'TradeExecution')
+        fetchTradeHistory()
+        setIsLoading(false)
+        return
+      }
+
       // Load and validate API keys
       const keys = await getSecureItem('cryptopulse_api_keys')
       if (!keys) {

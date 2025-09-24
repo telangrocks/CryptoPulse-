@@ -13,10 +13,11 @@ export default defineConfig({
     },
   },
   build: {
-    // Simplified build configuration
+    // Enhanced build configuration for better browser compatibility
     minify: 'esbuild',
     sourcemap: false,
     chunkSizeWarningLimit: 1000,
+    target: ['es2015', 'chrome58', 'firefox57', 'safari11', 'edge16'],
     // Don't fail build on warnings
     rollupOptions: {
       onwarn(warning, warn) {

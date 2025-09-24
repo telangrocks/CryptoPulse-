@@ -26,6 +26,7 @@ import {
   Square
 } from 'lucide-react'
 import { callBack4AppFunction } from '../back4app/config'
+import { useWebSocket, binanceWS } from '../lib/websocketManager'
 
 interface TradeSignal {
   id: string
@@ -59,21 +60,47 @@ export default function MonitoringDashboard() {
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [showDetails, setShowDetails] = useState(false)
+  const [wsConnected, setWsConnected] = useState(false)
+  const [realTimeData, setRealTimeData] = useState<any>(null)
   const navigate = useNavigate()
+
+  // WebSocket connection for real-time data
+  const { status: wsStatus, connect: wsConnect, disconnect: wsDisconnect } = useWebSocket({
+    url: 'wss://stream.binance.com:9443/ws/btcusdt@ticker',
+    onOpen: () => {
+      setWsConnected(true)
+      logInfo('WebSocket connected for real-time monitoring', 'MonitoringDashboard')
+    },
+    onClose: () => {
+      setWsConnected(false)
+      logWarn('WebSocket disconnected', 'MonitoringDashboard')
+    },
+    onError: (error) => {
+      logError('WebSocket error', 'MonitoringDashboard', error)
+    },
+    onMessage: (data) => {
+      setRealTimeData(data)
+      // Update signals if this is a new trade signal
+      if (data.type === 'trade_signal') {
+        setSignals(prev => [data.signal, ...prev.slice(0, 9)]) // Keep last 10 signals
+      }
+    }
+  })
 
   useEffect(() => {
     fetchMonitoringData()
     const interval = setInterval(fetchMonitoringData, 30000) // Refresh every 30 seconds
     
-    // TODO: Replace with WebSocket connection when available
-    // websocketManager.connect()
-    // websocketManager.subscribe(handleRealTimeUpdate)
+    // Connect to WebSocket for real-time data
+    wsConnect().catch(error => {
+      logError('Failed to connect WebSocket', 'MonitoringDashboard', error)
+    })
     
     return () => {
       clearInterval(interval)
-      // websocketManager.disconnect()
+      wsDisconnect()
     }
-  }, [])
+  }, [wsConnect, wsDisconnect])
 
   const fetchMonitoringData = async () => {
     try {
@@ -171,6 +198,12 @@ export default function MonitoringDashboard() {
             </div>
 
             <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-2">
+                <div className={`w-2 h-2 rounded-full ${wsConnected ? 'bg-green-400' : 'bg-red-400'}`} />
+                <span className="text-sm text-slate-400">
+                  {wsConnected ? 'Real-time Connected' : 'Real-time Disconnected'}
+                </span>
+              </div>
               <Button
                 variant="outline"
                 size="sm"
@@ -292,6 +325,48 @@ export default function MonitoringDashboard() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Real-time Data */}
+        {realTimeData && (
+          <Card className="bg-slate-800/90 border-slate-700 text-white mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Activity className="h-5 w-5 mr-2 text-blue-400" />
+                Real-time Market Data
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="text-center p-3 bg-slate-700/30 rounded">
+                  <p className="text-slate-400 text-sm">Current Price</p>
+                  <p className="text-white font-semibold text-lg">
+                    ${realTimeData.c ? parseFloat(realTimeData.c).toFixed(4) : 'N/A'}
+                  </p>
+                </div>
+                <div className="text-center p-3 bg-slate-700/30 rounded">
+                  <p className="text-slate-400 text-sm">24h Change</p>
+                  <p className={`font-semibold text-lg ${
+                    realTimeData.P ? (parseFloat(realTimeData.P) >= 0 ? 'text-green-400' : 'text-red-400') : 'text-slate-400'
+                  }`}>
+                    {realTimeData.P ? `${realTimeData.P}%` : 'N/A'}
+                  </p>
+                </div>
+                <div className="text-center p-3 bg-slate-700/30 rounded">
+                  <p className="text-slate-400 text-sm">24h Volume</p>
+                  <p className="text-white font-semibold text-lg">
+                    {realTimeData.v ? parseFloat(realTimeData.v).toFixed(2) : 'N/A'}
+                  </p>
+                </div>
+                <div className="text-center p-3 bg-slate-700/30 rounded">
+                  <p className="text-slate-400 text-sm">Last Update</p>
+                  <p className="text-white font-semibold text-lg">
+                    {new Date().toLocaleTimeString()}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Live Signals */}
         <Card className="bg-slate-800/90 border-slate-700 text-white">

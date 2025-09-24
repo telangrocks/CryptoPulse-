@@ -1,6 +1,7 @@
 import React from 'react'
 import { render, screen, fireEvent } from '../test-utils'
 import ErrorBoundary from '../../components/ErrorBoundary'
+import { vi } from 'vitest'
 
 // Component that throws an error
 const ThrowError = ({ shouldThrow }: { shouldThrow: boolean }) => {
@@ -13,11 +14,11 @@ const ThrowError = ({ shouldThrow }: { shouldThrow: boolean }) => {
 describe('ErrorBoundary', () => {
   beforeEach(() => {
     // Suppress console.error for tests
-    jest.spyOn(console, 'error').mockImplementation(() => {})
+    vi.spyOn(console, 'error').mockImplementation(() => {})
   })
 
   afterEach(() => {
-    jest.restoreAllMocks()
+    vi.restoreAllMocks()
   })
 
   it('renders children when there is no error', () => {
@@ -61,7 +62,7 @@ describe('ErrorBoundary', () => {
   })
 
   it('shows reload button and reloads page', () => {
-    const reloadSpy = jest.spyOn(window.location, 'reload').mockImplementation(() => {})
+    const reloadSpy = vi.spyOn(window.location, 'reload').mockImplementation(() => {})
 
     render(
       <ErrorBoundary>
@@ -77,7 +78,7 @@ describe('ErrorBoundary', () => {
   })
 
   it('shows go home button and navigates home', () => {
-    const assignSpy = jest.spyOn(window.location, 'href', 'set').mockImplementation(() => {})
+    const assignSpy = vi.spyOn(window.location, 'href', 'set').mockImplementation(() => {})
 
     render(
       <ErrorBoundary>
@@ -137,7 +138,7 @@ describe('ErrorBoundary', () => {
   })
 
   it('logs error to service', () => {
-    const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {})
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
 
     render(
       <ErrorBoundary>

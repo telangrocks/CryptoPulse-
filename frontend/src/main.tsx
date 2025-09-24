@@ -3,6 +3,13 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 
+// Import polyfills for browser compatibility
+import './polyfills/browser-polyfills.js'
+import './polyfills/events.js'
+
+// Import browser compatibility checker
+import './lib/browserCompatibility'
+
 // Add error boundary for debugging
 window.addEventListener('error', (e) => {
   console.error('Global error:', e.error);
