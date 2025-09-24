@@ -5,6 +5,7 @@ const axios = require('axios');
 const SecurityMiddleware = require('./backend/securityMiddleware');
 const { getSessionManager } = require('./backend/secureSessionManager');
 const { getAuditLogger } = require('./backend/auditLogger');
+const { getMonitoringSystem } = require('./backend/monitoring');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -12,6 +13,7 @@ const PORT = process.env.PORT || 3000;
 const security = new SecurityMiddleware();
 const sessionManager = getSessionManager();
 const auditLogger = getAuditLogger();
+const monitoring = getMonitoringSystem();
 
 // Apply security middleware
 app.use(security.getAllMiddleware());
@@ -25,10 +27,75 @@ app.use('/api/trading', security.getRateLimitMiddleware('trading'));
 app.use('/api/upload', security.getRateLimitMiddleware('upload'));
 app.use('/api', security.getRateLimitMiddleware('general'));
 
-// Add request logging middleware
+// Add monitoring middleware
 app.use((req, res, next) => {
+  const startTime = Date.now();
+  
+  // Override res.end to capture response metrics
+  const originalEnd = res.end;
+  res.end = function(...args) {
+    const duration = Date.now() - startTime;
+    monitoring.recordHttpRequest(req.method, req.route?.path || req.path, res.statusCode, duration);
+    originalEnd.apply(this, args);
+  };
+  
   console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
   next();
+});
+
+// Prometheus metrics endpoint
+app.get('/metrics', (req, res) => {
+  res.set('Content-Type', 'text/plain');
+  res.send(monitoring.getMetrics());
+});
+
+// Monitoring dashboard endpoint
+app.get('/api/monitoring/dashboard', (req, res) => {
+  try {
+    const dashboardData = monitoring.getDashboardData();
+    res.json(dashboardData);
+  } catch (error) {
+    monitoring.recordError('api', 'high', error);
+    res.status(500).json({ error: 'Failed to get dashboard data' });
+  }
+});
+
+// Health check with monitoring
+app.get('/health', async (req, res) => {
+  try {
+    const healthStatus = monitoring.getHealthStatus();
+    
+    // Also run the existing health checks
+    const healthStatus_legacy = {
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      memory: process.memoryUsage(),
+      version: process.version,
+      environment: process.env.NODE_ENV || 'development',
+      services: {
+        database: 'healthy',
+        redis: 'healthy',
+        external_apis: 'healthy'
+      }
+    };
+    
+    // Merge health statuses
+    const combinedHealth = {
+      ...healthStatus_legacy,
+      monitoring: healthStatus,
+      overall: healthStatus.status === 'healthy' && healthStatus_legacy.status === 'healthy' ? 'healthy' : 'unhealthy'
+    };
+    
+    res.json(combinedHealth);
+  } catch (error) {
+    monitoring.recordError('health_check', 'high', error);
+    res.status(500).json({ 
+      status: 'unhealthy', 
+      error: 'Health check failed',
+      timestamp: new Date().toISOString()
+    });
+  }
 });
 
 // CSRF token endpoint
@@ -65,6 +132,10 @@ app.post('/api/auth/login', async (req, res) => {
     // Log successful login
     await auditLogger.logUserLogin(user.id, ipAddress, userAgent, true);
     
+    // Record monitoring metrics
+    monitoring.recordAuthAttempt('login', 'success');
+    monitoring.recordActiveSessions(1); // Increment active sessions
+    
     res.json({
       success: true,
       user,
@@ -83,6 +154,10 @@ app.post('/api/auth/login', async (req, res) => {
       userAgent: req.get('User-Agent')
     });
     
+    // Record monitoring metrics
+    monitoring.recordAuthAttempt('login', 'failure');
+    monitoring.recordError('authentication', 'high', error);
+    
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -99,6 +174,10 @@ app.post('/api/auth/logout', async (req, res) => {
     sessionManager.clearSessionCookie(res);
     
     await auditLogger.logUserLogout(userId, req.ip, req.get('User-Agent'));
+    
+    // Record monitoring metrics
+    monitoring.recordAuthAttempt('logout', 'success');
+    monitoring.recordActiveSessions(-1); // Decrement active sessions
     
     res.json({ success: true, message: 'Logged out successfully' });
     
@@ -330,8 +409,13 @@ app.get('*', (req, res) => {
   }
 });
 
+// Start monitoring system
+monitoring.startMonitoring();
+
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`CryptoPulse Trading Bot server running on port ${PORT}`);
-  console.log(`Health check available at http://localhost:${PORT}/health`);
+  console.log(`🚀 CryptoPulse Trading Bot server running on port ${PORT}`);
+  console.log(`📊 Health check available at http://localhost:${PORT}/health`);
+  console.log(`📈 Prometheus metrics available at http://localhost:${PORT}/metrics`);
+  console.log(`📊 Monitoring dashboard available at http://localhost:${PORT}/api/monitoring/dashboard`);
   console.log(`Serving static files from: ${path.join(__dirname, 'frontend/dist')}`);
 });

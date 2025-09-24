@@ -28,6 +28,8 @@
   "license": "MIT",
   "devDependencies": {},
   "dependencies": {
-    "express": "^4.18.2"
+    "express": "^4.18.2",
+    "axios": "^1.6.0",
+    "ws": "^8.14.0"
   }
 }
