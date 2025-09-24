@@ -1,521 +1,624 @@
-# 🚀 **CryptoPulse Deployment Runbook**
+# CryptoPulse Deployment Runbook
 
-## **Overview**
+## Overview
 
-This runbook provides step-by-step procedures for deploying, monitoring, and maintaining the CryptoPulse trading bot in production environments.
+This runbook provides comprehensive instructions for deploying, monitoring, and maintaining the CryptoPulse trading platform in production environments.
 
----
+## Table of Contents
 
-## **Pre-Deployment Checklist**
+1. [Pre-Deployment Checklist](#pre-deployment-checklist)
+2. [Environment Setup](#environment-setup)
+3. [Deployment Procedures](#deployment-procedures)
+4. [Post-Deployment Verification](#post-deployment-verification)
+5. [Monitoring and Alerting](#monitoring-and-alerting)
+6. [Troubleshooting Guide](#troubleshooting-guide)
+7. [Rollback Procedures](#rollback-procedures)
+8. [Maintenance Procedures](#maintenance-procedures)
 
-### **Environment Preparation**
-- [ ] Production server provisioned and configured
-- [ ] Domain name configured with DNS
-- [ ] SSL certificates obtained (Let's Encrypt or custom)
-- [ ] Database and Redis instances provisioned
-- [ ] Environment variables configured
-- [ ] Monitoring and logging systems ready
-- [ ] Backup procedures tested
-- [ ] Rollback procedures tested
+## Pre-Deployment Checklist
 
-### **Security Checklist**
-- [ ] All secrets rotated and secured
-- [ ] Firewall rules configured
-- [ ] SSL/TLS certificates valid
-- [ ] Security headers configured
-- [ ] Rate limiting enabled
-- [ ] Audit logging enabled
-- [ ] Vulnerability scan completed
-- [ ] Penetration testing completed
+### Infrastructure Requirements
 
----
+- [ ] **Server Specifications**
+  - Minimum: 4 CPU cores, 8GB RAM, 100GB SSD
+  - Recommended: 8 CPU cores, 16GB RAM, 200GB SSD
+  - Network: 1Gbps connection with low latency
 
-## **Deployment Procedures**
+- [ ] **Dependencies**
+  - [ ] Docker Engine 20.10+
+  - [ ] Docker Compose 2.0+
+  - [ ] Node.js 18+ (for local development)
+  - [ ] SSL Certificate (Let's Encrypt or commercial)
+  - [ ] Domain name configured
 
-### **1. Initial Deployment**
+- [ ] **External Services**
+  - [ ] MongoDB Atlas or self-hosted MongoDB 5.0+
+  - [ ] Redis 6.0+ (Redis Cloud or self-hosted)
+  - [ ] Binance API credentials
+  - [ ] Email service (SendGrid, AWS SES, etc.)
+  - [ ] Monitoring service (Prometheus + Grafana)
 
-#### **Step 1: Environment Setup**
+### Security Checklist
+
+- [ ] **SSL/TLS Configuration**
+  - [ ] SSL certificates installed and valid
+  - [ ] HTTPS redirect configured
+  - [ ] Security headers implemented
+  - [ ] HSTS enabled
+
+- [ ] **Access Control**
+  - [ ] Firewall configured (ports 80, 443, 22)
+  - [ ] SSH key-based authentication
+  - [ ] Database access restricted
+  - [ ] API rate limiting configured
+
+- [ ] **Secrets Management**
+  - [ ] Environment variables secured
+  - [ ] Database credentials encrypted
+  - [ ] API keys stored securely
+  - [ ] Session secrets generated
+
+## Environment Setup
+
+### 1. Server Preparation
+
 ```bash
-# Clone repository
-git clone https://github.com/your-org/cryptopulse.git
-cd cryptopulse
+# Update system packages
+sudo apt update && sudo apt upgrade -y
 
-# Copy environment configuration
-cp env.production.example .env
-# Edit .env with production values
+# Install Docker
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+sudo usermod -aG docker $USER
 
-# Validate environment
-node scripts/validate-env.js
+# Install Docker Compose
+sudo curl -L "https://github.com/docker/compose/releases/download/v2.20.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
+
+# Create application directory
+sudo mkdir -p /opt/cryptopulse
+sudo chown $USER:$USER /opt/cryptopulse
 ```
 
-#### **Step 2: SSL Certificate Setup**
+### 2. Environment Configuration
+
+Create production environment file:
+
 ```bash
-# Generate SSL certificates
+# Copy environment template
+cp env.production.example .env.production
+
+# Edit environment variables
+nano .env.production
+```
+
+**Required Environment Variables:**
+
+```bash
+# Application
+NODE_ENV=production
+PORT=3000
+DOMAIN_NAME=your-domain.com
+SSL_EMAIL=admin@your-domain.com
+
+# Database
+MONGO_URL=mongodb://username:password@host:port/database
+MONGO_INITDB_ROOT_USERNAME=admin
+MONGO_INITDB_ROOT_PASSWORD=secure_password
+
+# Redis
+REDIS_URL=redis://username:password@host:port
+REDIS_PASSWORD=secure_redis_password
+
+# Security
+SESSION_SECRET=your-super-secret-session-key
+ENCRYPTION_KEY=your-32-character-encryption-key
+JWT_SECRET=your-jwt-secret-key
+
+# External APIs
+BINANCE_API_KEY=your-binance-api-key
+BINANCE_SECRET_KEY=your-binance-secret-key
+
+# Email
+EMAIL_SERVICE=sendgrid
+EMAIL_API_KEY=your-sendgrid-api-key
+EMAIL_FROM=noreply@your-domain.com
+
+# Monitoring
+PROMETHEUS_PORT=9090
+GRAFANA_PORT=3001
+```
+
+### 3. SSL Certificate Setup
+
+```bash
+# Run SSL setup script
+chmod +x scripts/ssl-setup.sh
 ./scripts/ssl-setup.sh
 
 # Verify SSL configuration
 ./scripts/ssl-check.sh
 ```
 
-#### **Step 3: Database Setup**
-```bash
-# Run database migrations
-node scripts/db-migrate.js
+## Deployment Procedures
 
-# Verify database connectivity
-node scripts/db-health-check.js
+### Blue-Green Deployment Strategy
+
+#### 1. Prepare Green Environment
+
+```bash
+# Create green environment
+cp docker-compose.yml docker-compose.green.yml
+
+# Update green environment configuration
+sed -i 's/cryptopulse-backend/cryptopulse-backend-green/g' docker-compose.green.yml
+sed -i 's/cryptopulse-frontend/cryptopulse-frontend-green/g' docker-compose.green.yml
 ```
 
-#### **Step 4: Application Deployment**
-```bash
-# Build and deploy with Docker
-docker-compose -f docker-compose.production.yml up -d
+#### 2. Deploy to Green Environment
 
-# Verify deployment
-./scripts/production-validation.js https://your-domain.com
+```bash
+# Build and start green environment
+docker-compose -f docker-compose.green.yml build
+docker-compose -f docker-compose.green.yml up -d
+
+# Run health checks
+./scripts/health-check.sh green
+
+# Run smoke tests
+npm run test:smoke
 ```
 
-#### **Step 5: Health Checks**
+#### 3. Switch Traffic to Green
+
 ```bash
-# Check application health
-curl -f https://your-domain.com/health
-
-# Check SSL health
-curl -f https://your-domain.com/ssl-health
-
-# Check metrics endpoint
-curl -f https://your-domain.com/metrics
-```
-
-### **2. Rolling Updates**
-
-#### **Step 1: Prepare New Version**
-```bash
-# Pull latest changes
-git pull origin main
-
-# Build new image
-docker-compose -f docker-compose.production.yml build
-
-# Test new version
-docker-compose -f docker-compose.production.yml up -d --scale backend=0
-docker-compose -f docker-compose.production.yml up -d --scale backend=1
-```
-
-#### **Step 2: Deploy New Version**
-```bash
-# Deploy with zero downtime
-docker-compose -f docker-compose.production.yml up -d
-
-# Verify deployment
-./scripts/production-validation.js https://your-domain.com
-```
-
-#### **Step 3: Post-Deployment Verification**
-```bash
-# Check application health
-curl -f https://your-domain.com/health
-
-# Check metrics
-curl -f https://your-domain.com/metrics
-
-# Check logs
-docker-compose -f docker-compose.production.yml logs --tail=100 backend
-```
-
-### **3. Blue-Green Deployment**
-
-#### **Step 1: Prepare Green Environment**
-```bash
-# Deploy to green environment
-docker-compose -f docker-compose.production.yml -p green up -d
-
-# Verify green environment
-./scripts/production-validation.js https://green.your-domain.com
-```
-
-#### **Step 2: Switch Traffic**
-```bash
-# Update load balancer to point to green
-# (Implementation depends on your load balancer)
+# Update load balancer configuration
+./scripts/switch-traffic.sh green
 
 # Verify traffic is flowing to green
 curl -f https://your-domain.com/health
+
+# Monitor for 5 minutes
+./scripts/monitor-deployment.sh 300
 ```
 
-#### **Step 3: Cleanup Blue Environment**
-```bash
-# Wait for verification period
-sleep 300
+#### 4. Cleanup Blue Environment
 
-# Cleanup blue environment
-docker-compose -f docker-compose.production.yml -p blue down
+```bash
+# Stop blue environment after successful deployment
+docker-compose down
+
+# Clean up old images
+docker image prune -f
 ```
 
----
+### Rolling Deployment (Alternative)
 
-## **Monitoring and Alerting**
-
-### **Key Metrics to Monitor**
-
-#### **Application Metrics**
-- Response time (< 2 seconds)
-- Error rate (< 1%)
-- Throughput (requests per second)
-- Memory usage (< 80%)
-- CPU usage (< 70%)
-
-#### **Business Metrics**
-- Active users
-- Trading volume
-- Success rate
-- Revenue metrics
-
-#### **Infrastructure Metrics**
-- Database connections
-- Redis memory usage
-- Disk space
-- Network latency
-
-### **Alerting Rules**
-
-#### **Critical Alerts**
-- Application down (5 minutes)
-- Database unavailable (2 minutes)
-- Redis unavailable (2 minutes)
-- SSL certificate expiring (30 days)
-- High error rate (> 5% for 5 minutes)
-
-#### **Warning Alerts**
-- High response time (> 5 seconds for 10 minutes)
-- High memory usage (> 85% for 15 minutes)
-- High CPU usage (> 80% for 15 minutes)
-- Low disk space (< 20% free)
-
-### **Monitoring Commands**
 ```bash
-# Check application health
+# Deploy with rolling updates
+docker-compose up -d --force-recreate
+
+# Monitor deployment
+docker-compose logs -f --tail=100
+```
+
+## Post-Deployment Verification
+
+### 1. Health Checks
+
+```bash
+# Run comprehensive health checks
+./scripts/health-check.sh
+
+# Check individual services
 curl -f https://your-domain.com/health
-
-# Check Prometheus metrics
 curl -f https://your-domain.com/metrics
-
-# Check Grafana dashboard
-open https://your-domain.com:3001
-
-# Check logs
-docker-compose -f docker-compose.production.yml logs -f backend
 ```
 
----
+### 2. Functional Testing
 
-## **Backup and Recovery**
-
-### **Backup Procedures**
-
-#### **Daily Backups**
 ```bash
-# Run automated backup
-./scripts/backup.sh
+# Run API tests
+npm run test:api
 
-# Verify backup
-./scripts/backup-verify.sh
+# Run integration tests
+npm run test:integration
+
+# Run end-to-end tests
+npm run test:e2e
 ```
 
-#### **Manual Backup**
+### 3. Performance Testing
+
 ```bash
-# Database backup
-docker-compose -f docker-compose.production.yml exec mongodb mongodump --out /backup/mongodb
+# Run load tests
+node tests/performance/load-test.js https://your-domain.com
 
-# Configuration backup
-tar -czf config-backup-$(date +%Y%m%d).tar.gz .env nginx.conf docker-compose.production.yml
-
-# SSL certificates backup
-tar -czf ssl-backup-$(date +%Y%m%d).tar.gz ssl/ letsencrypt/
+# Check response times
+curl -w "@curl-format.txt" -o /dev/null -s https://your-domain.com/api/trading/status
 ```
 
-### **Recovery Procedures**
+### 4. Security Verification
 
-#### **Database Recovery**
 ```bash
-# Stop application
-docker-compose -f docker-compose.production.yml down
+# Run security scan
+./scripts/security-validation.js
 
-# Restore database
-docker-compose -f docker-compose.production.yml exec mongodb mongorestore /backup/mongodb
+# Check SSL configuration
+./scripts/ssl-check.sh
 
-# Start application
-docker-compose -f docker-compose.production.yml up -d
+# Verify security headers
+curl -I https://your-domain.com
 ```
 
-#### **Full System Recovery**
-```bash
-# Restore from backup
-./scripts/restore.sh backup-20240101.tar.gz
+## Monitoring and Alerting
 
-# Verify recovery
-./scripts/production-validation.js https://your-domain.com
+### 1. Prometheus Metrics
+
+Access metrics at: `https://your-domain.com/metrics`
+
+**Key Metrics to Monitor:**
+- Response time percentiles (p50, p90, p95, p99)
+- Error rates by endpoint
+- Database connection pool usage
+- Cache hit rates
+- Trading volume and success rates
+
+### 2. Grafana Dashboards
+
+Access dashboards at: `http://your-server:3001`
+
+**Available Dashboards:**
+- System Overview
+- Trading Performance
+- User Activity
+- Error Rates
+- Database Performance
+
+### 3. Alerting Rules
+
+**Critical Alerts:**
+- High error rate (>5%)
+- Slow response time (>2s p95)
+- Database connection issues
+- SSL certificate expiration
+- High memory usage (>90%)
+
+**Warning Alerts:**
+- Moderate error rate (>2%)
+- Slow response time (>1s p95)
+- Low cache hit rate (<80%)
+- High CPU usage (>80%)
+
+### 4. Log Monitoring
+
+```bash
+# View application logs
+docker-compose logs -f backend
+
+# View access logs
+docker-compose logs -f nginx
+
+# Search for errors
+docker-compose logs backend | grep ERROR
 ```
 
----
+## Troubleshooting Guide
 
-## **Troubleshooting**
+### Common Issues
 
-### **Common Issues**
+#### 1. Application Won't Start
 
-#### **Application Won't Start**
+**Symptoms:**
+- Docker containers exit immediately
+- Health checks fail
+- 502 Bad Gateway errors
+
+**Diagnosis:**
 ```bash
-# Check logs
-docker-compose -f docker-compose.production.yml logs backend
-
-# Check environment variables
-docker-compose -f docker-compose.production.yml config
+# Check container logs
+docker-compose logs backend
 
 # Check resource usage
 docker stats
+
+# Verify environment variables
+docker-compose config
 ```
 
-#### **Database Connection Issues**
+**Solutions:**
+- Verify all required environment variables are set
+- Check database connectivity
+- Ensure sufficient system resources
+- Review application logs for specific errors
+
+#### 2. Database Connection Issues
+
+**Symptoms:**
+- Database connection timeouts
+- High connection pool usage
+- Slow database queries
+
+**Diagnosis:**
 ```bash
-# Check database status
-docker-compose -f docker-compose.production.yml exec mongodb mongosh --eval "db.adminCommand('ping')"
+# Check database connectivity
+docker-compose exec backend node -e "
+const mongoose = require('mongoose');
+mongoose.connect(process.env.MONGO_URL)
+  .then(() => console.log('Connected'))
+  .catch(err => console.error('Connection failed:', err));
+"
 
-# Check network connectivity
-docker-compose -f docker-compose.production.yml exec backend ping mongodb
-
-# Check database logs
-docker-compose -f docker-compose.production.yml logs mongodb
+# Check database metrics
+curl http://localhost:9090/metrics | grep database
 ```
 
-#### **SSL Certificate Issues**
-```bash
-# Check certificate validity
-openssl x509 -in ssl/cert.pem -text -noout
+**Solutions:**
+- Increase connection pool size
+- Optimize database queries
+- Add database indexes
+- Consider read replicas for scaling
 
-# Check certificate chain
-openssl verify -CAfile ssl/ca.pem ssl/cert.pem
+#### 3. High Memory Usage
 
-# Renew certificates
-./scripts/ssl-renew.sh
-```
+**Symptoms:**
+- Slow response times
+- Out of memory errors
+- Container restarts
 
-#### **High Memory Usage**
+**Diagnosis:**
 ```bash
 # Check memory usage
 docker stats
 
 # Check for memory leaks
-docker-compose -f docker-compose.production.yml exec backend node --inspect=0.0.0.0:9229 server.js
-
-# Restart application
-docker-compose -f docker-compose.production.yml restart backend
+docker-compose exec backend node --inspect=0.0.0.0:9229
 ```
 
-#### **Rate Limiting Issues**
+**Solutions:**
+- Increase container memory limits
+- Optimize application code
+- Implement garbage collection tuning
+- Add memory monitoring
+
+#### 4. SSL Certificate Issues
+
+**Symptoms:**
+- SSL certificate errors
+- HTTPS redirect failures
+- Security warnings
+
+**Diagnosis:**
 ```bash
-# Check rate limit status
-curl -H "X-RateLimit-Limit: 100" https://your-domain.com/api/health
+# Check certificate validity
+./scripts/ssl-check.sh
 
-# Check Redis status
-docker-compose -f docker-compose.production.yml exec redis redis-cli ping
-
-# Clear rate limit cache
-docker-compose -f docker-compose.production.yml exec redis redis-cli flushall
+# Test SSL configuration
+openssl s_client -connect your-domain.com:443 -servername your-domain.com
 ```
 
-### **Performance Issues**
+**Solutions:**
+- Renew SSL certificates
+- Update certificate paths
+- Verify domain configuration
+- Check certificate chain
 
-#### **Slow Response Times**
+### Emergency Procedures
+
+#### 1. Service Degradation
+
 ```bash
-# Check application metrics
-curl -f https://your-domain.com/metrics
+# Enable maintenance mode
+echo "MAINTENANCE_MODE=true" >> .env.production
+docker-compose restart
 
-# Check database performance
-docker-compose -f docker-compose.production.yml exec mongodb mongosh --eval "db.stats()"
+# Scale down services
+docker-compose scale backend=1 frontend=1
 
-# Check Redis performance
-docker-compose -f docker-compose.production.yml exec redis redis-cli info stats
+# Monitor resource usage
+watch docker stats
 ```
 
-#### **High Error Rates**
+#### 2. Security Incident
+
 ```bash
-# Check error logs
-docker-compose -f docker-compose.production.yml logs --tail=1000 backend | grep ERROR
+# Block suspicious IPs
+iptables -A INPUT -s suspicious-ip -j DROP
 
-# Check application health
-curl -f https://your-domain.com/health
+# Rotate secrets
+./scripts/rotate-secrets.sh
 
-# Check external API status
-curl -f https://api.binance.com/api/v3/ping
+# Review audit logs
+docker-compose logs audit-logger | grep "security"
 ```
 
----
+#### 3. Data Corruption
 
-## **Maintenance Procedures**
-
-### **Regular Maintenance Tasks**
-
-#### **Daily Tasks**
-- [ ] Check application health
-- [ ] Review error logs
-- [ ] Monitor performance metrics
-- [ ] Verify backup completion
-- [ ] Check SSL certificate validity
-
-#### **Weekly Tasks**
-- [ ] Review security logs
-- [ ] Update dependencies
-- [ ] Clean up old logs
-- [ ] Review performance trends
-- [ ] Test backup restoration
-
-#### **Monthly Tasks**
-- [ ] Security audit
-- [ ] Performance optimization
-- [ ] Dependency updates
-- [ ] Disaster recovery testing
-- [ ] Capacity planning review
-
-### **Update Procedures**
-
-#### **Security Updates**
 ```bash
-# Update base images
-docker-compose -f docker-compose.production.yml pull
+# Stop services
+docker-compose down
 
-# Rebuild with security updates
-docker-compose -f docker-compose.production.yml build --no-cache
+# Restore from backup
+./scripts/restore-backup.sh latest
 
-# Deploy updates
-docker-compose -f docker-compose.production.yml up -d
+# Verify data integrity
+./scripts/verify-data.sh
+
+# Restart services
+docker-compose up -d
 ```
 
-#### **Application Updates**
+## Rollback Procedures
+
+### 1. Quick Rollback (Last Known Good Version)
+
 ```bash
-# Pull latest code
-git pull origin main
+# Stop current deployment
+docker-compose down
 
-# Run tests
-npm test
-
-# Deploy with rolling update
-docker-compose -f docker-compose.production.yml up -d
-```
-
----
-
-## **Emergency Procedures**
-
-### **Incident Response**
-
-#### **Severity 1: Critical (System Down)**
-1. **Immediate Response (0-5 minutes)**
-   - Check system status
-   - Notify team
-   - Start incident response
-
-2. **Initial Assessment (5-15 minutes)**
-   - Identify root cause
-   - Implement immediate fix if possible
-   - Document incident
-
-3. **Resolution (15-60 minutes)**
-   - Implement permanent fix
-   - Verify system recovery
-   - Monitor for stability
-
-4. **Post-Incident (1-24 hours)**
-   - Conduct post-mortem
-   - Update procedures
-   - Implement preventive measures
-
-#### **Severity 2: High (Degraded Performance)**
-1. **Immediate Response (0-15 minutes)**
-   - Assess impact
-   - Notify team
-   - Begin troubleshooting
-
-2. **Resolution (15-120 minutes)**
-   - Implement fix
-   - Verify resolution
-   - Monitor performance
-
-3. **Post-Incident (1-7 days)**
-   - Review incident
-   - Update monitoring
-   - Implement improvements
-
-### **Rollback Procedures**
-
-#### **Application Rollback**
-```bash
-# Stop current version
-docker-compose -f docker-compose.production.yml down
-
-# Deploy previous version
+# Restore previous version
 git checkout previous-stable-tag
-docker-compose -f docker-compose.production.yml up -d
+docker-compose up -d
 
 # Verify rollback
-./scripts/production-validation.js https://your-domain.com
+./scripts/health-check.sh
 ```
 
-#### **Database Rollback**
+### 2. Blue-Green Rollback
+
+```bash
+# Switch traffic back to blue
+./scripts/switch-traffic.sh blue
+
+# Stop green environment
+docker-compose -f docker-compose.green.yml down
+
+# Monitor blue environment
+./scripts/monitor-deployment.sh 300
+```
+
+### 3. Database Rollback
+
 ```bash
 # Stop application
-docker-compose -f docker-compose.production.yml down
+docker-compose down
 
-# Restore previous database state
-docker-compose -f docker-compose.production.yml exec mongodb mongorestore /backup/mongodb-previous
+# Restore database
+./scripts/restore-database.sh backup-timestamp
 
-# Start application
-docker-compose -f docker-compose.production.yml up -d
+# Restart application
+docker-compose up -d
 ```
 
----
+## Maintenance Procedures
 
-## **Contact Information**
+### 1. Regular Maintenance Tasks
 
-### **Team Contacts**
-- **On-Call Engineer**: +1-555-0123
-- **DevOps Team**: devops@cryptopulse.com
-- **Security Team**: security@cryptopulse.com
-- **Product Team**: product@cryptopulse.com
+#### Daily Tasks
+```bash
+# Check system health
+./scripts/daily-health-check.sh
 
-### **External Contacts**
-- **Hosting Provider**: support@hosting-provider.com
-- **Domain Registrar**: support@domain-registrar.com
-- **SSL Provider**: support@ssl-provider.com
-- **Monitoring Service**: support@monitoring-service.com
+# Review logs
+docker-compose logs --since 24h | grep ERROR
 
----
+# Monitor metrics
+curl -s http://localhost:9090/metrics | grep -E "(error|response_time)"
+```
 
-## **Appendices**
+#### Weekly Tasks
+```bash
+# Update dependencies
+npm audit fix
+docker-compose build --no-cache
 
-### **A. Environment Variables Reference**
-See `env.production.example` for complete list of environment variables.
+# Clean up old logs
+./scripts/cleanup-logs.sh
 
-### **B. Log File Locations**
-- Application logs: `/app/logs/application.log`
-- Error logs: `/app/logs/error.log`
-- Audit logs: `/app/logs/audit.log`
-- Nginx logs: `/var/log/nginx/`
+# Review security alerts
+./scripts/security-scan.sh
+```
 
-### **C. Port Mappings**
-- Application: 3000
-- Nginx: 80, 443
-- Prometheus: 9090
-- Grafana: 3001
-- MongoDB: 27017 (internal)
-- Redis: 6379 (internal)
+#### Monthly Tasks
+```bash
+# Update system packages
+sudo apt update && sudo apt upgrade
 
-### **D. File Permissions**
-- Application files: 755
-- Log files: 700
-- SSL certificates: 600
-- Configuration files: 644
+# Rotate logs
+./scripts/rotate-logs.sh
 
----
+# Review performance metrics
+./scripts/performance-review.sh
+```
 
-*Last Updated: 2024-01-01*
-*Version: 1.0.0*
+### 2. Backup Procedures
+
+#### Automated Backups
+```bash
+# Schedule daily backups
+crontab -e
+# Add: 0 2 * * * /opt/cryptopulse/scripts/backup.sh
+
+# Verify backup integrity
+./scripts/verify-backup.sh
+```
+
+#### Manual Backups
+```bash
+# Create full backup
+./scripts/backup.sh full
+
+# Create incremental backup
+./scripts/backup.sh incremental
+
+# Test backup restoration
+./scripts/test-restore.sh
+```
+
+### 3. Performance Optimization
+
+#### Database Optimization
+```bash
+# Analyze slow queries
+./scripts/analyze-queries.sh
+
+# Optimize indexes
+./scripts/optimize-indexes.sh
+
+# Update statistics
+./scripts/update-statistics.sh
+```
+
+#### Application Optimization
+```bash
+# Profile application
+node --prof server.js
+
+# Analyze memory usage
+node --inspect server.js
+
+# Optimize bundle size
+npm run build:analyze
+```
+
+### 4. Security Maintenance
+
+#### Regular Security Tasks
+```bash
+# Update dependencies
+npm audit fix
+docker-compose build --no-cache
+
+# Scan for vulnerabilities
+./scripts/vulnerability-scan.sh
+
+# Review access logs
+./scripts/analyze-access-logs.sh
+```
+
+#### Certificate Management
+```bash
+# Check certificate expiration
+./scripts/ssl-check.sh
+
+# Renew certificates
+./scripts/ssl-renew.sh
+
+# Update certificate monitoring
+./scripts/update-cert-monitoring.sh
+```
+
+## Contact Information
+
+### On-Call Rotation
+- **Primary**: DevOps Team (devops@company.com)
+- **Secondary**: Development Team (dev@company.com)
+- **Escalation**: CTO (cto@company.com)
+
+### Emergency Contacts
+- **Infrastructure**: AWS Support, MongoDB Atlas Support
+- **Security**: Security Team (security@company.com)
+- **Legal**: Legal Team (legal@company.com)
+
+### Documentation Updates
+This runbook should be updated after each deployment and whenever procedures change. All team members should review and test procedures regularly.
