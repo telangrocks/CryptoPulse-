@@ -23,6 +23,9 @@ RUN npm run build
 # Go back to app root
 WORKDIR /app
 
+# Copy root package.json first
+COPY package.json ./
+
 # Copy backend files
 COPY backend/ ./backend/
 
