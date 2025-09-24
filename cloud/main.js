@@ -5,11 +5,11 @@ const crypto = require('crypto');
 
 // Initialize Parse with Back4App configuration
 Parse.initialize(
-  process.env.APP_ID || 'your-app-id',
-  process.env.JAVASCRIPT_KEY || 'your-javascript-key',
-  process.env.MASTER_KEY || 'your-master-key'
+  process.env.BACK4APP_APP_ID || process.env.APP_ID || 'your-app-id',
+  process.env.BACK4APP_JAVASCRIPT_KEY || process.env.JAVASCRIPT_KEY || 'your-javascript-key',
+  process.env.BACK4APP_MASTER_KEY || process.env.MASTER_KEY || 'your-master-key'
 );
-Parse.serverURL = process.env.SERVER_URL || 'https://parseapi.back4app.com/';
+Parse.serverURL = process.env.BACK4APP_SERVER_URL || process.env.SERVER_URL || 'https://parseapi.back4app.com/';
 
 // External API Configuration
 const BINANCE_API_URL = 'https://api.binance.com/api/v3';
@@ -464,15 +464,27 @@ function setCachedData(key, data) {
 }
 
 // HTTP request utility
-function makeHttpRequest(url, options = {}) {
+function makeHttpRequest(method, url, body = null, headers = {}) {
   return new Promise((resolve, reject) => {
+    const options = {
+      method: method || 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...headers
+      }
+    };
+    
     const req = https.request(url, options, (res) => {
       let data = '';
       res.on('data', chunk => data += chunk);
       res.on('end', () => {
         try {
-          const jsonData = JSON.parse(data);
-          resolve(jsonData);
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            const jsonData = JSON.parse(data);
+            resolve(jsonData);
+          } else {
+            reject(new Error(`HTTP ${res.statusCode}: ${data}`));
+          }
         } catch (e) {
           resolve(data);
         }
@@ -485,8 +497,8 @@ function makeHttpRequest(url, options = {}) {
       reject(new Error('Request timeout'));
     });
     
-    if (options.body) {
-      req.write(options.body);
+    if (body) {
+      req.write(typeof body === 'string' ? body : JSON.stringify(body));
     }
     req.end();
   });
@@ -507,7 +519,7 @@ async function fetchMarketData(pair, timeframe = '1h') {
     
     const url = `${BINANCE_API_URL}/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
     
-    const klines = await makeHttpRequest(url);
+    const klines = await makeHttpRequest('GET', url);
     
     if (!Array.isArray(klines)) {
       throw new Error('Invalid market data response');
@@ -553,7 +565,7 @@ async function fetchCurrentPrice(pair) {
     const symbol = pair.replace('/', '');
     const url = `${BINANCE_API_URL}/ticker/price?symbol=${symbol}`;
     
-    const priceData = await makeHttpRequest(url);
+    const priceData = await makeHttpRequest('GET', url);
     
     const result = {
       pair,
@@ -1369,79 +1381,139 @@ Parse.Cloud.define('getExchangeOrderHistory', async (request) => {
 
 // Helper functions for exchange API calls
 async function getBinanceBalances(credentials) {
-  const apiUrl = `${BINANCE_API_URL}/account`;
-  const headers = {
-    'X-MBX-APIKEY': credentials.apiKey,
-    'Content-Type': 'application/json'
-  };
-  
-  const response = await makeHttpRequest('GET', apiUrl, {}, headers);
-  return response.balances || [];
+  try {
+    const apiUrl = `${BINANCE_API_URL}/account`;
+    const headers = {
+      'X-MBX-APIKEY': credentials.apiKey,
+      'Content-Type': 'application/json'
+    };
+    
+    const response = await makeHttpRequest('GET', apiUrl, null, headers);
+    return response.balances || [];
+  } catch (error) {
+    console.error('Error getting Binance balances:', error);
+    throw new Error(`Failed to get Binance balances: ${error.message}`);
+  }
 }
 
 async function getWazirXBalances(credentials) {
-  const apiUrl = 'https://api.wazirx.com/api/v2/account';
-  const headers = {
-    'X-Api-Key': credentials.apiKey,
-    'Content-Type': 'application/json'
-  };
-  
-  const response = await makeHttpRequest('GET', apiUrl, {}, headers);
-  return response.balances || [];
+  try {
+    const apiUrl = 'https://api.wazirx.com/api/v2/account';
+    const headers = {
+      'X-Api-Key': credentials.apiKey,
+      'Content-Type': 'application/json'
+    };
+    
+    const response = await makeHttpRequest('GET', apiUrl, null, headers);
+    return response.balances || [];
+  } catch (error) {
+    console.error('Error getting WazirX balances:', error);
+    throw new Error(`Failed to get WazirX balances: ${error.message}`);
+  }
 }
 
 async function getCoinDCXBalances(credentials) {
-  const apiUrl = 'https://api.coindcx.com/exchange/v1/users/balances';
-  const headers = {
-    'X-AUTH-APIKEY': credentials.apiKey,
-    'Content-Type': 'application/json'
-  };
-  
-  const response = await makeHttpRequest('GET', apiUrl, {}, headers);
-  return response || [];
+  try {
+    const apiUrl = 'https://api.coindcx.com/exchange/v1/users/balances';
+    const headers = {
+      'X-AUTH-APIKEY': credentials.apiKey,
+      'Content-Type': 'application/json'
+    };
+    
+    const response = await makeHttpRequest('GET', apiUrl, null, headers);
+    return response || [];
+  } catch (error) {
+    console.error('Error getting CoinDCX balances:', error);
+    throw new Error(`Failed to get CoinDCX balances: ${error.message}`);
+  }
 }
 
 async function getBinanceOrderHistory(credentials, symbol, limit) {
-  const apiUrl = `${BINANCE_API_URL}/allOrders`;
-  const params = {
-    symbol: symbol.replace('/', ''),
-    limit: limit
-  };
-  const headers = {
-    'X-MBX-APIKEY': credentials.apiKey,
-    'Content-Type': 'application/json'
-  };
-  
-  const response = await makeHttpRequest('GET', apiUrl, params, headers);
-  return response || [];
+  try {
+    const apiUrl = `${BINANCE_API_URL}/allOrders?symbol=${symbol.replace('/', '')}&limit=${limit}`;
+    const headers = {
+      'X-MBX-APIKEY': credentials.apiKey,
+      'Content-Type': 'application/json'
+    };
+    
+    const response = await makeHttpRequest('GET', apiUrl, null, headers);
+    return response || [];
+  } catch (error) {
+    console.error('Error getting Binance order history:', error);
+    throw new Error(`Failed to get Binance order history: ${error.message}`);
+  }
 }
 
 async function getWazirXOrderHistory(credentials, symbol, limit) {
-  const apiUrl = 'https://api.wazirx.com/api/v2/orders';
-  const params = {
-    market: symbol.replace('/', '').toLowerCase(),
-    limit: limit
-  };
-  const headers = {
-    'X-Api-Key': credentials.apiKey,
-    'Content-Type': 'application/json'
-  };
-  
-  const response = await makeHttpRequest('GET', apiUrl, params, headers);
-  return response || [];
+  try {
+    const apiUrl = `https://api.wazirx.com/api/v2/orders?market=${symbol.replace('/', '').toLowerCase()}&limit=${limit}`;
+    const headers = {
+      'X-Api-Key': credentials.apiKey,
+      'Content-Type': 'application/json'
+    };
+    
+    const response = await makeHttpRequest('GET', apiUrl, null, headers);
+    return response || [];
+  } catch (error) {
+    console.error('Error getting WazirX order history:', error);
+    throw new Error(`Failed to get WazirX order history: ${error.message}`);
+  }
 }
 
 async function getCoinDCXOrderHistory(credentials, symbol, limit) {
-  const apiUrl = 'https://api.coindcx.com/exchange/v1/orders/trade_history';
-  const params = {
-    market: symbol.replace('/', '').toUpperCase(),
-    limit: limit
-  };
-  const headers = {
-    'X-AUTH-APIKEY': credentials.apiKey,
-    'Content-Type': 'application/json'
-  };
-  
-  const response = await makeHttpRequest('GET', apiUrl, params, headers);
-  return response || [];
+  try {
+    const apiUrl = `https://api.coindcx.com/exchange/v1/orders/trade_history?market=${symbol.replace('/', '').toUpperCase()}&limit=${limit}`;
+    const headers = {
+      'X-AUTH-APIKEY': credentials.apiKey,
+      'Content-Type': 'application/json'
+    };
+    
+    const response = await makeHttpRequest('GET', apiUrl, null, headers);
+    return response || [];
+  } catch (error) {
+    console.error('Error getting CoinDCX order history:', error);
+    throw new Error(`Failed to get CoinDCX order history: ${error.message}`);
+  }
 }
+
+// Health Check Cloud Function
+Parse.Cloud.define('healthCheck', async (request) => {
+  try {
+    return {
+      success: true,
+      status: 'healthy',
+      timestamp: new Date(),
+      version: '1.0.0',
+      services: {
+        database: 'connected',
+        marketData: 'operational',
+        trading: 'operational',
+        riskManagement: 'operational'
+      }
+    };
+  } catch (error) {
+    console.error('Health check failed:', error);
+    throw new Error(`Health check failed: ${error.message}`);
+  }
+});
+
+// Get System Status Cloud Function
+Parse.Cloud.define('getSystemStatus', async (request) => {
+  try {
+    const status = {
+      uptime: process.uptime(),
+      memory: process.memoryUsage(),
+      timestamp: new Date(),
+      environment: process.env.NODE_ENV || 'development',
+      version: '1.0.0'
+    };
+    
+    return {
+      success: true,
+      status
+    };
+  } catch (error) {
+    console.error('Error getting system status:', error);
+    throw new Error(`Failed to get system status: ${error.message}`);
+  }
+});

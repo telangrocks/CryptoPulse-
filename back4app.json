@@ -10,7 +10,19 @@
       "marketAnalysis",
       "userAuthentication",
       "portfolioManagement",
-      "riskAssessment"
+      "riskAssessment",
+      "getCurrentPrice",
+      "getMarketData",
+      "getTradingSignals",
+      "getOrderHistory",
+      "getPortfolioPerformance",
+      "acceptDisclaimer",
+      "getDisclaimerStatus",
+      "getExchangeBalances",
+      "executeRealTrade",
+      "getExchangeOrderHistory",
+      "healthCheck",
+      "getSystemStatus"
     ]
   },
   "webHosting": {
