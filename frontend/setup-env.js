@@ -15,8 +15,8 @@ const __dirname = path.dirname(__filename);
 // Environment configurations
 const environments = {
   development: {
-    VITE_BACK4APP_APP_ID: 'ytwtdHef9kXxVjtB4a5oJ00Dv9rwUQNg0IqjrN9W',
-    VITE_BACK4APP_CLIENT_KEY: 'DE1zoPv2RBiyuWQIhWCcrneFTix8PBxWciQPmOcF',
+    VITE_BACK4APP_APP_ID: 'your-app-id-here',
+    VITE_BACK4APP_CLIENT_KEY: 'your-client-key-here',
     VITE_BACK4APP_SERVER_URL: 'https://parseapi.back4app.com/parse',
     VITE_BACK4APP_MASTER_KEY: 'your-master-key-here',
     VITE_APP_NAME: 'CryptoPulse Trading Bot',
@@ -35,8 +35,8 @@ const environments = {
     VITE_ENCRYPTION_KEY: 'your-32-character-encryption-key-here'
   },
   production: {
-    VITE_BACK4APP_APP_ID: 'ytwtdHef9kXxVjtB4a5oJ00Dv9rwUQNg0IqjrN9W',
-    VITE_BACK4APP_CLIENT_KEY: 'DE1zoPv2RBiyuWQIhWCcrneFTix8PBxWciQPmOcF',
+    VITE_BACK4APP_APP_ID: 'your-app-id-here',
+    VITE_BACK4APP_CLIENT_KEY: 'your-client-key-here',
     VITE_BACK4APP_SERVER_URL: 'https://parseapi.back4app.com/parse',
     VITE_BACK4APP_MASTER_KEY: 'your-master-key-here',
     VITE_APP_NAME: 'CryptoPulse Trading Bot',

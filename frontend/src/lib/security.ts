@@ -154,20 +154,20 @@ export const csrfManager = new CSRFTokenManager()
 class SecureStorage {
   private keyPrefix = 'cryptopulse_secure_'
 
-  setItem(key: string, value: string): void {
+  async setItem(key: string, value: string): Promise<void> {
     try {
-      const encrypted = this.encrypt(value)
+      const encrypted = await this.encrypt(value)
       localStorage.setItem(this.keyPrefix + key, encrypted)
     } catch (e) {
       console.error('Failed to store secure item:', e)
     }
   }
 
-  getItem(key: string): string | null {
+  async getItem(key: string): Promise<string | null> {
     try {
       const encrypted = localStorage.getItem(this.keyPrefix + key)
       if (!encrypted) return null
-      return this.decrypt(encrypted)
+      return await this.decrypt(encrypted)
     } catch (e) {
       console.error('Failed to retrieve secure item:', e)
       return null
@@ -178,16 +178,26 @@ class SecureStorage {
     localStorage.removeItem(this.keyPrefix + key)
   }
 
-  private encrypt(text: string): string {
-    // Simple encryption - in production, use a proper encryption library
-    return btoa(text)
+  private async encrypt(text: string): Promise<string> {
+    // Use proper encryption with Web Crypto API
+    try {
+      const { encryptData } = await import('./encryption');
+      return await encryptData(text);
+    } catch (error) {
+      console.error('Encryption failed, falling back to base64:', error);
+      // Fallback to base64 only if encryption fails
+      return btoa(text);
+    }
   }
 
-  private decrypt(encrypted: string): string {
+  private async decrypt(encrypted: string): Promise<string> {
     try {
-      return atob(encrypted)
-    } catch (e) {
-      throw new Error('Failed to decrypt data')
+      const { decryptData } = await import('./encryption');
+      return await decryptData(encrypted);
+    } catch (error) {
+      console.error('Decryption failed, trying base64 fallback:', error);
+      // Fallback to base64 only if decryption fails
+      return atob(encrypted);
     }
   }
 }
@@ -200,19 +210,19 @@ class SessionManager {
   private lastActivity: number = 0
   private sessionTimeout: number = 30 * 60 * 1000 // 30 minutes
 
-  startSession(): string {
+  async startSession(): Promise<string> {
     this.sessionId = this.generateSessionId()
     this.lastActivity = Date.now()
-    secureStorage.setItem('session_id', this.sessionId)
+    await secureStorage.setItem('session_id', this.sessionId)
     return this.sessionId
   }
 
-  getSessionId(): string | null {
+  async getSessionId(): Promise<string | null> {
     if (this.sessionId) {
       return this.sessionId
     }
     
-    const stored = secureStorage.getItem('session_id')
+    const stored = await secureStorage.getItem('session_id')
     if (stored) {
       this.sessionId = stored
       return stored
@@ -230,7 +240,7 @@ class SessionManager {
     this.lastActivity = Date.now()
   }
 
-  endSession(): void {
+  async endSession(): Promise<void> {
     this.sessionId = null
     this.lastActivity = 0
     secureStorage.removeItem('session_id')
@@ -299,30 +309,34 @@ export function logSecurityEvent(event: string, details: any): void {
 }
 
 // Initialize security features
-export function initializeSecurity(): void {
-  // Start session
-  sessionManager.startSession()
-  
-  // Generate CSRF token
-  csrfManager.generateToken()
-  
-  // Set up activity tracking
-  const updateActivity = () => sessionManager.updateActivity()
-  
-  document.addEventListener('click', updateActivity)
-  document.addEventListener('keypress', updateActivity)
-  document.addEventListener('scroll', updateActivity)
-  
-  // Clean up on page unload
-  window.addEventListener('beforeunload', () => {
-    sessionManager.endSession()
-  })
-  
-  // Log security initialization
-  logSecurityEvent('security_initialized', {
-    timestamp: Date.now(),
-    features: ['rate_limiting', 'csrf_protection', 'session_management', 'secure_storage']
-  })
+export async function initializeSecurity(): Promise<void> {
+  try {
+    // Start session
+    await sessionManager.startSession()
+    
+    // Generate CSRF token
+    csrfManager.generateToken()
+    
+    // Set up activity tracking
+    const updateActivity = () => sessionManager.updateActivity()
+    
+    document.addEventListener('click', updateActivity)
+    document.addEventListener('keypress', updateActivity)
+    document.addEventListener('scroll', updateActivity)
+    
+    // Clean up on page unload
+    window.addEventListener('beforeunload', async () => {
+      await sessionManager.endSession()
+    })
+    
+    // Log security initialization
+    logSecurityEvent('security_initialized', {
+      timestamp: Date.now(),
+      features: ['rate_limiting', 'csrf_protection', 'session_management', 'secure_storage']
+    })
+  } catch (error) {
+    console.error('Failed to initialize security features:', error)
+  }
 }
 
 // Security Test Types
