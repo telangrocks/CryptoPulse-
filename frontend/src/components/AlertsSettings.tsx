@@ -2,7 +2,7 @@ import { logError, logWarn, logInfo, logDebug } from '../lib/logger'
 
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { callBack4AppFunction } from '../firebase/config'
+import { callBack4AppFunction } from '../back4app/config'
 import { Button } from './ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { Badge } from './ui/badge'

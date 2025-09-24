@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { Badge } from './ui/badge'
 import { Alert, AlertDescription } from './ui/alert'
 import { TrendingUp, TrendingDown, BarChart3, Target, Shield, Play, X, CheckCircle } from 'lucide-react'
-import { callBack4AppFunction } from '../firebase/config'
+import { callBack4AppFunction } from '../back4app/config'
 import EnhancedTradeConfirmation from './EnhancedTradeConfirmation'
 
 interface BacktestResult {

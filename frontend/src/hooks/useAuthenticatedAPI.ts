@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { ParseCloud } from '../lib/parse-http';
-import { callBack4AppFunction } from '../firebase/config';
+import { callBack4AppFunction } from '../back4app/config';
 
 /**
  * Hook for making authenticated API calls to Back4App cloud functions

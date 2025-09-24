@@ -34,7 +34,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { getSecureItem, setSecureItem } from '../lib/secureStorage';
 import { createExchangeIntegration, EXCHANGE_CONFIGS } from '../lib/exchangeIntegration';
 import { exchangeTester } from '../lib/exchangeTest';
-import { callBack4AppFunction } from '../firebase/config';
+import { callBack4AppFunction } from '../back4app/config';
 import { logInfo, logError, logWarn } from '../lib/logger';
 
 interface AutomationStep {

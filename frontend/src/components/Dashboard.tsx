@@ -26,7 +26,7 @@ import {
   Users,
   Globe
 } from 'lucide-react'
-import { callBack4AppFunction } from '../firebase/config'
+import { callBack4AppFunction } from '../back4app/config'
 
 export default function Dashboard() {
   const { user, logout } = useAuth()

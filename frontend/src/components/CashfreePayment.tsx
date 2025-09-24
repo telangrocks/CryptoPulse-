@@ -4,7 +4,7 @@ import { Button } from './ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { Alert, AlertDescription } from './ui/alert'
 import { CreditCard, Shield, CheckCircle } from 'lucide-react'
-import { callBack4AppFunction } from '../firebase/config'
+import { callBack4AppFunction } from '../back4app/config'
 
 export default function CashfreePayment() {
   const { user } = useAuth()

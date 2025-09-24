@@ -11,7 +11,7 @@ import { Alert, AlertDescription } from './ui/alert';
 import { CheckCircle, XCircle, Clock, AlertTriangle, RefreshCw, Zap, Shield, Database, Activity } from 'lucide-react';
 import { exchangeTester, TestResult } from '../lib/exchangeTest';
 import { getSecureItem } from '../lib/secureStorage';
-import { callBack4AppFunction } from '../firebase/config';
+import { callBack4AppFunction } from '../back4app/config';
 import { logInfo, logError } from '../lib/logger';
 
 interface TestSuite {

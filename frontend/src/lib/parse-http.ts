@@ -2,7 +2,7 @@
 // This provides Parse-like functionality using direct HTTP calls
 
 // Import configuration from centralized config
-import { Back4AppConfig } from '../firebase/config';
+import { Back4AppConfig } from '../back4app/config';
 import { addCSRFTokenToHeaders } from './csrfProtection';
 
 

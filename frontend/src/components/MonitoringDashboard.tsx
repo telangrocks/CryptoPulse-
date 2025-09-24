@@ -25,7 +25,7 @@ import {
   Pause,
   Square
 } from 'lucide-react'
-import { callBack4AppFunction } from '../firebase/config'
+import { callBack4AppFunction } from '../back4app/config'
 
 interface TradeSignal {
   id: string

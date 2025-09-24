@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { callBack4AppFunction } from '../firebase/config'
+import { callBack4AppFunction } from '../back4app/config'
 import { setSecureItem, getSecureItem, removeSecureItem } from '../lib/secureStorage'
 import { Button } from './ui/button'
 import { Input } from './ui/input'

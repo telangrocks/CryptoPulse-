@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { ParseUser, ParseCloud, initializeParse } from '../lib/parse'
 import { back4app } from '../lib/config'
-import { callBack4AppFunction } from '../firebase/config'
+import { callBack4AppFunction } from '../back4app/config'
 import { createSession, getCurrentSession, clearSession, updateSessionActivity, initializeSessionManagement } from '../lib/sessionManager'
 
 interface User {

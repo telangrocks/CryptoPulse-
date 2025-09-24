@@ -1,7 +1,7 @@
 import { logError, logWarn, logInfo, logDebug } from '../lib/logger'
 
 import { useState, useCallback } from 'react'
-import { callBack4AppFunction } from '../firebase/config'
+import { callBack4AppFunction } from '../back4app/config'
 
 interface AIResponse {
   success: boolean

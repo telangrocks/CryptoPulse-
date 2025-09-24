@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Alert, AlertDescription } from './ui/alert'
 import { Badge } from './ui/badge'
 import { Settings, TrendingUp, Clock, Target, CheckCircle, Zap, BarChart3, Star, ArrowRight } from 'lucide-react'
-import { callBack4AppFunction } from '../firebase/config'
+import { callBack4AppFunction } from '../back4app/config'
 // import { getMockData } from '../lib/cloud-functions' // Temporarily disabled for build
 
 interface BotConfig {

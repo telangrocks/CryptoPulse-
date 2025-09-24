@@ -23,7 +23,7 @@ import {
   Eye,
   EyeOff
 } from 'lucide-react'
-import { callBack4AppFunction } from '../firebase/config'
+import { callBack4AppFunction } from '../back4app/config'
 
 interface PerformanceMetrics {
   totalReturn: number
