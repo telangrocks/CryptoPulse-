@@ -8,7 +8,8 @@
     "dev": "node cloud-functions.js"
   },
   "dependencies": {
-    "parse": "^3.5.1"
+    "parse": "^3.5.1",
+    "axios": "^1.6.0"
   },
   "keywords": [
     "cryptocurrency",

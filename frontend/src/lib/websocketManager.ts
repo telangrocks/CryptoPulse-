@@ -3,6 +3,7 @@
  */
 
 import React from 'react'
+import { logInfo, logWarn, logError } from './logger'
 
 interface WebSocketConfig {
   url: string
@@ -86,7 +87,7 @@ class WebSocketManager {
             const data = JSON.parse(event.data)
             this.handleMessage(data)
           } catch (error) {
-            console.error('Failed to parse WebSocket message:', error)
+            logError('Failed to parse WebSocket message', 'WebSocketManager', error)
           }
         }
       } catch (error) {
@@ -155,15 +156,15 @@ class WebSocketManager {
     // Handle different message types
     switch (data.type) {
       case 'subscription_confirmed':
-        console.log('Subscription confirmed:', data.channel)
+        logInfo(`Subscription confirmed: ${data.channel}`, 'WebSocketManager')
         break
       
       case 'unsubscription_confirmed':
-        console.log('Unsubscription confirmed:', data.channel)
+        logInfo(`Unsubscription confirmed: ${data.channel}`, 'WebSocketManager')
         break
       
       case 'error':
-        console.error('WebSocket error:', data.message)
+        logError(`WebSocket error: ${data.message}`, 'WebSocketManager')
         break
       
       case 'heartbeat':
@@ -184,7 +185,7 @@ class WebSocketManager {
         try {
           subscription.callback(data)
         } catch (error) {
-          console.error('Error in subscription callback:', error)
+          logError('Error in subscription callback', 'WebSocketManager', error)
         }
       }
     })
@@ -192,16 +193,16 @@ class WebSocketManager {
 
   private handleReconnect(): void {
     if (this.reconnectAttempts >= this.config.maxReconnectAttempts!) {
-      console.error('Max reconnection attempts reached')
+      logError('Max reconnection attempts reached', 'WebSocketManager')
       return
     }
 
     this.reconnectAttempts++
-    console.log(`Attempting to reconnect (${this.reconnectAttempts}/${this.config.maxReconnectAttempts})...`)
+    logInfo(`Attempting to reconnect (${this.reconnectAttempts}/${this.config.maxReconnectAttempts})`, 'WebSocketManager')
 
     this.reconnectTimer = setTimeout(() => {
       this.connect().catch(error => {
-        console.error('Reconnection failed:', error)
+        logError('Reconnection failed', 'WebSocketManager', error)
       })
     }, this.config.reconnectInterval)
   }
@@ -255,9 +256,9 @@ export class BinanceWebSocketManager extends WebSocketManager {
   constructor() {
     super({
       url: 'wss://stream.binance.com:9443/ws/btcusdt@ticker',
-      onOpen: () => console.log('Connected to Binance WebSocket'),
-      onClose: (event) => console.log('Disconnected from Binance WebSocket:', event.code),
-      onError: (event) => console.error('Binance WebSocket error:', event)
+      onOpen: () => logInfo('Connected to Binance WebSocket', 'BinanceWS'),
+      onClose: (event) => logInfo(`Disconnected from Binance WebSocket: ${event.code}`, 'BinanceWS'),
+      onError: (event) => logError('Binance WebSocket error', 'BinanceWS', event)
     })
   }
 
@@ -318,5 +319,5 @@ export const binanceWS = new BinanceWebSocketManager()
 
 // Auto-connect on import
 if (typeof window !== 'undefined') {
-  binanceWS.connect().catch(console.error)
+  binanceWS.connect().catch(error => logError('Auto-connect failed', 'BinanceWS', error))
 }

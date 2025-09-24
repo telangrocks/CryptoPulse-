@@ -5,6 +5,7 @@
 
 const Parse = require('parse/node');
 const crypto = require('crypto');
+const axios = require('axios');
 
 // Initialize Parse with your app credentials
 Parse.initialize(
@@ -13,6 +14,449 @@ Parse.initialize(
   process.env.BACK4APP_MASTER_KEY
 );
 Parse.serverURL = process.env.BACK4APP_SERVER_URL;
+
+// Real backtesting implementation
+async function performRealBacktesting(params) {
+  try {
+    const { pair, strategy, timeframe, user } = params;
+    
+    // Fetch historical data from Binance API
+    const historicalData = await fetchHistoricalData(pair, timeframe);
+    
+    // Apply trading strategy to historical data
+    const results = await applyTradingStrategy(historicalData, strategy);
+    
+    return results;
+  } catch (error) {
+    console.error('Backtesting error:', error);
+    throw new Error(`Backtesting failed: ${error.message}`);
+  }
+}
+
+// Fetch historical data from Binance API
+async function fetchHistoricalData(symbol, interval, limit = 500) {
+  try {
+    const response = await axios.get(`https://api.binance.com/api/v3/klines`, {
+      params: {
+        symbol: symbol,
+        interval: interval,
+        limit: limit
+      }
+    });
+    
+    return response.data.map(kline => ({
+      timestamp: kline[0],
+      open: parseFloat(kline[1]),
+      high: parseFloat(kline[2]),
+      low: parseFloat(kline[3]),
+      close: parseFloat(kline[4]),
+      volume: parseFloat(kline[5])
+    }));
+  } catch (error) {
+    console.error('Failed to fetch historical data:', error);
+    throw new Error('Unable to fetch market data for backtesting');
+  }
+}
+
+// Apply trading strategy to historical data
+async function applyTradingStrategy(data, strategy) {
+  // RSI Strategy implementation
+  if (strategy === 'RSI Strategy') {
+    return calculateRSIStrategy(data);
+  }
+  
+  // Default strategy - simple moving average crossover
+  return calculateMAStrategy(data);
+}
+
+// RSI Strategy calculation
+function calculateRSIStrategy(data) {
+  const rsiPeriod = 14;
+  const rsi = calculateRSI(data.map(d => d.close), rsiPeriod);
+  
+  let totalTrades = 0;
+  let winningTrades = 0;
+  let totalPnL = 0;
+  let maxDrawdown = 0;
+  let currentDrawdown = 0;
+  let peak = 0;
+  
+  for (let i = rsiPeriod; i < data.length - 1; i++) {
+    const currentRSI = rsi[i - rsiPeriod];
+    const currentPrice = data[i].close;
+    const nextPrice = data[i + 1].close;
+    
+    let signal = null;
+    
+    // RSI oversold signal
+    if (currentRSI < 30) {
+      signal = 'BUY';
+    }
+    // RSI overbought signal
+    else if (currentRSI > 70) {
+      signal = 'SELL';
+    }
+    
+    if (signal) {
+      totalTrades++;
+      const pnl = signal === 'BUY' ? (nextPrice - currentPrice) / currentPrice : (currentPrice - nextPrice) / currentPrice;
+      totalPnL += pnl;
+      
+      if (pnl > 0) winningTrades++;
+      
+      // Calculate drawdown
+      if (totalPnL > peak) peak = totalPnL;
+      currentDrawdown = peak - totalPnL;
+      if (currentDrawdown > maxDrawdown) maxDrawdown = currentDrawdown;
+    }
+  }
+  
+  const winRate = totalTrades > 0 ? (winningTrades / totalTrades) * 100 : 0;
+  const avgPnL = totalTrades > 0 ? (totalPnL / totalTrades) * 100 : 0;
+  const sharpeRatio = totalPnL > 0 ? totalPnL / (maxDrawdown + 0.01) : 0;
+  
+  return {
+    pair: data[0]?.symbol || 'BTCUSDT',
+    strategy: 'RSI Strategy',
+    winRate: Math.round(winRate * 100) / 100,
+    avgPnL: Math.round(avgPnL * 100) / 100,
+    riskReward: Math.round((winRate / (100 - winRate)) * 100) / 100,
+    maxDrawdown: Math.round(maxDrawdown * 10000) / 100,
+    sharpeRatio: Math.round(sharpeRatio * 100) / 100,
+    totalTrades: totalTrades,
+    winningTrades: winningTrades,
+    losingTrades: totalTrades - winningTrades,
+    timeframe: '1h',
+    validSignals: totalTrades,
+    dataPoints: data.length,
+    period: '30d'
+  };
+}
+
+// Simple Moving Average Strategy
+function calculateMAStrategy(data) {
+  const shortMA = 10;
+  const longMA = 30;
+  
+  // Calculate moving averages
+  const shortMAValues = calculateSMA(data.map(d => d.close), shortMA);
+  const longMAValues = calculateSMA(data.map(d => d.close), longMA);
+  
+  let totalTrades = 0;
+  let winningTrades = 0;
+  let totalPnL = 0;
+  let maxDrawdown = 0;
+  let currentDrawdown = 0;
+  let peak = 0;
+  
+  for (let i = longMA; i < data.length - 1; i++) {
+    const currentShortMA = shortMAValues[i - shortMA];
+    const currentLongMA = longMAValues[i - longMA];
+    const prevShortMA = shortMAValues[i - shortMA - 1];
+    const prevLongMA = longMAValues[i - longMA - 1];
+    
+    const currentPrice = data[i].close;
+    const nextPrice = data[i + 1].close;
+    
+    // Golden cross - buy signal
+    if (prevShortMA <= prevLongMA && currentShortMA > currentLongMA) {
+      totalTrades++;
+      const pnl = (nextPrice - currentPrice) / currentPrice;
+      totalPnL += pnl;
+      
+      if (pnl > 0) winningTrades++;
+      
+      // Calculate drawdown
+      if (totalPnL > peak) peak = totalPnL;
+      currentDrawdown = peak - totalPnL;
+      if (currentDrawdown > maxDrawdown) maxDrawdown = currentDrawdown;
+    }
+    // Death cross - sell signal
+    else if (prevShortMA >= prevLongMA && currentShortMA < currentLongMA) {
+      totalTrades++;
+      const pnl = (currentPrice - nextPrice) / currentPrice;
+      totalPnL += pnl;
+      
+      if (pnl > 0) winningTrades++;
+      
+      // Calculate drawdown
+      if (totalPnL > peak) peak = totalPnL;
+      currentDrawdown = peak - totalPnL;
+      if (currentDrawdown > maxDrawdown) maxDrawdown = currentDrawdown;
+    }
+  }
+  
+  const winRate = totalTrades > 0 ? (winningTrades / totalTrades) * 100 : 0;
+  const avgPnL = totalTrades > 0 ? (totalPnL / totalTrades) * 100 : 0;
+  const sharpeRatio = totalPnL > 0 ? totalPnL / (maxDrawdown + 0.01) : 0;
+  
+  return {
+    pair: data[0]?.symbol || 'BTCUSDT',
+    strategy: 'MA Crossover',
+    winRate: Math.round(winRate * 100) / 100,
+    avgPnL: Math.round(avgPnL * 100) / 100,
+    riskReward: Math.round((winRate / (100 - winRate)) * 100) / 100,
+    maxDrawdown: Math.round(maxDrawdown * 10000) / 100,
+    sharpeRatio: Math.round(sharpeRatio * 100) / 100,
+    totalTrades: totalTrades,
+    winningTrades: winningTrades,
+    losingTrades: totalTrades - winningTrades,
+    timeframe: '1h',
+    validSignals: totalTrades,
+    dataPoints: data.length,
+    period: '30d'
+  };
+}
+
+// Helper functions for technical analysis
+function calculateRSI(prices, period) {
+  const rsi = [];
+  
+  for (let i = period; i < prices.length; i++) {
+    let gains = 0;
+    let losses = 0;
+    
+    for (let j = i - period + 1; j <= i; j++) {
+      const change = prices[j] - prices[j - 1];
+      if (change > 0) gains += change;
+      else losses += Math.abs(change);
+    }
+    
+    const avgGain = gains / period;
+    const avgLoss = losses / period;
+    const rs = avgGain / avgLoss;
+    const rsiValue = 100 - (100 / (1 + rs));
+    
+    rsi.push(rsiValue);
+  }
+  
+  return rsi;
+}
+
+function calculateSMA(prices, period) {
+  const sma = [];
+  
+  for (let i = period - 1; i < prices.length; i++) {
+    let sum = 0;
+    for (let j = i - period + 1; j <= i; j++) {
+      sum += prices[j];
+    }
+    sma.push(sum / period);
+  }
+  
+  return sma;
+}
+
+// Get real account info from exchange API
+async function getRealAccountInfo(user) {
+  try {
+    // Get user's API keys from secure storage
+    const apiKeys = await getUserApiKeys(user);
+    
+    if (!apiKeys || !apiKeys.apiKey || !apiKeys.apiSecret) {
+      throw new Error('API keys not configured');
+    }
+    
+    // Make authenticated request to Binance API
+    const accountInfo = await makeBinanceRequest('/api/v3/account', 'GET', apiKeys);
+    
+    return {
+      balances: accountInfo.balances.filter(b => parseFloat(b.free) > 0 || parseFloat(b.locked) > 0),
+      permissions: accountInfo.permissions,
+      canTrade: accountInfo.permissions.includes('SPOT'),
+      canWithdraw: accountInfo.permissions.includes('WITHDRAW'),
+      canDeposit: accountInfo.permissions.includes('DEPOSIT')
+    };
+  } catch (error) {
+    console.error('Failed to get real account info:', error);
+    throw new Error(`Failed to fetch account info: ${error.message}`);
+  }
+}
+
+// Get user's API keys from secure storage
+async function getUserApiKeys(user) {
+  try {
+    const query = new Parse.Query('UserApiKeys');
+    query.equalTo('userId', user.id);
+    const result = await query.first();
+    
+    if (!result) {
+      return null;
+    }
+    
+    // Decrypt API keys
+    const apiKey = decryptApiKey(result.get('encryptedApiKey'));
+    const apiSecret = decryptApiKey(result.get('encryptedApiSecret'));
+    
+    return { apiKey, apiSecret };
+  } catch (error) {
+    console.error('Failed to get user API keys:', error);
+    return null;
+  }
+}
+
+// Make authenticated request to Binance API
+async function makeBinanceRequest(endpoint, method, apiKeys, params = {}) {
+  try {
+    const timestamp = Date.now();
+    const queryString = new URLSearchParams({ ...params, timestamp }).toString();
+    const signature = crypto
+      .createHmac('sha256', apiKeys.apiSecret)
+      .update(queryString)
+      .digest('hex');
+    
+    const url = `https://api.binance.com${endpoint}?${queryString}&signature=${signature}`;
+    
+    const response = await axios({
+      method,
+      url,
+      headers: {
+        'X-MBX-APIKEY': apiKeys.apiKey
+      }
+    });
+    
+    return response.data;
+  } catch (error) {
+    console.error('Binance API request failed:', error);
+    throw new Error(`Exchange API request failed: ${error.response?.data?.msg || error.message}`);
+  }
+}
+
+// Decrypt API key
+function decryptApiKey(encryptedKey) {
+  try {
+    const algorithm = 'aes-256-gcm';
+    const key = Buffer.from(process.env.ENCRYPTION_KEY, 'hex');
+    const iv = Buffer.from(encryptedKey.iv, 'hex');
+    const authTag = Buffer.from(encryptedKey.authTag, 'hex');
+    const encrypted = Buffer.from(encryptedKey.encrypted, 'hex');
+    
+    const decipher = crypto.createDecipherGCM(algorithm, key, iv);
+    decipher.setAuthTag(authTag);
+    
+    let decrypted = decipher.update(encrypted, null, 'utf8');
+    decrypted += decipher.final('utf8');
+    
+    return decrypted;
+  } catch (error) {
+    console.error('Failed to decrypt API key:', error);
+    throw new Error('Failed to decrypt API key');
+  }
+}
+
+// Get real market data from Binance API
+async function getRealMarketData(symbol) {
+  try {
+    const response = await axios.get(`https://api.binance.com/api/v3/ticker/24hr`, {
+      params: { symbol: symbol }
+    });
+    
+    const data = response.data;
+    
+    return {
+      symbol: data.symbol,
+      price: parseFloat(data.lastPrice),
+      volume: parseFloat(data.volume),
+      change24h: parseFloat(data.priceChangePercent),
+      high24h: parseFloat(data.highPrice),
+      low24h: parseFloat(data.lowPrice),
+      timestamp: Date.now()
+    };
+  } catch (error) {
+    console.error('Failed to fetch market data:', error);
+    throw new Error('Unable to fetch market data');
+  }
+}
+
+/**
+ * Health Check - Comprehensive system health monitoring
+ */
+Parse.Cloud.define('healthCheck', async (request) => {
+  try {
+    const healthStatus = {
+      status: 'OK',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      memory: process.memoryUsage(),
+      version: '1.0.0',
+      environment: process.env.NODE_ENV || 'production',
+      checks: {}
+    };
+
+    // Parse Server connectivity
+    try {
+      await Parse.User.currentAsync();
+      healthStatus.checks.parseServer = {
+        status: 'OK',
+        details: { connected: true }
+      };
+    } catch (error) {
+      healthStatus.checks.parseServer = {
+        status: 'ERROR',
+        details: { error: error.message }
+      };
+    }
+
+    // External API connectivity
+    try {
+      const binanceResponse = await axios.get('https://api.binance.com/api/v3/ping', { timeout: 5000 });
+      healthStatus.checks.externalApis = {
+        status: 'OK',
+        details: {
+          binance: binanceResponse.status === 200 ? 'OK' : 'ERROR'
+        }
+      };
+    } catch (error) {
+      healthStatus.checks.externalApis = {
+        status: 'ERROR',
+        details: { binance: 'ERROR', error: error.message }
+      };
+    }
+
+    // Environment variables check
+    const requiredEnvVars = [
+      'BACK4APP_APP_ID',
+      'BACK4APP_JAVASCRIPT_KEY', 
+      'BACK4APP_MASTER_KEY',
+      'BACK4APP_SERVER_URL',
+      'ENCRYPTION_KEY'
+    ];
+
+    const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
+    
+    healthStatus.checks.environment = {
+      status: missingEnvVars.length === 0 ? 'OK' : 'ERROR',
+      details: {
+        requiredVariables: requiredEnvVars,
+        missingVariables: missingEnvVars,
+        totalConfigured: requiredEnvVars.length - missingEnvVars.length
+      }
+    };
+
+    // Determine overall status
+    const checkStatuses = Object.values(healthStatus.checks).map(check => check.status);
+    if (checkStatuses.includes('ERROR')) {
+      healthStatus.status = 'ERROR';
+    }
+
+    return {
+      success: true,
+      healthStatus: healthStatus
+    };
+
+  } catch (error) {
+    console.error('Health check error:', error);
+    return {
+      success: false,
+      error: error.message,
+      healthStatus: {
+        status: 'ERROR',
+        timestamp: new Date().toISOString(),
+        error: error.message
+      }
+    };
+  }
+});
 
 /**
  * Setup API Keys - Encrypt and store user API keys
@@ -185,23 +629,13 @@ Parse.Cloud.define('runBacktesting', async (request) => {
       throw new Error('User authentication required');
     }
 
-    // Simulate backtesting process
-    const backtestResults = {
-      pair: pair || 'BTC/USDT',
+    // Real backtesting implementation using historical data
+    const backtestResults = await performRealBacktesting({
+      pair: pair || 'BTCUSDT',
       strategy: strategy || 'RSI Strategy',
-      winRate: Math.random() * 40 + 50, // 50-90%
-      avgPnL: (Math.random() - 0.3) * 10, // -3% to +7%
-      riskReward: Math.random() * 2 + 1, // 1-3
-      maxDrawdown: Math.random() * 15 + 5, // 5-20%
-      sharpeRatio: Math.random() * 2 + 0.5, // 0.5-2.5
-      totalTrades: Math.floor(Math.random() * 100) + 20, // 20-120
-      winningTrades: Math.floor(Math.random() * 50) + 10, // 10-60
-      losingTrades: Math.floor(Math.random() * 30) + 5, // 5-35
       timeframe: timeframe || '1h',
-      validSignals: Math.floor(Math.random() * 20) + 5, // 5-25
-      dataPoints: Math.floor(Math.random() * 1000) + 500, // 500-1500
-      period: '30d'
-    };
+      user: user
+    });
 
     // Generate trading signals
     const signals = [];
@@ -313,18 +747,8 @@ Parse.Cloud.define('getAccountInfo', async (request) => {
       throw new Error('User authentication required');
     }
 
-    // Simulate account info (in real implementation, this would call exchange API)
-    const accountInfo = {
-      balances: [
-        { asset: 'USDT', free: '1000.00', locked: '0.00' },
-        { asset: 'BTC', free: '0.05', locked: '0.00' },
-        { asset: 'ETH', free: '2.5', locked: '0.00' }
-      ],
-      permissions: ['SPOT', 'MARGIN'],
-      canTrade: true,
-      canWithdraw: true,
-      canDeposit: true
-    };
+    // Get real account info from exchange API
+    const accountInfo = await getRealAccountInfo(user);
 
     return {
       success: true,
@@ -348,19 +772,8 @@ Parse.Cloud.define('getMarketData', async (request) => {
       throw new Error('Symbol is required');
     }
 
-    // Simulate market data (in real implementation, this would call exchange API)
-    const basePrice = symbol.includes('BTC') ? 45000 : 3000;
-    const variation = (Math.random() - 0.5) * 0.1; // ±5% variation
-    
-    const marketData = {
-      symbol: symbol,
-      price: basePrice * (1 + variation),
-      volume: Math.random() * 1000000,
-      change24h: (Math.random() - 0.5) * 10,
-      high24h: basePrice * 1.05,
-      low24h: basePrice * 0.95,
-      timestamp: Date.now()
-    };
+    // Get real market data from Binance API
+    const marketData = await getRealMarketData(symbol);
 
     return {
       success: true,

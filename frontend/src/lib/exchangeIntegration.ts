@@ -351,12 +351,23 @@ class ExchangeIntegration {
    * Make authenticated request to exchange
    */
   private async makeRequest(method: string, endpoint: string, data?: any): Promise<any> {
-    const url = `${this.config.baseUrl}${endpoint}`;
     const timestamp = Date.now();
+    const queryParams = new URLSearchParams();
     
-    // Create signature for authentication
-    const queryString = data ? new URLSearchParams(data).toString() : '';
-    const signature = await this.createSignature(method, endpoint, queryString, timestamp);
+    // Add timestamp to query parameters
+    queryParams.append('timestamp', timestamp.toString());
+    
+    // Add data parameters to query string for signature
+    if (data) {
+      Object.keys(data).forEach(key => {
+        queryParams.append(key, data[key].toString());
+      });
+    }
+    
+    const queryString = queryParams.toString();
+    
+    // Create signature for Binance API
+    const signature = await this.createSignature(queryString);
     
     const headers: Record<string, string> = {
       'X-MBX-APIKEY': this.config.apiKey,
@@ -364,25 +375,33 @@ class ExchangeIntegration {
     };
 
     if (method === 'GET') {
-      const fullUrl = `${url}?${queryString}&timestamp=${timestamp}&signature=${signature}`;
-      const response = await fetch(fullUrl, { method, headers });
+      const url = `${this.config.baseUrl}${endpoint}?${queryString}&signature=${signature}`;
+      const response = await fetch(url, { method, headers });
       
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`HTTP ${response.status}: ${errorData.msg || response.statusText}`);
       }
       
       return await response.json();
     } else {
-      const body = JSON.stringify({
+      // For POST requests, add signature to the data
+      const requestBody = {
         ...data,
         timestamp,
         signature
+      };
+      
+      const url = `${this.config.baseUrl}${endpoint}`;
+      const response = await fetch(url, { 
+        method, 
+        headers, 
+        body: JSON.stringify(requestBody) 
       });
       
-      const response = await fetch(url, { method, headers, body });
-      
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`HTTP ${response.status}: ${errorData.msg || response.statusText}`);
       }
       
       return await response.json();
@@ -390,13 +409,13 @@ class ExchangeIntegration {
   }
 
   /**
-   * Create HMAC signature for authentication
+   * Create HMAC signature for Binance API authentication
+   * Binance requires: HMAC-SHA256(queryString, secretKey)
    */
-  private async createSignature(method: string, endpoint: string, queryString: string, timestamp: number): Promise<string> {
-    const message = `${method}${endpoint}${queryString}${timestamp}`;
+  private async createSignature(queryString: string): Promise<string> {
     const encoder = new TextEncoder();
     const keyData = encoder.encode(this.config.apiSecret);
-    const messageData = encoder.encode(message);
+    const messageData = encoder.encode(queryString);
     
     const cryptoKey = await crypto.subtle.importKey(
       'raw',

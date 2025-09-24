@@ -3,6 +3,7 @@ import { ParseUser, ParseCloud, initializeParse } from '../lib/parse'
 import { back4app } from '../lib/config'
 import { callBack4AppFunction } from '../back4app/config'
 import { createSession, getCurrentSession, clearSession, updateSessionActivity, initializeSessionManagement } from '../lib/sessionManager'
+import { logInfo, logWarn, logError } from '../lib/logger'
 
 interface User {
   id: string
@@ -37,14 +38,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       initializeParse()
     } catch (error) {
-      console.warn('Parse initialization failed, using demo mode:', error)
+      logWarn('Parse initialization failed, using demo mode', 'AuthContext', error)
     }
     
     // Initialize session management with error handling
     try {
       initializeSessionManagement()
     } catch (error) {
-      console.warn('Session management initialization failed:', error)
+      logWarn('Session management initialization failed', 'AuthContext', error)
     }
     
     // Try to restore user from secure session
@@ -189,7 +190,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('cryptopulse_disclaimer_accepted', 'true')
       localStorage.setItem('cryptopulse_disclaimer_accepted_date', new Date().toISOString())
       
-      console.log('✅ Disclaimer accepted and stored locally')
+      logInfo('Disclaimer accepted and stored locally', 'AuthContext')
       
       // Try to call cloud function if it exists, but don't fail if it doesn't
       try {
@@ -206,15 +207,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         })
         
         if (response.ok) {
-          console.log('✅ Disclaimer also accepted on server')
+          logInfo('Disclaimer also accepted on server', 'AuthContext')
         } else {
-          console.log('⚠️ Server disclaimer function not available, using local storage')
+          logWarn('Server disclaimer function not available, using local storage', 'AuthContext')
         }
       } catch (serverError) {
-        console.log('⚠️ Server disclaimer function not available, using local storage')
+        logWarn('Server disclaimer function not available, using local storage', 'AuthContext')
       }
     } catch (error: unknown) {
-      console.error('❌ Failed to accept disclaimer:', error)
+      logError('Failed to accept disclaimer', 'AuthContext', error)
       throw new Error(error instanceof Error ? error.message : 'Failed to accept disclaimer')
     }
   }
@@ -224,7 +225,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Check local storage first
       const localAccepted = localStorage.getItem('cryptopulse_disclaimer_accepted')
       if (localAccepted === 'true') {
-        console.log('✅ Disclaimer already accepted (local storage)')
+        logInfo('Disclaimer already accepted (local storage)', 'AuthContext')
         return true
       }
       
@@ -249,17 +250,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // Sync with local storage
             localStorage.setItem('cryptopulse_disclaimer_accepted', 'true')
             localStorage.setItem('cryptopulse_disclaimer_accepted_date', new Date().toISOString())
-            console.log('✅ Disclaimer accepted on server, synced to local storage')
+            logInfo('Disclaimer accepted on server, synced to local storage', 'AuthContext')
             return true
           }
         }
       } catch (serverError) {
-        console.log('⚠️ Server disclaimer check not available, using local storage only')
+        logWarn('Server disclaimer check not available, using local storage only', 'AuthContext')
       }
       
       return false
     } catch (error) {
-      console.error('Failed to check disclaimer status:', error)
+      logError('Failed to check disclaimer status', 'AuthContext', error)
       return false
     }
   }
@@ -287,7 +288,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await callBack4AppFunction('validateResetToken', { token })
       return response.valid
     } catch (error) {
-      console.error('Failed to validate reset token:', error)
+      logError('Failed to validate reset token', 'AuthContext', error)
       return false
     }
   }
