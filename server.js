@@ -2,13 +2,167 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const axios = require('axios');
+const SecurityMiddleware = require('./backend/securityMiddleware');
+const { getSessionManager } = require('./backend/secureSessionManager');
+const { getAuditLogger } = require('./backend/auditLogger');
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Initialize security middleware
+const security = new SecurityMiddleware();
+const sessionManager = getSessionManager();
+const auditLogger = getAuditLogger();
+
+// Apply security middleware
+app.use(security.getAllMiddleware());
+
+// Add session management
+app.use(sessionManager.middleware());
+
+// Add rate limiting
+app.use('/api/auth', security.getRateLimitMiddleware('auth'));
+app.use('/api/trading', security.getRateLimitMiddleware('trading'));
+app.use('/api/upload', security.getRateLimitMiddleware('upload'));
+app.use('/api', security.getRateLimitMiddleware('general'));
 
 // Add request logging middleware
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
   next();
+});
+
+// CSRF token endpoint
+app.get('/api/csrf-token', (req, res) => {
+  const token = security.generateCSRFToken();
+  res.json({ csrfToken: token });
+});
+
+// Authentication endpoints with audit logging
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const ipAddress = req.ip;
+    const userAgent = req.get('User-Agent');
+    
+    // Validate input (in production, use proper validation)
+    if (!email || !password) {
+      await auditLogger.logUserLogin(null, ipAddress, userAgent, false);
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+    
+    // Here you would validate credentials against your user database
+    // For now, we'll simulate authentication
+    
+    // Simulate user lookup
+    const user = { id: 'user123', email, name: 'Test User' };
+    
+    // Create session
+    const session = sessionManager.createSession(user.id, user, ipAddress, userAgent);
+    
+    // Set session cookie
+    sessionManager.setSessionCookie(res, session.sessionId, session.expires);
+    
+    // Log successful login
+    await auditLogger.logUserLogin(user.id, ipAddress, userAgent, true);
+    
+    res.json({
+      success: true,
+      user,
+      session: {
+        sessionId: session.sessionId,
+        csrfToken: session.csrfToken,
+        expires: session.expires
+      }
+    });
+    
+  } catch (error) {
+    console.error('Login error:', error);
+    await auditLogger.logSystemEvent('LOGIN_ERROR', {
+      error: error.message,
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent')
+    });
+    
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.post('/api/auth/logout', async (req, res) => {
+  try {
+    const sessionId = req.sessionId;
+    const userId = req.session?.userId;
+    
+    if (sessionId) {
+      sessionManager.destroySession(sessionId, userId);
+    }
+    
+    sessionManager.clearSessionCookie(res);
+    
+    await auditLogger.logUserLogout(userId, req.ip, req.get('User-Agent'));
+    
+    res.json({ success: true, message: 'Logged out successfully' });
+    
+  } catch (error) {
+    console.error('Logout error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Session validation endpoint
+app.get('/api/auth/validate', (req, res) => {
+  if (req.session) {
+    res.json({
+      valid: true,
+      user: req.session.userData
+    });
+  } else {
+    res.status(401).json({
+      valid: false,
+      message: 'Session invalid or expired'
+    });
+  }
+});
+
+// Audit log search endpoint (admin only)
+app.get('/api/admin/audit-logs', async (req, res) => {
+  try {
+    // In production, check if user has admin privileges
+    if (!req.session) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    
+    const query = req.query;
+    const logs = await auditLogger.searchLogs(query);
+    
+    res.json({
+      success: true,
+      logs,
+      total: logs.length
+    });
+    
+  } catch (error) {
+    console.error('Audit log search error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Session management endpoint (admin only)
+app.get('/api/admin/session-stats', (req, res) => {
+  try {
+    if (!req.session) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    
+    const stats = sessionManager.getSessionStats();
+    res.json({
+      success: true,
+      stats
+    });
+    
+  } catch (error) {
+    console.error('Session stats error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 // Comprehensive health check endpoint

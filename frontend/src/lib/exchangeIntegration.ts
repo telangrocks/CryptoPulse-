@@ -4,6 +4,7 @@
  */
 
 import { logError, logInfo, logWarn } from '../lib/logger';
+import { circuitBreakers, withCircuitBreaker } from './circuitBreaker';
 
 export interface ExchangeConfig {
   name: string;
@@ -348,64 +349,66 @@ class ExchangeIntegration {
   }
 
   /**
-   * Make authenticated request to exchange
+   * Make authenticated request to exchange with circuit breaker protection
    */
   private async makeRequest(method: string, endpoint: string, data?: any): Promise<any> {
-    const timestamp = Date.now();
-    const queryParams = new URLSearchParams();
-    
-    // Add timestamp to query parameters
-    queryParams.append('timestamp', timestamp.toString());
-    
-    // Add data parameters to query string for signature
-    if (data) {
-      Object.keys(data).forEach(key => {
-        queryParams.append(key, data[key].toString());
-      });
-    }
-    
-    const queryString = queryParams.toString();
-    
-    // Create signature for Binance API
-    const signature = await this.createSignature(queryString);
-    
-    const headers: Record<string, string> = {
-      'X-MBX-APIKEY': this.config.apiKey,
-      'Content-Type': 'application/json'
-    };
-
-    if (method === 'GET') {
-      const url = `${this.config.baseUrl}${endpoint}?${queryString}&signature=${signature}`;
-      const response = await fetch(url, { method, headers });
+    return withCircuitBreaker('binance', async () => {
+      const timestamp = Date.now();
+      const queryParams = new URLSearchParams();
       
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(`HTTP ${response.status}: ${errorData.msg || response.statusText}`);
+      // Add timestamp to query parameters
+      queryParams.append('timestamp', timestamp.toString());
+      
+      // Add data parameters to query string for signature
+      if (data) {
+        Object.keys(data).forEach(key => {
+          queryParams.append(key, data[key].toString());
+        });
       }
       
-      return await response.json();
-    } else {
-      // For POST requests, add signature to the data
-      const requestBody = {
-        ...data,
-        timestamp,
-        signature
+      const queryString = queryParams.toString();
+      
+      // Create signature for Binance API
+      const signature = await this.createSignature(queryString);
+      
+      const headers: Record<string, string> = {
+        'X-MBX-APIKEY': this.config.apiKey,
+        'Content-Type': 'application/json'
       };
-      
-      const url = `${this.config.baseUrl}${endpoint}`;
-      const response = await fetch(url, { 
-        method, 
-        headers, 
-        body: JSON.stringify(requestBody) 
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(`HTTP ${response.status}: ${errorData.msg || response.statusText}`);
+
+      if (method === 'GET') {
+        const url = `${this.config.baseUrl}${endpoint}?${queryString}&signature=${signature}`;
+        const response = await fetch(url, { method, headers });
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(`HTTP ${response.status}: ${errorData.msg || response.statusText}`);
+        }
+        
+        return await response.json();
+      } else {
+        // For POST requests, add signature to the data
+        const requestBody = {
+          ...data,
+          timestamp,
+          signature
+        };
+        
+        const url = `${this.config.baseUrl}${endpoint}`;
+        const response = await fetch(url, { 
+          method, 
+          headers, 
+          body: JSON.stringify(requestBody) 
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(`HTTP ${response.status}: ${errorData.msg || response.statusText}`);
+        }
+        
+        return await response.json();
       }
-      
-      return await response.json();
-    }
+    });
   }
 
   /**
