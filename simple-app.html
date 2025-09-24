@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CryptoPulse - AI-Powered Trading Bot</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            padding: 40px 0;
+        }
+        
+        .logo {
+            font-size: 3rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            margin-bottom: 40px;
+        }
+        
+        .dashboard {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 40px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+        
+        .status {
+            text-align: center;
+            padding: 20px;
+            background: rgba(76, 175, 80, 0.2);
+            border-radius: 10px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(76, 175, 80, 0.3);
+        }
+        
+        .status h2 {
+            color: #4CAF50;
+            margin-bottom: 10px;
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        
+        .feature-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .feature-card h3 {
+            color: #FFD700;
+            margin-bottom: 10px;
+        }
+        
+        .buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(45deg, #FF6B6B, #FF8E53);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .info {
+            text-align: center;
+            margin-top: 30px;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">🚀 CryptoPulse</div>
+            <div class="subtitle">AI-Powered Cryptocurrency Trading Bot</div>
+        </div>
+        
+        <div class="dashboard">
+            <div class="status">
+                <h2>✅ Application Successfully Deployed!</h2>
+                <p>Your CryptoPulse Trading Bot is now live and running on Back4App</p>
+            </div>
+            
+            <div class="features">
+                <div class="feature-card">
+                    <h3>🤖 AI-Powered Trading</h3>
+                    <p>Advanced machine learning algorithms analyze market patterns and execute trades automatically.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <h3>📊 Real-time Analysis</h3>
+                    <p>Live market data processing with instant insights and trend predictions.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <h3>🛡️ Risk Management</h3>
+                    <p>Comprehensive risk controls and automated stop-loss mechanisms.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <h3>📈 Performance Analytics</h3>
+                    <p>Detailed performance tracking and optimization recommendations.</p>
+                </div>
+            </div>
+            
+            <div class="buttons">
+                <a href="/test" class="btn btn-primary">Test Server</a>
+                <a href="/debug" class="btn btn-secondary">Debug Info</a>
+                <a href="/health" class="btn btn-secondary">Health Check</a>
+            </div>
+            
+            <div class="info">
+                <p><strong>Deployment Status:</strong> ✅ Live | <strong>Server:</strong> Express.js | <strong>Platform:</strong> Back4App</p>
+                <p>Built with React, TypeScript, and modern web technologies</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

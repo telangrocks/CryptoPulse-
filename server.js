@@ -27,6 +27,11 @@ app.get('/test', (req, res) => {
   res.sendFile(path.join(__dirname, 'test.html'));
 });
 
+// Simple working app endpoint
+app.get('/simple', (req, res) => {
+  res.sendFile(path.join(__dirname, 'simple-app.html'));
+});
+
 // Debug endpoint to check if React assets are accessible
 app.get('/debug', (req, res) => {
   const fs = require('fs');
@@ -53,6 +58,11 @@ app.get('/debug', (req, res) => {
 
 // Serve static files from the dist directory
 app.use(express.static(path.join(__dirname, 'frontend/dist')));
+
+// Temporarily redirect main route to simple working app
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'simple-app.html'));
+});
 
 // Handle React routing, return all requests to React app
 app.get('*', (req, res) => {
