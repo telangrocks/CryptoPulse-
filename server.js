@@ -6,6 +6,7 @@ const SecurityMiddleware = require('./backend/securityMiddleware');
 const { getSessionManager } = require('./backend/secureSessionManager');
 const { getAuditLogger } = require('./backend/auditLogger');
 const { getMonitoringSystem } = require('./backend/monitoring');
+const { logger } = require('./backend/structuredLogger');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -27,6 +28,9 @@ app.use('/api/trading', security.getRateLimitMiddleware('trading'));
 app.use('/api/upload', security.getRateLimitMiddleware('upload'));
 app.use('/api', security.getRateLimitMiddleware('general'));
 
+// Add structured logging middleware
+app.use(logger.requestLogger());
+
 // Add monitoring middleware
 app.use((req, res, next) => {
   const startTime = Date.now();
@@ -39,7 +43,6 @@ app.use((req, res, next) => {
     originalEnd.apply(this, args);
   };
   
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
   next();
 });
 
@@ -147,7 +150,7 @@ app.post('/api/auth/login', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Login error:', error);
+    logger.logError(error, { endpoint: '/api/auth/login', userId: req.body?.email });
     await auditLogger.logSystemEvent('LOGIN_ERROR', {
       error: error.message,
       ipAddress: req.ip,
@@ -182,7 +185,7 @@ app.post('/api/auth/logout', async (req, res) => {
     res.json({ success: true, message: 'Logged out successfully' });
     
   } catch (error) {
-    console.error('Logout error:', error);
+    logger.logError(error, { endpoint: '/api/auth/logout', userId: req.user?.id });
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -220,7 +223,7 @@ app.get('/api/admin/audit-logs', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Audit log search error:', error);
+    logger.logError(error, { endpoint: '/api/admin/audit-logs', userId: req.user?.id });
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -239,7 +242,7 @@ app.get('/api/admin/session-stats', (req, res) => {
     });
     
   } catch (error) {
-    console.error('Session stats error:', error);
+    logger.logError(error, { endpoint: '/api/admin/session-stats', userId: req.user?.id });
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -371,7 +374,7 @@ app.get('/health', async (req, res) => {
     const statusCode = healthStatus.status === 'ERROR' ? 500 : 200;
     res.status(statusCode).json(healthStatus);
   } catch (error) {
-    console.error('Health check error:', error);
+    logger.logError(error, { endpoint: '/health', type: 'health_check' });
     res.status(500).json({
       status: 'ERROR',
       timestamp: new Date().toISOString(),
@@ -390,7 +393,7 @@ app.get('*', (req, res) => {
     
     // Check if index.html exists
     if (!fs.existsSync(indexPath)) {
-      console.error(`Index file not found: ${indexPath}`);
+      logger.error('Index file not found', { filePath: indexPath, type: 'static_file' });
       return res.status(404).json({
         error: 'Frontend not built',
         message: 'Please run npm run build:frontend first',
@@ -398,10 +401,10 @@ app.get('*', (req, res) => {
       });
     }
     
-    console.log(`Serving index.html from: ${indexPath}`);
+    logger.info('Serving React app', { filePath: indexPath, type: 'static_file' });
     res.sendFile(indexPath);
   } catch (error) {
-    console.error('Error serving React app:', error);
+    logger.logError(error, { endpoint: '/', type: 'static_file_serving' });
     res.status(500).json({
       error: 'Internal server error',
       message: error.message
@@ -413,9 +416,12 @@ app.get('*', (req, res) => {
 monitoring.startMonitoring();
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 CryptoPulse Trading Bot server running on port ${PORT}`);
-  console.log(`📊 Health check available at http://localhost:${PORT}/health`);
-  console.log(`📈 Prometheus metrics available at http://localhost:${PORT}/metrics`);
-  console.log(`📊 Monitoring dashboard available at http://localhost:${PORT}/api/monitoring/dashboard`);
-  console.log(`Serving static files from: ${path.join(__dirname, 'frontend/dist')}`);
+  logger.info('CryptoPulse server started', {
+    port: PORT,
+    healthEndpoint: `http://localhost:${PORT}/health`,
+    metricsEndpoint: `http://localhost:${PORT}/metrics`,
+    dashboardEndpoint: `http://localhost:${PORT}/api/monitoring/dashboard`,
+    staticFilesPath: path.join(__dirname, 'frontend/dist'),
+    type: 'server_startup'
+  });
 });

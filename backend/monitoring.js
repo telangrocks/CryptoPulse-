@@ -5,6 +5,7 @@
 
 const prometheus = require('prom-client');
 const { getAuditLogger } = require('./auditLogger');
+const { logger } = require('./structuredLogger');
 
 class MonitoringSystem {
   constructor() {
@@ -490,12 +491,21 @@ class MonitoringSystem {
     setInterval(() => {
       const alerts = this.checkAlertConditions();
       if (alerts.length > 0) {
-        // TODO: Send alerts to notification system
-        console.log('Alerts triggered:', alerts);
+        // Send alerts to notification system
+        alerts.forEach(alert => {
+          logger.warn('System alert triggered', {
+            type: 'system_alert',
+            severity: alert.severity,
+            message: alert.message,
+            metric: alert.metric,
+            value: alert.value,
+            threshold: alert.threshold
+          });
+        });
       }
     }, 60000);
 
-    console.log('Monitoring system started');
+    logger.info('Monitoring system started', { type: 'system_startup' });
   }
 }
 

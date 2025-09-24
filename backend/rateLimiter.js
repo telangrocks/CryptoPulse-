@@ -5,6 +5,7 @@
 
 const redis = require('redis');
 const crypto = require('crypto');
+const { logger } = require('./structuredLogger');
 
 class RateLimiter {
   constructor(options = {}) {
@@ -30,15 +31,15 @@ class RateLimiter {
           url: process.env.REDIS_URL,
           retry_strategy: (options) => {
             if (options.error && options.error.code === 'ECONNREFUSED') {
-              console.warn('Redis connection refused, falling back to memory store');
+              logger.warn('Redis connection refused, falling back to memory store', { type: 'redis_connection' });
               return undefined;
             }
             if (options.total_retry_time > 1000 * 60 * 60) {
-              console.error('Redis retry time exhausted');
+              logger.error('Redis retry time exhausted', { type: 'redis_retry' });
               return new Error('Retry time exhausted');
             }
             if (options.attempt > 10) {
-              console.error('Redis retry attempts exhausted');
+              logger.error('Redis retry attempts exhausted', { type: 'redis_retry' });
               return undefined;
             }
             return Math.min(options.attempt * 100, 3000);
@@ -46,18 +47,18 @@ class RateLimiter {
         });
 
         this.redisClient.on('error', (err) => {
-          console.warn('Redis error, falling back to memory store:', err.message);
+          logger.warn('Redis error, falling back to memory store', { type: 'redis_error', error: err.message });
           this.redisClient = null;
         });
 
         this.redisClient.on('connect', () => {
-          console.log('Redis connected for rate limiting');
+          logger.info('Redis connected for rate limiting', { type: 'redis_connection' });
         });
 
         await this.redisClient.connect();
       }
     } catch (error) {
-      console.warn('Redis initialization failed, using memory store:', error.message);
+      logger.warn('Redis initialization failed, using memory store', { type: 'redis_init', error: error.message });
       this.redisClient = null;
     }
   }
@@ -115,7 +116,7 @@ class RateLimiter {
         totalHits: currentCount + 1
       };
     } catch (error) {
-      console.error('Redis rate limit error:', error);
+      logger.error('Redis rate limit error', { type: 'redis_rate_limit', error: error.message });
       // Fallback to memory store
       return await this.checkLimitMemory(key, now, windowStart);
     }
@@ -185,7 +186,7 @@ class RateLimiter {
         
         next();
       } catch (error) {
-        console.error('Rate limiting middleware error:', error);
+        logger.error('Rate limiting middleware error', { type: 'rate_limit_middleware', error: error.message });
         // Allow request on error to prevent blocking
         next();
       }
