@@ -73,6 +73,8 @@ export default defineConfig({
   define: {
     global: 'globalThis',
   },
+  // Environment variables configuration
+  envPrefix: 'VITE_',
   // Development server configuration
   server: {
     port: 3000,

@@ -1,4 +1,5 @@
 import { logError, logWarn, logInfo, logDebug } from '../lib/logger'
+import { back4app } from '../lib/config'
 
 // Parse SDK Configuration for Back4App
 // This file configures Parse SDK for Back4App integration
@@ -10,11 +11,12 @@ declare global {
   }
 }
 
-// Back4App Configuration
+// Back4App Configuration - Using centralized config
 const Back4AppConfig = {
-  appId: 'ytwtdHef9kXxVjtB4a5oJ00Dv9rwUQNg0IqjrN9W',
-  clientKey: 'DE1zoPv2RBiyuWQIhWCcrneFTix8PBxWciQPmOcF',
-  serverURL: 'https://parseapi.back4app.com/parse'
+  appId: back4app.appId,
+  clientKey: back4app.clientKey,
+  serverURL: back4app.serverURL,
+  masterKey: back4app.masterKey
 };
 
 // Parse initialization function

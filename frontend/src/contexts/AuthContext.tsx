@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { ParseUser, ParseCloud, initializeParse, Back4AppConfig } from '../lib/parse-http'
+import { ParseUser, ParseCloud, initializeParse } from '../lib/parse'
+import { back4app } from '../lib/config'
 import { callBack4AppFunction } from '../firebase/config'
 import { createSession, getCurrentSession, clearSession, updateSessionActivity, initializeSessionManagement } from '../lib/sessionManager'
 
@@ -193,12 +194,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Try to call cloud function if it exists, but don't fail if it doesn't
       try {
         const sessionToken = localStorage.getItem('cryptopulse_session')
-        const response = await fetch(`${Back4AppConfig.serverURL}/functions/acceptDisclaimer`, {
+        const response = await fetch(`${back4app.serverURL}/functions/acceptDisclaimer`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'X-Parse-Application-Id': Back4AppConfig.appId,
-            'X-Parse-Client-Key': Back4AppConfig.clientKey,
+            'X-Parse-Application-Id': back4app.appId,
+            'X-Parse-Client-Key': back4app.clientKey,
             'X-Parse-Session-Token': sessionToken || ''
           },
           body: JSON.stringify({})
@@ -230,12 +231,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Try to check server status, but don't fail if it doesn't exist
       try {
         const sessionToken = localStorage.getItem('cryptopulse_session')
-        const response = await fetch(`${Back4AppConfig.serverURL}/functions/getDisclaimerStatus`, {
+        const response = await fetch(`${back4app.serverURL}/functions/getDisclaimerStatus`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'X-Parse-Application-Id': Back4AppConfig.appId,
-            'X-Parse-Client-Key': Back4AppConfig.clientKey,
+            'X-Parse-Application-Id': back4app.appId,
+            'X-Parse-Client-Key': back4app.clientKey,
             'X-Parse-Session-Token': sessionToken || ''
           },
           body: JSON.stringify({})

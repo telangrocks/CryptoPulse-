@@ -11,7 +11,9 @@
     "preview": "vite preview",
     "start": "serve -s dist -l 3000",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "setup-env": "node setup-env.js",
+    "postinstall": "npm run setup-env"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",
