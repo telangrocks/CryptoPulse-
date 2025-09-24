@@ -26,5 +26,8 @@
   ],
   "author": "Shrikant Telang",
   "license": "MIT",
-  "devDependencies": {}
+  "devDependencies": {},
+  "dependencies": {
+    "express": "^4.18.2"
+  }
 }

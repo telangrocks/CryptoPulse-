@@ -29,9 +29,12 @@ COPY backend/ ./backend/
 # Copy cloud functions
 COPY cloud/ ./cloud/
 
+# Install root dependencies
+RUN npm install
+
 # Copy configuration files
 COPY back4app.json ./
-COPY package.json ./
+COPY server.js ./
 
 # Expose port
 EXPOSE 3000
@@ -40,5 +43,5 @@ EXPOSE 3000
 ENV NODE_ENV=production
 ENV PORT=3000
 
-# Start the application (serve frontend)
-CMD ["sh", "-c", "cd frontend && npx serve -s dist -l 3000"]
+# Start the application
+CMD ["node", "server.js"]
