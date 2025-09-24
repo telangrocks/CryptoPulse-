@@ -59,11 +59,6 @@ app.get('/debug', (req, res) => {
 // Serve static files from the dist directory
 app.use(express.static(path.join(__dirname, 'frontend/dist')));
 
-// Temporarily redirect main route to simple working app
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'simple-app.html'));
-});
-
 // Handle React routing, return all requests to React app
 app.get('*', (req, res) => {
   const indexPath = path.join(__dirname, 'frontend/dist/index.html');

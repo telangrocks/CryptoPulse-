@@ -32,11 +32,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Initialize Parse
-    initializeParse()
+    // Initialize Parse with error handling
+    try {
+      initializeParse()
+    } catch (error) {
+      console.warn('Parse initialization failed, using demo mode:', error)
+    }
     
-    // Initialize session management
-    initializeSessionManagement()
+    // Initialize session management with error handling
+    try {
+      initializeSessionManagement()
+    } catch (error) {
+      console.warn('Session management initialization failed:', error)
+    }
     
     // Try to restore user from secure session
     const restoreUser = async () => {
@@ -72,6 +80,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     
     restoreUser()
+    
+    // Fallback timeout to ensure loading is set to false
+    const timeout = setTimeout(() => {
+      setLoading(false)
+    }, 3000)
+    
+    return () => clearTimeout(timeout)
   }, [])
 
   const login = async (email: string, password: string) => {
