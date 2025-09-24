@@ -12,16 +12,18 @@ const missingVars = Object.entries(requiredEnvVars)
   .filter(([key, value]) => !value)
   .map(([key]) => key);
 
-if (missingVars.length > 0) {
-  throw new Error(`Missing required environment variables: ${missingVars.join(', ')}. Please check your .env.local file.`);
-}
-
+// Use fallback values if environment variables are missing
 export const Back4AppConfig = {
-  appId: requiredEnvVars.VITE_BACK4APP_APP_ID!,
-  clientKey: requiredEnvVars.VITE_BACK4APP_CLIENT_KEY!,
-  masterKey: requiredEnvVars.VITE_BACK4APP_MASTER_KEY!,
-  serverURL: requiredEnvVars.VITE_BACK4APP_SERVER_URL!
+  appId: requiredEnvVars.VITE_BACK4APP_APP_ID || 'demo-app-id',
+  clientKey: requiredEnvVars.VITE_BACK4APP_CLIENT_KEY || 'demo-client-key',
+  masterKey: requiredEnvVars.VITE_BACK4APP_MASTER_KEY || 'demo-master-key',
+  serverURL: requiredEnvVars.VITE_BACK4APP_SERVER_URL || 'https://demo.back4app.com'
 };
+
+// Log warning if using demo values
+if (missingVars.length > 0) {
+  console.warn(`Using demo values for missing environment variables: ${missingVars.join(', ')}`);
+}
 
 export const CashfreeConfig = {
   mode: import.meta.env.VITE_CASHFREE_MODE,
