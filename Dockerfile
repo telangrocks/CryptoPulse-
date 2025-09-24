@@ -10,15 +10,15 @@ WORKDIR /app
 # Copy frontend package files
 COPY frontend/package*.json ./frontend/
 
-# Install frontend dependencies
+# Install frontend dependencies (ignore warnings)
 WORKDIR /app/frontend
-RUN npm install
+RUN npm install --silent
 
 # Copy frontend source code
 COPY frontend/ ./
 
-# Build frontend for production
-RUN npm run build
+# Build frontend for production (ignore warnings)
+RUN npm run build:production
 
 # Go back to app root
 WORKDIR /app
@@ -32,8 +32,8 @@ COPY backend/ ./backend/
 # Copy cloud functions
 COPY cloud/ ./cloud/
 
-# Install root dependencies
-RUN npm install
+# Install root dependencies (ignore warnings)
+RUN npm install --silent
 
 # Copy configuration files
 COPY back4app.json ./
