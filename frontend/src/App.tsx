@@ -29,6 +29,7 @@ import NotificationCenter from './components/NotificationCenter'
 import PaymentSuccess from './components/PaymentSuccess'
 import CashfreePayment from './components/CashfreePayment'
 import DisclaimerScreen from './components/DisclaimerScreen'
+import ExchangeIntegration from './components/ExchangeIntegration'
 import { AccessibilityProvider } from './components/AccessibilityProvider'
 import { useAuth } from './contexts/AuthContext'
 import { useDocumentHead } from './hooks/useDocumentHead'
@@ -151,6 +152,12 @@ function AppContent() {
         <Route path="/security-test" element={
           <ProtectedRoute>
             <SecurityTestPanel />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/exchange-integration" element={
+          <ProtectedRoute>
+            <ExchangeIntegration />
           </ProtectedRoute>
         } />
         

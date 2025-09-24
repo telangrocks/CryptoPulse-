@@ -929,6 +929,104 @@ async function simulateOrderExecution(order, currentPrice) {
   }
 }
 
+// Real order execution with exchange APIs
+async function executeRealOrder(order, currentPrice, exchangeCredentials) {
+  try {
+    const exchange = exchangeCredentials.primaryExchange || 'binance';
+    const symbol = order.get('pair');
+    const side = order.get('action');
+    const quantity = order.get('amount');
+    
+    // Prepare order data based on exchange
+    let orderData;
+    let apiUrl;
+    let headers;
+    
+    switch (exchange) {
+      case 'binance':
+        apiUrl = `${BINANCE_API_URL}/order`;
+        orderData = {
+          symbol: symbol.replace('/', ''),
+          side: side,
+          type: 'MARKET',
+          quantity: quantity.toString(),
+          timestamp: Date.now()
+        };
+        headers = {
+          'X-MBX-APIKEY': exchangeCredentials.binance?.apiKey || '',
+          'Content-Type': 'application/json'
+        };
+        break;
+        
+      case 'wazirx':
+        apiUrl = 'https://api.wazirx.com/api/v2/orders';
+        orderData = {
+          market: symbol.replace('/', '').toLowerCase(),
+          side: side.toLowerCase(),
+          order_type: 'market',
+          quantity: quantity.toString()
+        };
+        headers = {
+          'X-Api-Key': exchangeCredentials.wazirx?.apiKey || '',
+          'Content-Type': 'application/json'
+        };
+        break;
+        
+      case 'coindcx':
+        apiUrl = 'https://api.coindcx.com/exchange/v1/orders/create';
+        orderData = {
+          market: symbol.replace('/', '').toUpperCase(),
+          side: side.toLowerCase(),
+          order_type: 'market_order',
+          quantity: quantity.toString()
+        };
+        headers = {
+          'X-AUTH-APIKEY': exchangeCredentials.coindcx?.apiKey || '',
+          'Content-Type': 'application/json'
+        };
+        break;
+        
+      default:
+        throw new Error(`Unsupported exchange: ${exchange}`);
+    }
+    
+    // Make API call to exchange
+    const response = await makeHttpRequest('POST', apiUrl, orderData, headers);
+    
+    if (response && response.orderId) {
+      // Order created successfully
+      order.set('status', 'executed');
+      order.set('executionPrice', currentPrice.price);
+      order.set('executedAt', new Date());
+      order.set('exchangeOrderId', response.orderId);
+      order.set('exchangeUsed', exchange);
+      await order.save();
+      
+      return {
+        status: 'executed',
+        price: currentPrice.price,
+        amount: quantity,
+        fees: quantity * currentPrice.price * 0.001, // 0.1% fee
+        totalValue: quantity * currentPrice.price,
+        exchangeOrderId: response.orderId,
+        exchangeUsed: exchange
+      };
+    } else {
+      throw new Error('Failed to create order on exchange');
+    }
+    
+  } catch (error) {
+    console.error('Error executing real order:', error);
+    
+    // Update order as failed
+    order.set('status', 'failed');
+    order.set('failureReason', error.message);
+    await order.save();
+    
+    throw new Error(`Real order execution failed: ${error.message}`);
+  }
+}
+
 // Real risk assessment implementation
 async function calculateRiskMetrics(portfolio, marketData) {
   try {
@@ -1113,4 +1211,237 @@ async function generateRiskRecommendations(riskMetrics) {
     console.error('Error generating risk recommendations:', error);
     throw new Error(`Risk recommendation generation failed: ${error.message}`);
   }
+}
+
+// Real exchange integration functions
+Parse.Cloud.define('getExchangeBalances', async (request) => {
+  try {
+    const { exchangeCredentials } = request.params;
+    
+    if (!exchangeCredentials) {
+      throw new Error('Exchange credentials are required');
+    }
+    
+    // Get balances from all configured exchanges
+    const balances = {};
+    
+    // Binance
+    if (exchangeCredentials.binance) {
+      try {
+        const binanceBalances = await getBinanceBalances(exchangeCredentials.binance);
+        balances.binance = binanceBalances;
+      } catch (error) {
+        console.warn('Failed to get Binance balances:', error);
+        balances.binance = { error: error.message };
+      }
+    }
+    
+    // WazirX
+    if (exchangeCredentials.wazirx) {
+      try {
+        const wazirxBalances = await getWazirXBalances(exchangeCredentials.wazirx);
+        balances.wazirx = wazirxBalances;
+      } catch (error) {
+        console.warn('Failed to get WazirX balances:', error);
+        balances.wazirx = { error: error.message };
+      }
+    }
+    
+    // CoinDCX
+    if (exchangeCredentials.coindcx) {
+      try {
+        const coindcxBalances = await getCoinDCXBalances(exchangeCredentials.coindcx);
+        balances.coindcx = coindcxBalances;
+      } catch (error) {
+        console.warn('Failed to get CoinDCX balances:', error);
+        balances.coindcx = { error: error.message };
+      }
+    }
+    
+    return {
+      success: true,
+      balances,
+      timestamp: new Date()
+    };
+  } catch (error) {
+    console.error('Error getting exchange balances:', error);
+    throw new Error(`Failed to get exchange balances: ${error.message}`);
+  }
+});
+
+Parse.Cloud.define('executeRealTrade', async (request) => {
+  try {
+    const { 
+      action, 
+      pair, 
+      amount, 
+      strategy, 
+      exchangeCredentials,
+      useRealExecution = false 
+    } = request.params;
+    
+    // Validate user authentication
+    if (!request.user) {
+      throw new Error('User not authenticated');
+    }
+    
+    // Get current market data
+    const marketData = await fetchMarketData(pair, '1h');
+    const currentPrice = await fetchCurrentPrice(pair);
+    
+    // Perform technical analysis
+    const analysis = await performTechnicalAnalysis(marketData);
+    const signals = await generateTradingSignals(analysis);
+    
+    // Create order record
+    const Order = Parse.Object.extend('Order');
+    const order = new Order();
+    order.set('userId', request.user.id);
+    order.set('pair', pair);
+    order.set('action', action);
+    order.set('amount', amount);
+    order.set('price', currentPrice.price);
+    order.set('strategy', strategy);
+    order.set('status', 'pending');
+    order.set('confidence', signals.confidence);
+    order.set('riskLevel', signals.riskLevel);
+    order.set('analysis', analysis);
+    order.set('signals', signals);
+    const savedOrder = await order.save();
+    
+    // Execute order (real or simulated)
+    let executionResult;
+    if (useRealExecution && exchangeCredentials) {
+      executionResult = await executeRealOrder(savedOrder, currentPrice, exchangeCredentials);
+    } else {
+      executionResult = await simulateOrderExecution(savedOrder, currentPrice);
+    }
+    
+    return {
+      success: true,
+      orderId: savedOrder.id,
+      executionResult,
+      analysis,
+      signals,
+      timestamp: new Date()
+    };
+  } catch (error) {
+    console.error('Error executing real trade:', error);
+    throw new Error(`Failed to execute real trade: ${error.message}`);
+  }
+});
+
+Parse.Cloud.define('getExchangeOrderHistory', async (request) => {
+  try {
+    const { exchangeCredentials, exchange, symbol, limit = 50 } = request.params;
+    
+    if (!exchangeCredentials || !exchange) {
+      throw new Error('Exchange credentials and exchange name are required');
+    }
+    
+    let orders = [];
+    
+    switch (exchange) {
+      case 'binance':
+        orders = await getBinanceOrderHistory(exchangeCredentials.binance, symbol, limit);
+        break;
+      case 'wazirx':
+        orders = await getWazirXOrderHistory(exchangeCredentials.wazirx, symbol, limit);
+        break;
+      case 'coindcx':
+        orders = await getCoinDCXOrderHistory(exchangeCredentials.coindcx, symbol, limit);
+        break;
+      default:
+        throw new Error(`Unsupported exchange: ${exchange}`);
+    }
+    
+    return {
+      success: true,
+      orders,
+      exchange,
+      timestamp: new Date()
+    };
+  } catch (error) {
+    console.error('Error getting exchange order history:', error);
+    throw new Error(`Failed to get exchange order history: ${error.message}`);
+  }
+});
+
+// Helper functions for exchange API calls
+async function getBinanceBalances(credentials) {
+  const apiUrl = `${BINANCE_API_URL}/account`;
+  const headers = {
+    'X-MBX-APIKEY': credentials.apiKey,
+    'Content-Type': 'application/json'
+  };
+  
+  const response = await makeHttpRequest('GET', apiUrl, {}, headers);
+  return response.balances || [];
+}
+
+async function getWazirXBalances(credentials) {
+  const apiUrl = 'https://api.wazirx.com/api/v2/account';
+  const headers = {
+    'X-Api-Key': credentials.apiKey,
+    'Content-Type': 'application/json'
+  };
+  
+  const response = await makeHttpRequest('GET', apiUrl, {}, headers);
+  return response.balances || [];
+}
+
+async function getCoinDCXBalances(credentials) {
+  const apiUrl = 'https://api.coindcx.com/exchange/v1/users/balances';
+  const headers = {
+    'X-AUTH-APIKEY': credentials.apiKey,
+    'Content-Type': 'application/json'
+  };
+  
+  const response = await makeHttpRequest('GET', apiUrl, {}, headers);
+  return response || [];
+}
+
+async function getBinanceOrderHistory(credentials, symbol, limit) {
+  const apiUrl = `${BINANCE_API_URL}/allOrders`;
+  const params = {
+    symbol: symbol.replace('/', ''),
+    limit: limit
+  };
+  const headers = {
+    'X-MBX-APIKEY': credentials.apiKey,
+    'Content-Type': 'application/json'
+  };
+  
+  const response = await makeHttpRequest('GET', apiUrl, params, headers);
+  return response || [];
+}
+
+async function getWazirXOrderHistory(credentials, symbol, limit) {
+  const apiUrl = 'https://api.wazirx.com/api/v2/orders';
+  const params = {
+    market: symbol.replace('/', '').toLowerCase(),
+    limit: limit
+  };
+  const headers = {
+    'X-Api-Key': credentials.apiKey,
+    'Content-Type': 'application/json'
+  };
+  
+  const response = await makeHttpRequest('GET', apiUrl, params, headers);
+  return response || [];
+}
+
+async function getCoinDCXOrderHistory(credentials, symbol, limit) {
+  const apiUrl = 'https://api.coindcx.com/exchange/v1/orders/trade_history';
+  const params = {
+    market: symbol.replace('/', '').toUpperCase(),
+    limit: limit
+  };
+  const headers = {
+    'X-AUTH-APIKEY': credentials.apiKey,
+    'Content-Type': 'application/json'
+  };
+  
+  const response = await makeHttpRequest('GET', apiUrl, params, headers);
+  return response || [];
 }

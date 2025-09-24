@@ -222,6 +222,13 @@ export default function Dashboard() {
                   <BarChart3 className="h-4 w-4 mr-2" />
                   Performance Analytics
                 </Button>
+                <Button 
+                  className="w-full bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700" 
+                  onClick={() => navigate('/exchange-integration')}
+                >
+                  <Globe className="h-4 w-4 mr-2" />
+                  Exchange Integration
+                </Button>
               </div>
             </CardContent>
           </Card>
