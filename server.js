@@ -12,6 +12,35 @@ app.use((req, res, next) => {
 // Serve static files from the dist directory
 app.use(express.static(path.join(__dirname, 'frontend/dist')));
 
+// Test endpoint to verify static serving
+app.get('/test', (req, res) => {
+  res.sendFile(path.join(__dirname, 'test.html'));
+});
+
+// Debug endpoint to check if React assets are accessible
+app.get('/debug', (req, res) => {
+  const fs = require('fs');
+  const distPath = path.join(__dirname, 'frontend/dist');
+  
+  try {
+    const files = fs.readdirSync(path.join(distPath, 'assets'));
+    res.json({
+      status: 'OK',
+      assetsPath: path.join(distPath, 'assets'),
+      availableAssets: files,
+      indexHtmlContent: fs.readFileSync(path.join(distPath, 'index.html'), 'utf8').substring(0, 500) + '...'
+    });
+  } catch (error) {
+    res.json({
+      status: 'ERROR',
+      error: error.message,
+      distPath: distPath,
+      distExists: fs.existsSync(distPath),
+      assetsExists: fs.existsSync(path.join(distPath, 'assets'))
+    });
+  }
+});
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.status(200).json({ 
