@@ -340,8 +340,11 @@ export class BinanceExchange implements Exchange {
   }
 
   private generateSignature(queryString: string): string {
-    // This would need to be implemented with HMAC-SHA256
-    // For now, returning a placeholder
-    return 'signature_placeholder';
+    // Generate HMAC-SHA256 signature for Binance API
+    const crypto = require('crypto');
+    return crypto
+      .createHmac('sha256', this.config.apiSecret)
+      .update(queryString)
+      .digest('hex');
   }
 }
