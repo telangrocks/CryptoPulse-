@@ -9,8 +9,18 @@ app.use((req, res, next) => {
   next();
 });
 
-// Serve static files from the dist directory
-app.use(express.static(path.join(__dirname, 'frontend/dist')));
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    distPath: path.join(__dirname, 'frontend/dist'),
+    filesExist: {
+      indexHtml: require('fs').existsSync(path.join(__dirname, 'frontend/dist/index.html')),
+      assetsDir: require('fs').existsSync(path.join(__dirname, 'frontend/dist/assets'))
+    }
+  });
+});
 
 // Test endpoint to verify static serving
 app.get('/test', (req, res) => {
@@ -41,18 +51,8 @@ app.get('/debug', (req, res) => {
   }
 });
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.status(200).json({ 
-    status: 'OK', 
-    timestamp: new Date().toISOString(),
-    distPath: path.join(__dirname, 'frontend/dist'),
-    filesExist: {
-      indexHtml: require('fs').existsSync(path.join(__dirname, 'frontend/dist/index.html')),
-      assetsDir: require('fs').existsSync(path.join(__dirname, 'frontend/dist/assets'))
-    }
-  });
-});
+// Serve static files from the dist directory
+app.use(express.static(path.join(__dirname, 'frontend/dist')));
 
 // Handle React routing, return all requests to React app
 app.get('*', (req, res) => {
