@@ -120,7 +120,7 @@ const config = {
     'frontend/src/test/components/ErrorBoundary.test.tsx',
     'frontend/src/contexts/AppStateContext.tsx',
     'frontend/src/contexts/ThemeContext.tsx',
-    'frontend/src/firebase/config.ts',
+    'frontend/src/back4app/config.ts',
     'frontend/src/assets/react.svg',
     'frontend/src/components/ui/alert.tsx',
     'frontend/src/components/ui/badge.tsx',
