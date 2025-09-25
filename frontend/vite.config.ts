@@ -13,10 +13,10 @@ export default defineConfig({
     },
   },
   build: {
-    // Enhanced build configuration for better browser compatibility
-    minify: 'esbuild',
+    // ULTRA-OPTIMIZED build configuration for Back4App
+    minify: 'terser',
     sourcemap: false,
-    chunkSizeWarningLimit: 1000,
+    chunkSizeWarningLimit: 500,
     target: ['es2018', 'chrome70', 'firefox65', 'safari12', 'edge79'],
     // ESBuild configuration for better compatibility
     esbuild: {
@@ -26,10 +26,17 @@ export default defineConfig({
         'dynamic-import': true
       }
     },
-    // Don't fail build on warnings
+    // Optimize chunks for faster loading
     rollupOptions: {
-      // Force Rollup to use specific binary
-      external: [],
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          ui: ['@radix-ui/react-accordion', '@radix-ui/react-alert-dialog', '@radix-ui/react-avatar'],
+          charts: ['recharts'],
+          forms: ['react-hook-form', '@hookform/resolvers', 'zod']
+        }
+      }
+    },
       onwarn(warning, warn) {
         // Suppress mixed import warnings
         if (warning.code === 'MODULE_LEVEL_DIRECTIVE') return;

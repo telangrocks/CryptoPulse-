@@ -26,11 +26,11 @@
     ]
   },
   "webHosting": {
-    "public": "frontend/dist",
+    "public": "frontend-dist",
     "index": "index.html",
     "spa": true,
-    "buildCommand": "cd frontend && node setup-env.cjs && npm run build:production",
-    "installCommand": "cd frontend && npm install"
+    "buildCommand": "echo 'Using Docker build instead'",
+    "installCommand": "echo 'Using Docker build instead'"
   },
   "database": {
     "adapter": "mongo",
