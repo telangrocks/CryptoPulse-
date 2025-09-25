@@ -17,7 +17,15 @@ export default defineConfig({
     minify: 'esbuild',
     sourcemap: false,
     chunkSizeWarningLimit: 1000,
-    target: ['es2015', 'chrome58', 'firefox57', 'safari11', 'edge16'],
+    target: ['es2018', 'chrome70', 'firefox65', 'safari12', 'edge79'],
+    // ESBuild configuration for better compatibility
+    esbuild: {
+      target: 'es2018',
+      supported: {
+        'destructuring': true,
+        'dynamic-import': true
+      }
+    },
     // Don't fail build on warnings
     rollupOptions: {
       // Force Rollup to use specific binary
@@ -70,7 +78,10 @@ export default defineConfig({
       'tailwind-merge',
       'parse'
     ],
-    exclude: ['events']
+    exclude: ['events'],
+    esbuildOptions: {
+      target: 'es2018'
+    }
   },
   // Fix for Parse SDK browser compatibility
   define: {
