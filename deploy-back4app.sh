@@ -121,6 +121,7 @@ cp back4app.json "$TEMP_DIR/"
 cp server.js "$TEMP_DIR/"
 cp package.json "$TEMP_DIR/"
 cp Dockerfile.back4app "$TEMP_DIR/Dockerfile"
+cp server-back4app.js "$TEMP_DIR/"
 
 # Create a simple package.json for the deployment
 cat > "$TEMP_DIR/package.json" << EOF

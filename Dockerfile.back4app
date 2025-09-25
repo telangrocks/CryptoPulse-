@@ -12,15 +12,35 @@ RUN apk add --no-cache \
 # Set working directory
 WORKDIR /app
 
-# Copy package files for dependency installation
-COPY package.json ./
-COPY frontend/package*.json ./frontend/
+# Create a minimal package.json for production
+RUN echo '{ \
+  "name": "cryptopulse-back4app", \
+  "version": "1.0.0", \
+  "description": "CryptoPulse Trading Bot - Back4App Deployment", \
+  "main": "server.js", \
+  "scripts": { \
+    "start": "node server.js" \
+  }, \
+  "dependencies": { \
+    "express": "^4.18.2", \
+    "cors": "^2.8.5", \
+    "helmet": "^7.1.0", \
+    "compression": "^1.7.4", \
+    "express-rate-limit": "^7.1.5", \
+    "http-proxy-middleware": "^2.0.6", \
+    "parse": "^3.5.1" \
+  }, \
+  "engines": { \
+    "node": ">=18.0.0" \
+  } \
+}' > package.json
 
-# Install root dependencies (production only)
+# Install only essential production dependencies
 RUN npm install --silent --production --no-optional
 
 # Install frontend dependencies
 WORKDIR /app/frontend
+COPY frontend/package*.json ./
 RUN npm install --silent --no-optional
 
 # Copy frontend source code
@@ -46,7 +66,7 @@ COPY cloud/ ./cloud/
 
 # Copy configuration files
 COPY back4app.json ./
-COPY server.js ./
+COPY server-back4app.js ./server.js
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \

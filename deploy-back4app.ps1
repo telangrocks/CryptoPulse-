@@ -123,6 +123,7 @@ Copy-Item "back4app.json" "$tempDir/"
 Copy-Item "server.js" "$tempDir/"
 Copy-Item "package.json" "$tempDir/"
 Copy-Item "Dockerfile.back4app" "$tempDir/Dockerfile"
+Copy-Item "server-back4app.js" "$tempDir/"
 
 # Create a simple package.json for the deployment
 $packageJson = @{
