@@ -55,13 +55,16 @@ COPY backend/ ./backend/
 # Copy cloud functions
 COPY cloud/ ./cloud/
 
+# Copy frontend build to correct location
+RUN cp -r frontend/dist ./frontend-dist
+
 # Copy configuration files
 COPY back4app.json ./
 COPY server-back4app.js ./server.js
 
 # Create non-root user for security
-RUN groupadd -g 1001 nodejs && \
-    useradd -r -u 1001 -g nodejs nextjs
+RUN groupadd -g 1000 nodejs && \
+    useradd -r -u 1000 -g nodejs nextjs
 
 # Change ownership of the app directory
 RUN chown -R nextjs:nodejs /app

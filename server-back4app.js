@@ -92,17 +92,23 @@ app.get('/api/status', (req, res) => {
 
 // Serve static files in production
 if (NODE_ENV === 'production') {
-  const frontendPath = path.join(__dirname, 'frontend', 'dist');
+  const frontendPath = path.join(__dirname, 'frontend-dist');
+  
+  console.log('Frontend path:', frontendPath);
+  console.log('Frontend exists:', fs.existsSync(frontendPath));
   
   if (fs.existsSync(frontendPath)) {
+    console.log('Frontend build found. Serving static files...');
     app.use(express.static(frontendPath));
     
     // SPA fallback
     app.get('*', (req, res) => {
+      console.log('Serving SPA fallback for:', req.path);
       res.sendFile(path.join(frontendPath, 'index.html'));
     });
   } else {
     console.warn('Frontend build not found. Serving API only.');
+    console.log('Available files in /app:', fs.readdirSync('/app'));
     
     // API-only fallback
     app.get('*', (req, res) => {
@@ -110,7 +116,9 @@ if (NODE_ENV === 'production') {
         error: 'Not Found',
         message: 'The requested resource was not found',
         timestamp: new Date().toISOString(),
-        availableEndpoints: ['/health', '/api/status']
+        availableEndpoints: ['/health', '/api/status'],
+        frontendPath: frontendPath,
+        frontendExists: fs.existsSync(frontendPath)
       });
     });
   }
