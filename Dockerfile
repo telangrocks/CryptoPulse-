@@ -1,13 +1,14 @@
 # Back4App Optimized Dockerfile for CryptoPulse Trading Bot
-FROM node:18-alpine
+FROM node:18-slim
 
 # Install system dependencies
-RUN apk add --no-cache \
+RUN apt-get update && apt-get install -y \
     curl \
     python3 \
     make \
     g++ \
-    git
+    git \
+    && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /app
@@ -21,6 +22,8 @@ RUN npm install --silent --production --no-optional
 # Install frontend dependencies
 WORKDIR /app/frontend
 COPY frontend/package*.json ./
+
+# Install frontend dependencies
 RUN npm install --silent --no-optional
 
 # Copy frontend source code
@@ -49,8 +52,8 @@ COPY back4app.json ./
 COPY server-back4app.js ./server.js
 
 # Create non-root user for security
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nextjs -u 1001
+RUN groupadd -g 1001 nodejs && \
+    useradd -r -u 1001 -g nodejs nextjs
 
 # Change ownership of the app directory
 RUN chown -R nextjs:nodejs /app
