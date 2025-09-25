@@ -23,8 +23,16 @@ RUN npm install --silent --production --no-optional
 WORKDIR /app/frontend
 COPY frontend/package*.json ./
 
-# Install frontend dependencies
-RUN npm install --silent --no-optional
+# Clean npm cache and remove lock files to fix Rollup binary issue
+RUN npm cache clean --force && \
+    rm -rf node_modules package-lock.json
+
+# Install frontend dependencies with clean slate and force rebuild
+RUN npm install --silent --no-optional --force
+
+# Fix Rollup binary compatibility issue
+RUN npm install @rollup/rollup-linux-x64-gnu --save-dev --force && \
+    npm rebuild rollup --force
 
 # Copy frontend source code
 COPY frontend/ ./

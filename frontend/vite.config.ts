@@ -20,6 +20,8 @@ export default defineConfig({
     target: ['es2015', 'chrome58', 'firefox57', 'safari11', 'edge16'],
     // Don't fail build on warnings
     rollupOptions: {
+      // Force Rollup to use specific binary
+      external: [],
       onwarn(warning, warn) {
         // Suppress mixed import warnings
         if (warning.code === 'MODULE_LEVEL_DIRECTIVE') return;
