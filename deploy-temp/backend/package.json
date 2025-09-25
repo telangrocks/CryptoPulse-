@@ -1,0 +1,40 @@
+{
+  "name": "cryptopulse-backend",
+  "version": "1.0.0",
+  "description": "Backend cloud functions for CryptoPulse Trading Bot",
+  "main": "cloud-functions.js",
+  "scripts": {
+    "start": "node cloud-functions.js",
+    "dev": "node cloud-functions.js"
+  },
+  "dependencies": {
+    "parse": "^3.5.1",
+    "axios": "^1.6.0",
+    "redis": "^4.6.0",
+    "prom-client": "^15.0.0",
+    "winston": "^3.11.0",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^6.3.3",
+    "@types/jest": "^29.5.8"
+  },
+  "scripts": {
+    "start": "node cloud-functions.js",
+    "dev": "node cloud-functions.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:ci": "jest --ci --coverage --watchAll=false"
+  },
+  "keywords": [
+    "cryptocurrency",
+    "trading",
+    "bot",
+    "backend",
+    "cloud-functions"
+  ],
+  "author": "Shrikant Telang",
+  "license": "MIT"
+}

@@ -1,31 +1,39 @@
-# Production-ready Dockerfile for Back4App deployment
+# Back4App Optimized Dockerfile for CryptoPulse Trading Bot
 FROM node:18-alpine
 
 # Install system dependencies
-RUN apk add --no-cache curl python3 make g++
+RUN apk add --no-cache \
+    curl \
+    python3 \
+    make \
+    g++ \
+    git
 
 # Set working directory
 WORKDIR /app
 
-# Copy package files first for better caching
+# Copy package files for dependency installation
 COPY package.json ./
 COPY frontend/package*.json ./frontend/
 
-# Install root dependencies
-RUN npm install --silent --production
+# Install root dependencies (production only)
+RUN npm install --silent --production --no-optional
 
 # Install frontend dependencies
 WORKDIR /app/frontend
-RUN npm install --silent
+RUN npm install --silent --no-optional
 
 # Copy frontend source code
 COPY frontend/ ./
 
-# Create environment files before build
-RUN node setup-env.js
+# Create environment files
+RUN node setup-env.cjs
 
 # Build frontend for production
 RUN npm run build:production
+
+# Verify build output
+RUN ls -la dist/
 
 # Go back to app root
 WORKDIR /app
@@ -41,8 +49,8 @@ COPY back4app.json ./
 COPY server.js ./
 
 # Create non-root user for security
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nextjs -u 1001
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nextjs -u 1001
 
 # Change ownership of the app directory
 RUN chown -R nextjs:nodejs /app
@@ -54,9 +62,13 @@ EXPOSE 3000
 # Set environment variables
 ENV NODE_ENV=production
 ENV PORT=3000
+ENV BACK4APP_APP_ID=${BACK4APP_APP_ID}
+ENV BACK4APP_JAVASCRIPT_KEY=${BACK4APP_JAVASCRIPT_KEY}
+ENV BACK4APP_MASTER_KEY=${BACK4APP_MASTER_KEY}
+ENV BACK4APP_SERVER_URL=${BACK4APP_SERVER_URL}
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
   CMD curl -f http://localhost:3000/health || exit 1
 
 # Start the application
