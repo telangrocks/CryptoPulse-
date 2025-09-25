@@ -284,10 +284,13 @@ class SecurityMiddleware {
       for (const pattern of suspiciousPatterns) {
         if (pattern.test(url) || pattern.test(body)) {
           // Log suspicious activity
-          console.warn(`Suspicious request detected from ${req.ip}:`, {
+          const { structuredLogger } = require('./structuredLogger');
+          structuredLogger.security(`Suspicious request detected from ${req.ip}`, {
             url: req.url,
             userAgent: req.headers['user-agent'],
-            pattern: pattern.toString()
+            pattern: pattern.toString(),
+            ip: req.ip,
+            timestamp: new Date().toISOString()
           });
           
           return res.status(400).json({

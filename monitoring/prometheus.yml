@@ -1,10 +1,18 @@
 global:
   scrape_interval: 15s
   evaluation_interval: 15s
+  external_labels:
+    cluster: 'cryptopulse-production'
+    environment: 'production'
 
 rule_files:
-  # - "first_rules.yml"
-  # - "second_rules.yml"
+  - "alert_rules.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
 
 scrape_configs:
   # Prometheus itself
@@ -12,34 +20,47 @@ scrape_configs:
     static_configs:
       - targets: ['localhost:9090']
 
-  # CryptoPulse Frontend
-  - job_name: 'cryptopulse-frontend'
-    static_configs:
-      - targets: ['frontend:3000']
-    metrics_path: '/metrics'
-    scrape_interval: 30s
-
-  # CryptoPulse Backend
+  # CryptoPulse Backend Application
   - job_name: 'cryptopulse-backend'
     static_configs:
-      - targets: ['backend:8080']
+      - targets: ['backend:3000']
     metrics_path: '/metrics'
-    scrape_interval: 30s
+    scrape_interval: 10s
+    scrape_timeout: 5s
 
-  # Redis
-  - job_name: 'redis'
+  # Node Exporter for system metrics
+  - job_name: 'node-exporter'
     static_configs:
-      - targets: ['redis:6379']
-    scrape_interval: 30s
+      - targets: ['node-exporter:9100']
 
-  # MongoDB
-  - job_name: 'mongodb'
+  # PostgreSQL Exporter
+  - job_name: 'postgres-exporter'
     static_configs:
-      - targets: ['mongodb:27017']
-    scrape_interval: 30s
+      - targets: ['postgres-exporter:9187']
 
-  # Nginx
-  - job_name: 'nginx'
+  # Redis Exporter
+  - job_name: 'redis-exporter'
     static_configs:
-      - targets: ['nginx:80']
-    scrape_interval: 30s
+      - targets: ['redis-exporter:9121']
+
+  # Nginx Exporter
+  - job_name: 'nginx-exporter'
+    static_configs:
+      - targets: ['nginx-exporter:9113']
+
+  # Blackbox Exporter for external monitoring
+  - job_name: 'blackbox'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+        - http://backend:3000/health
+        - http://nginx:80/health
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115

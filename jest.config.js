@@ -5,7 +5,8 @@ module.exports = {
   // Test file patterns
   testMatch: [
     '**/__tests__/**/*.js',
-    '**/?(*.)+(spec|test).js'
+    '**/?(*.)+(spec|test).js',
+    '**/backend/tests/**/*.test.js'
   ],
   
   // Coverage configuration
@@ -127,6 +128,18 @@ module.exports = {
     {
       displayName: 'e2e',
       testMatch: ['<rootDir>/backend/tests/e2e/**/*.test.js']
+    },
+    {
+      displayName: 'api',
+      testMatch: ['<rootDir>/backend/tests/api/**/*.test.js']
+    },
+    {
+      displayName: 'security',
+      testMatch: ['<rootDir>/backend/tests/security/**/*.test.js']
+    },
+    {
+      displayName: 'performance',
+      testMatch: ['<rootDir>/backend/tests/performance/**/*.test.js']
     }
   ],
   
