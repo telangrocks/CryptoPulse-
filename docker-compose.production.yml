@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  # Nginx reverse proxy with SSL
+  # Nginx Reverse Proxy
   nginx:
     image: nginx:alpine
     container_name: cryptopulse-nginx
@@ -14,133 +14,161 @@ services:
       - ./ssl:/etc/nginx/ssl:ro
       - ./letsencrypt:/etc/letsencrypt:ro
       - ./frontend/dist:/usr/share/nginx/html:ro
-      - nginx_logs:/var/log/nginx
+      - nginx-logs:/var/log/nginx
     depends_on:
       - backend
     networks:
       - cryptopulse-network
-    security_opt:
-      - no-new-privileges:true
-    read_only: true
-    tmpfs:
-      - /tmp
-      - /var/cache/nginx
-      - /var/run
-    user: "101:101"
     healthcheck:
-      test: ["CMD", "nginx", "-t"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 40s
 
-  # Backend application
+  # Backend Application
   backend:
     build:
       context: .
       dockerfile: Dockerfile.production
-      target: production
     container_name: cryptopulse-backend
     restart: unless-stopped
+    ports:
+      - "3000:3000"
     environment:
       - NODE_ENV=production
       - PORT=3000
       - LOG_LEVEL=info
-      - REDIS_URL=redis://redis:6379
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
-      - MONGO_URL=mongodb://mongodb:27017/cryptopulse
-      - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
-      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
-      - SESSION_SECRET=${SESSION_SECRET}
-      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - ENABLE_CONSOLE_LOGS=false
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
       - JWT_SECRET=${JWT_SECRET}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - SESSION_SECRET=${SESSION_SECRET}
+      - CSRF_SECRET=${CSRF_SECRET}
+      - BACK4APP_APP_ID=${BACK4APP_APP_ID}
+      - BACK4APP_JAVASCRIPT_KEY=${BACK4APP_JAVASCRIPT_KEY}
+      - BACK4APP_MASTER_KEY=${BACK4APP_MASTER_KEY}
+      - BACK4APP_SERVER_URL=${BACK4APP_SERVER_URL}
+      - BINANCE_API_KEY=${BINANCE_API_KEY}
+      - BINANCE_SECRET_KEY=${BINANCE_SECRET_KEY}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_FROM=${SMTP_FROM}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY}
+      - ALERT_EMAIL=${ALERT_EMAIL}
+      - ALERT_SLACK_WEBHOOK=${ALERT_SLACK_WEBHOOK}
     volumes:
-      - backend_logs:/app/logs
-      - ./ssl:/app/ssl:ro
+      - backend-logs:/app/logs
+      - backend-uploads:/app/uploads
     depends_on:
+      - postgres
       - redis
-      - mongodb
     networks:
       - cryptopulse-network
-    security_opt:
-      - no-new-privileges:true
-    read_only: true
-    tmpfs:
-      - /tmp
-    user: "1001:1001"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 60s
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
 
-  # Redis cache
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: cryptopulse-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./backup:/backup
+    networks:
+      - cryptopulse-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  # Redis Cache
   redis:
     image: redis:7-alpine
     container_name: cryptopulse-redis
     restart: unless-stopped
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD} --bind 0.0.0.0 --protected-mode yes
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
     volumes:
-      - redis_data:/data
+      - redis-data:/data
     networks:
       - cryptopulse-network
-    security_opt:
-      - no-new-privileges:true
-    read_only: true
-    tmpfs:
-      - /tmp
-    user: "999:999"
     healthcheck:
       test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
 
-  # MongoDB database
+  # MongoDB (for additional data storage)
   mongodb:
     image: mongo:7
     container_name: cryptopulse-mongodb
     restart: unless-stopped
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
-      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
-      - MONGO_INITDB_DATABASE=cryptopulse
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD}
+      - MONGO_INITDB_DATABASE=${MONGO_DATABASE}
     volumes:
-      - mongodb_data:/data/db
-      - mongodb_config:/data/configdb
+      - mongodb-data:/data/db
+      - mongodb-config:/data/configdb
     networks:
       - cryptopulse-network
-    security_opt:
-      - no-new-privileges:true
-    read_only: true
-    tmpfs:
-      - /tmp
-    user: "999:999"
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 60s
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
 
-  # Certbot for SSL certificates
-  certbot:
-    image: certbot/certbot
-    container_name: cryptopulse-certbot
-    restart: "no"
-    volumes:
-      - ./letsencrypt:/etc/letsencrypt
-      - certbot_www:/var/www/certbot
-    command: certonly --webroot --webroot-path=/var/www/certbot --email ${SSL_EMAIL} --agree-tos --no-eff-email --staging
-    networks:
-      - cryptopulse-network
-    security_opt:
-      - no-new-privileges:true
-    read_only: true
-    tmpfs:
-      - /tmp
-
-  # Monitoring and logging
+  # Prometheus Monitoring
   prometheus:
     image: prom/prometheus:latest
     container_name: cryptopulse-prometheus
@@ -149,23 +177,24 @@ services:
       - "9090:9090"
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus_data:/prometheus
+      - prometheus-data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
       - '--web.console.libraries=/etc/prometheus/console_libraries'
       - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=30d'
       - '--web.enable-lifecycle'
     networks:
       - cryptopulse-network
-    security_opt:
-      - no-new-privileges:true
-    read_only: true
-    tmpfs:
-      - /tmp
-    user: "65534:65534"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
-  # Grafana for dashboards
+  # Grafana Dashboard
   grafana:
     image: grafana/grafana:latest
     container_name: cryptopulse-grafana
@@ -174,56 +203,71 @@ services:
       - "3001:3000"
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
-      - GF_SECURITY_ADMIN_USER=admin
       - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_SECURITY_DISABLE_GRAVATAR=true
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
     volumes:
-      - grafana_data:/var/lib/grafana
+      - grafana-data:/var/lib/grafana
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
     networks:
       - cryptopulse-network
-    security_opt:
-      - no-new-privileges:true
-    read_only: true
-    tmpfs:
-      - /tmp
-    user: "472:472"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
-  # Log aggregation
+  # Fluentd Log Aggregation
   fluentd:
     image: fluent/fluentd:v1.16-debian-1
     container_name: cryptopulse-fluentd
     restart: unless-stopped
     volumes:
-      - ./monitoring/fluentd/fluent.conf:/fluentd/etc/fluent.conf:ro
-      - backend_logs:/var/log/backend:ro
-      - nginx_logs:/var/log/nginx:ro
+      - ./monitoring/fluent.conf:/fluentd/etc/fluent.conf:ro
+      - backend-logs:/var/log/backend:ro
+      - nginx-logs:/var/log/nginx:ro
+      - fluentd-logs:/var/log/fluentd
     networks:
       - cryptopulse-network
-    security_opt:
-      - no-new-privileges:true
-    read_only: true
-    tmpfs:
-      - /tmp
-    user: "100:100"
+    depends_on:
+      - backend
+      - nginx
 
-volumes:
-  mongodb_data:
-    driver: local
-  mongodb_config:
-    driver: local
-  redis_data:
-    driver: local
-  backend_logs:
-    driver: local
-  nginx_logs:
-    driver: local
-  prometheus_data:
-    driver: local
-  grafana_data:
-    driver: local
-  certbot_www:
-    driver: local
+  # Certbot for SSL
+  certbot:
+    image: certbot/certbot
+    container_name: cryptopulse-certbot
+    restart: "no"
+    volumes:
+      - ./letsencrypt:/etc/letsencrypt
+      - ./certbot_www:/var/www/certbot
+    command: certonly --webroot --webroot-path=/var/www/certbot --email ${SSL_EMAIL} --agree-tos --no-eff-email -d ${DOMAIN_NAME}
+    networks:
+      - cryptopulse-network
+
+  # Backup Service
+  backup:
+    image: postgres:15-alpine
+    container_name: cryptopulse-backup
+    restart: "no"
+    environment:
+      - PGPASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - ./backup:/backup
+      - postgres-data:/var/lib/postgresql/data:ro
+    command: |
+      sh -c "
+        echo 'Starting backup...'
+        pg_dump -h postgres -U ${POSTGRES_USER} -d ${POSTGRES_DB} > /backup/backup-$(date +%Y%m%d_%H%M%S).sql
+        echo 'Backup completed'
+      "
+    depends_on:
+      - postgres
+    networks:
+      - cryptopulse-network
 
 networks:
   cryptopulse-network:
@@ -231,3 +275,25 @@ networks:
     ipam:
       config:
         - subnet: 172.20.0.0/16
+
+volumes:
+  postgres-data:
+    driver: local
+  redis-data:
+    driver: local
+  mongodb-data:
+    driver: local
+  mongodb-config:
+    driver: local
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
+  backend-logs:
+    driver: local
+  nginx-logs:
+    driver: local
+  fluentd-logs:
+    driver: local
+  backend-uploads:
+    driver: local

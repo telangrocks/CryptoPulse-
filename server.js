@@ -1,427 +1,333 @@
+#!/usr/bin/env node
+
+/**
+ * CryptoPulse Trading Bot - Production Server
+ * 
+ * This is the main entry point for the CryptoPulse Trading Bot application.
+ * It handles all server initialization, middleware setup, and error handling.
+ * 
+ * @author Shrikant Telang
+ * @version 1.0.0
+ */
+
 const express = require('express');
+const cors = require('cors');
+const helmet = require('helmet');
+const compression = require('compression');
+const rateLimit = require('express-rate-limit');
+const { createProxyMiddleware } = require('http-proxy-middleware');
 const path = require('path');
 const fs = require('fs');
-const axios = require('axios');
-const SecurityMiddleware = require('./backend/securityMiddleware');
-const { getSessionManager } = require('./backend/secureSessionManager');
-const { getAuditLogger } = require('./backend/auditLogger');
-const { getMonitoringSystem } = require('./backend/monitoring');
-const { logger } = require('./backend/structuredLogger');
+
+// Import production modules
+const { structuredLogger } = require('./backend/structuredLogger');
+const { monitoring } = require('./backend/monitoring');
+const { errorHandler } = require('./backend/errorHandler');
+const { performanceOptimizer } = require('./backend/performanceOptimizer');
+const { securityMiddleware } = require('./backend/securityMiddleware');
+const { environmentSecurity } = require('./backend/environmentSecurity');
+const { secureSessionManager } = require('./backend/secureSessionManager');
+const { rateLimiter } = require('./backend/rateLimiter');
+const { featureFlagSystem } = require('./backend/featureFlagSystem');
+const { complianceManager } = require('./backend/complianceManager');
+const { auditLogger } = require('./backend/auditLogger');
+
+// Initialize Express app
 const app = express();
 const PORT = process.env.PORT || 3000;
+const NODE_ENV = process.env.NODE_ENV || 'development';
 
-// Initialize security middleware
-const security = new SecurityMiddleware();
-const sessionManager = getSessionManager();
-const auditLogger = getAuditLogger();
-const monitoring = getMonitoringSystem();
+// Initialize production systems
+let isShuttingDown = false;
 
-// Apply security middleware
-app.use(security.getAllMiddleware());
-
-// Add session management
-app.use(sessionManager.middleware());
-
-// Add rate limiting
-app.use('/api/auth', security.getRateLimitMiddleware('auth'));
-app.use('/api/trading', security.getRateLimitMiddleware('trading'));
-app.use('/api/upload', security.getRateLimitMiddleware('upload'));
-app.use('/api', security.getRateLimitMiddleware('general'));
-
-// Add structured logging middleware
-app.use(logger.requestLogger());
-
-// Add monitoring middleware
-app.use((req, res, next) => {
-  const startTime = Date.now();
+/**
+ * Graceful shutdown handler
+ */
+async function gracefulShutdown(signal) {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
   
-  // Override res.end to capture response metrics
-  const originalEnd = res.end;
-  res.end = function(...args) {
-    const duration = Date.now() - startTime;
-    monitoring.recordHttpRequest(req.method, req.route?.path || req.path, res.statusCode, duration);
-    originalEnd.apply(this, args);
-  };
+  structuredLogger.info(`Received ${signal}. Starting graceful shutdown...`);
   
-  next();
-});
-
-// Prometheus metrics endpoint
-app.get('/metrics', (req, res) => {
-  res.set('Content-Type', 'text/plain');
-  res.send(monitoring.getMetrics());
-});
-
-// Monitoring dashboard endpoint
-app.get('/api/monitoring/dashboard', (req, res) => {
   try {
-    const dashboardData = monitoring.getDashboardData();
-    res.json(dashboardData);
-  } catch (error) {
-    monitoring.recordError('api', 'high', error);
-    res.status(500).json({ error: 'Failed to get dashboard data' });
-  }
-});
-
-// Health check with monitoring
-app.get('/health', async (req, res) => {
-  try {
-    const healthStatus = monitoring.getHealthStatus();
-    
-    // Also run the existing health checks
-    const healthStatus_legacy = {
-      status: 'healthy',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      memory: process.memoryUsage(),
-      version: process.version,
-      environment: process.env.NODE_ENV || 'development',
-      services: {
-        database: 'healthy',
-        redis: 'healthy',
-        external_apis: 'healthy'
-      }
-    };
-    
-    // Merge health statuses
-    const combinedHealth = {
-      ...healthStatus_legacy,
-      monitoring: healthStatus,
-      overall: healthStatus.status === 'healthy' && healthStatus_legacy.status === 'healthy' ? 'healthy' : 'unhealthy'
-    };
-    
-    res.json(combinedHealth);
-  } catch (error) {
-    monitoring.recordError('health_check', 'high', error);
-    res.status(500).json({ 
-      status: 'unhealthy', 
-      error: 'Health check failed',
-      timestamp: new Date().toISOString()
+    // Stop accepting new connections
+    server.close(() => {
+      structuredLogger.info('HTTP server closed');
     });
+    
+    // Close database connections
+    // await database.close();
+    
+    // Close Redis connections
+    // await redisClient.quit();
+    
+    // Cleanup other resources
+    await performanceOptimizer.cleanup();
+    await featureFlagSystem.cleanup();
+    await complianceManager.cleanup();
+    
+    structuredLogger.info('Graceful shutdown completed');
+    process.exit(0);
+  } catch (error) {
+    structuredLogger.error('Error during graceful shutdown:', error);
+    process.exit(1);
   }
+}
+
+// Register shutdown handlers
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGUSR2', () => gracefulShutdown('SIGUSR2')); // For nodemon
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  structuredLogger.error('Uncaught Exception:', error);
+  gracefulShutdown('uncaughtException');
 });
 
-// CSRF token endpoint
-app.get('/api/csrf-token', (req, res) => {
-  const token = security.generateCSRFToken();
-  res.json({ csrfToken: token });
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  structuredLogger.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  gracefulShutdown('unhandledRejection');
 });
 
-// Authentication endpoints with audit logging
-app.post('/api/auth/login', async (req, res) => {
+/**
+ * Initialize production systems
+ */
+async function initializeProductionSystems() {
   try {
-    const { email, password } = req.body;
-    const ipAddress = req.ip;
-    const userAgent = req.get('User-Agent');
+    structuredLogger.info('Initializing production systems...');
     
-    // Validate input (in production, use proper validation)
-    if (!email || !password) {
-      await auditLogger.logUserLogin(null, ipAddress, userAgent, false);
-      return res.status(400).json({ error: 'Email and password are required' });
-    }
+    // 1. Validate environment configuration
+    await environmentSecurity.validateEnvironment();
+    structuredLogger.info('Environment validation completed');
     
-    // Here you would validate credentials against your user database
-    // For now, we'll simulate authentication
+    // 2. Initialize monitoring
+    await monitoring.initializeMetrics();
+    await monitoring.startMonitoring();
+    structuredLogger.info('Monitoring system initialized');
     
-    // Simulate user lookup
-    const user = { id: 'user123', email, name: 'Test User' };
+    // 3. Initialize performance optimizer
+    await performanceOptimizer.initialize();
+    structuredLogger.info('Performance optimizer initialized');
     
-    // Create session
-    const session = sessionManager.createSession(user.id, user, ipAddress, userAgent);
+    // 4. Initialize feature flags
+    await featureFlagSystem.initialize();
+    structuredLogger.info('Feature flag system initialized');
     
-    // Set session cookie
-    sessionManager.setSessionCookie(res, session.sessionId, session.expires);
+    // 5. Initialize compliance manager
+    await complianceManager.initialize();
+    structuredLogger.info('Compliance manager initialized');
     
-    // Log successful login
-    await auditLogger.logUserLogin(user.id, ipAddress, userAgent, true);
+    // 6. Initialize audit logger
+    await auditLogger.initialize();
+    structuredLogger.info('Audit logger initialized');
     
-    // Record monitoring metrics
-    monitoring.recordAuthAttempt('login', 'success');
-    monitoring.recordActiveSessions(1); // Increment active sessions
-    
-    res.json({
-      success: true,
-      user,
-      session: {
-        sessionId: session.sessionId,
-        csrfToken: session.csrfToken,
-        expires: session.expires
-      }
-    });
+    structuredLogger.info('All production systems initialized successfully');
     
   } catch (error) {
-    logger.logError(error, { endpoint: '/api/auth/login', userId: req.body?.email });
-    await auditLogger.logSystemEvent('LOGIN_ERROR', {
-      error: error.message,
-      ipAddress: req.ip,
-      userAgent: req.get('User-Agent')
-    });
-    
-    // Record monitoring metrics
-    monitoring.recordAuthAttempt('login', 'failure');
-    monitoring.recordError('authentication', 'high', error);
-    
-    res.status(500).json({ error: 'Internal server error' });
+    structuredLogger.error('Failed to initialize production systems:', error);
+    throw error;
   }
-});
+}
 
-app.post('/api/auth/logout', async (req, res) => {
-  try {
-    const sessionId = req.sessionId;
-    const userId = req.session?.userId;
-    
-    if (sessionId) {
-      sessionManager.destroySession(sessionId, userId);
-    }
-    
-    sessionManager.clearSessionCookie(res);
-    
-    await auditLogger.logUserLogout(userId, req.ip, req.get('User-Agent'));
-    
-    // Record monitoring metrics
-    monitoring.recordAuthAttempt('logout', 'success');
-    monitoring.recordActiveSessions(-1); // Decrement active sessions
-    
-    res.json({ success: true, message: 'Logged out successfully' });
-    
-  } catch (error) {
-    logger.logError(error, { endpoint: '/api/auth/logout', userId: req.user?.id });
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
+/**
+ * Setup middleware
+ */
+function setupMiddleware() {
+  // Trust proxy (for rate limiting and IP detection)
+  app.set('trust proxy', 1);
+  
+  // Security middleware
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        scriptSrc: ["'self'"],
+        imgSrc: ["'self'", "data:", "https:"],
+        connectSrc: ["'self'", "https://api.binance.com", "https://parseapi.back4app.com"],
+        fontSrc: ["'self'"],
+        objectSrc: ["'none'"],
+        mediaSrc: ["'self'"],
+        frameSrc: ["'none'"],
+      },
+    },
+    crossOriginEmbedderPolicy: false
+  }));
+  
+  // CORS configuration
+  app.use(cors({
+    origin: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : ['http://localhost:3000', 'https://cryptopulse.app'],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-CSRF-Token']
+  }));
+  
+  // Compression
+  app.use(compression());
+  
+  // Body parsing
+  app.use(express.json({ limit: '10mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+  
+  // Request logging
+  app.use(monitoring.requestLogger());
+  
+  // Security middleware
+  app.use(securityMiddleware.getAllMiddleware());
+  
+  // Rate limiting
+  app.use('/api/', rateLimiter.createRateLimitMiddleware('general'));
+  app.use('/api/auth/', rateLimiter.createRateLimitMiddleware('auth'));
+  app.use('/api/trading/', rateLimiter.createRateLimitMiddleware('trading'));
+  
+  // Session management
+  app.use(secureSessionManager.middleware());
+  
+  // Feature flags
+  app.use(featureFlagSystem.featureFlagMiddleware(featureFlagSystem));
+  
+  // Performance optimization
+  app.use(performanceOptimizer.middleware());
+}
 
-// Session validation endpoint
-app.get('/api/auth/validate', (req, res) => {
-  if (req.session) {
-    res.json({
-      valid: true,
-      user: req.session.userData
-    });
-  } else {
-    res.status(401).json({
-      valid: false,
-      message: 'Session invalid or expired'
-    });
-  }
-});
-
-// Audit log search endpoint (admin only)
-app.get('/api/admin/audit-logs', async (req, res) => {
-  try {
-    // In production, check if user has admin privileges
-    if (!req.session) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
-    
-    const query = req.query;
-    const logs = await auditLogger.searchLogs(query);
-    
-    res.json({
-      success: true,
-      logs,
-      total: logs.length
-    });
-    
-  } catch (error) {
-    logger.logError(error, { endpoint: '/api/admin/audit-logs', userId: req.user?.id });
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Session management endpoint (admin only)
-app.get('/api/admin/session-stats', (req, res) => {
-  try {
-    if (!req.session) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
-    
-    const stats = sessionManager.getSessionStats();
-    res.json({
-      success: true,
-      stats
-    });
-    
-  } catch (error) {
-    logger.logError(error, { endpoint: '/api/admin/session-stats', userId: req.user?.id });
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Comprehensive health check endpoint
-app.get('/health', async (req, res) => {
-  try {
-    const healthStatus = {
-      status: 'OK',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      memory: process.memoryUsage(),
-      version: process.env.npm_package_version || '1.0.0',
-      environment: process.env.NODE_ENV || 'development',
-      checks: {}
-    };
-
-    // File system checks
-    const distPath = path.join(__dirname, 'frontend/dist');
-    const indexHtmlPath = path.join(distPath, 'index.html');
-    const assetsDirPath = path.join(distPath, 'assets');
-    
-    healthStatus.checks.filesystem = {
-      status: 'OK',
-      details: {
-        indexHtml: fs.existsSync(indexHtmlPath),
-        assetsDir: fs.existsSync(assetsDirPath),
-        distPath: distPath
-      }
-    };
-
-    // Backend API health check
+/**
+ * Setup routes
+ */
+function setupRoutes() {
+  // Health check endpoint
+  app.get('/health', async (req, res) => {
     try {
-      const backendResponse = await axios.get('http://backend:8080/health', { timeout: 5000 });
-      healthStatus.checks.backend = {
-        status: 'OK',
-        details: backendResponse.data
-      };
+      const healthStatus = await monitoring.getHealthStatus();
+      res.status(200).json({
+        status: 'healthy',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        version: '1.0.0',
+        environment: NODE_ENV,
+        ...healthStatus
+      });
     } catch (error) {
-      healthStatus.checks.backend = {
-        status: 'ERROR',
-        details: { error: error.message }
-      };
-    }
-
-    // Database connectivity check (if configured)
-    if (process.env.DATABASE_URL) {
-      try {
-        // Simple database ping would go here
-        healthStatus.checks.database = {
-          status: 'OK',
-          details: { connected: true }
-        };
-      } catch (error) {
-        healthStatus.checks.database = {
-          status: 'ERROR',
-          details: { error: error.message }
-        };
-      }
-    }
-
-    // Redis connectivity check (if configured)
-    if (process.env.REDIS_URL) {
-      try {
-        // Simple Redis ping would go here
-        healthStatus.checks.redis = {
-          status: 'OK',
-          details: { connected: true }
-        };
-      } catch (error) {
-        healthStatus.checks.redis = {
-          status: 'ERROR',
-          details: { error: error.message }
-        };
-      }
-    }
-
-    // External API checks
-    try {
-      const binanceResponse = await axios.get('https://api.binance.com/api/v3/ping', { timeout: 5000 });
-      healthStatus.checks.externalApis = {
-        status: 'OK',
-        details: {
-          binance: binanceResponse.status === 200 ? 'OK' : 'ERROR'
-        }
-      };
-    } catch (error) {
-      healthStatus.checks.externalApis = {
-        status: 'ERROR',
-        details: { binance: 'ERROR', error: error.message }
-      };
-    }
-
-    // SSL certificate check (if SSL is configured)
-    if (process.env.SSL_ENABLED === 'true') {
-      try {
-        const sslCertPath = process.env.SSL_CERT_PATH || '/etc/nginx/ssl/fullchain.pem';
-        if (fs.existsSync(sslCertPath)) {
-          const stats = fs.statSync(sslCertPath);
-          healthStatus.checks.ssl = {
-            status: 'OK',
-            details: {
-              certificateExists: true,
-              lastModified: stats.mtime
-            }
-          };
-        } else {
-          healthStatus.checks.ssl = {
-            status: 'WARNING',
-            details: { certificateExists: false }
-          };
-        }
-      } catch (error) {
-        healthStatus.checks.ssl = {
-          status: 'ERROR',
-          details: { error: error.message }
-        };
-      }
-    }
-
-    // Determine overall status
-    const checkStatuses = Object.values(healthStatus.checks).map(check => check.status);
-    if (checkStatuses.includes('ERROR')) {
-      healthStatus.status = 'ERROR';
-    } else if (checkStatuses.includes('WARNING')) {
-      healthStatus.status = 'WARNING';
-    }
-
-    const statusCode = healthStatus.status === 'ERROR' ? 500 : 200;
-    res.status(statusCode).json(healthStatus);
-  } catch (error) {
-    logger.logError(error, { endpoint: '/health', type: 'health_check' });
-    res.status(500).json({
-      status: 'ERROR',
-      timestamp: new Date().toISOString(),
-      error: error.message
-    });
-  }
-});
-
-// Serve static files from the dist directory
-app.use(express.static(path.join(__dirname, 'frontend/dist')));
-
-// Handle React routing, return all requests to React app
-app.get('*', (req, res) => {
-  try {
-    const indexPath = path.join(__dirname, 'frontend/dist/index.html');
-    
-    // Check if index.html exists
-    if (!fs.existsSync(indexPath)) {
-      logger.error('Index file not found', { filePath: indexPath, type: 'static_file' });
-      return res.status(404).json({
-        error: 'Frontend not built',
-        message: 'Please run npm run build:frontend first',
-        path: indexPath
+      structuredLogger.error('Health check failed:', error);
+      res.status(503).json({
+        status: 'unhealthy',
+        timestamp: new Date().toISOString(),
+        error: error.message
       });
     }
-    
-    logger.info('Serving React app', { filePath: indexPath, type: 'static_file' });
-    res.sendFile(indexPath);
-  } catch (error) {
-    logger.logError(error, { endpoint: '/', type: 'static_file_serving' });
-    res.status(500).json({
-      error: 'Internal server error',
-      message: error.message
-    });
-  }
-});
-
-// Start monitoring system
-monitoring.startMonitoring();
-
-app.listen(PORT, '0.0.0.0', () => {
-  logger.info('CryptoPulse server started', {
-    port: PORT,
-    healthEndpoint: `http://localhost:${PORT}/health`,
-    metricsEndpoint: `http://localhost:${PORT}/metrics`,
-    dashboardEndpoint: `http://localhost:${PORT}/api/monitoring/dashboard`,
-    staticFilesPath: path.join(__dirname, 'frontend/dist'),
-    type: 'server_startup'
   });
-});
+  
+  // Metrics endpoint for Prometheus
+  app.get('/metrics', async (req, res) => {
+    try {
+      const metrics = await monitoring.getMetrics();
+      res.set('Content-Type', 'text/plain');
+      res.send(metrics);
+    } catch (error) {
+      structuredLogger.error('Metrics endpoint failed:', error);
+      res.status(500).json({ error: 'Failed to retrieve metrics' });
+    }
+  });
+  
+  // API routes
+  app.use('/api/auth', require('./backend/routes/auth'));
+  app.use('/api/trading', require('./backend/routes/trading'));
+  app.use('/api/portfolio', require('./backend/routes/portfolio'));
+  app.use('/api/market', require('./backend/routes/market'));
+  app.use('/api/admin', require('./backend/routes/admin'));
+  
+  // Serve static files in production
+  if (NODE_ENV === 'production') {
+    const frontendPath = path.join(__dirname, 'frontend', 'dist');
+    
+    if (fs.existsSync(frontendPath)) {
+      app.use(express.static(frontendPath));
+      
+      // SPA fallback
+      app.get('*', (req, res) => {
+        res.sendFile(path.join(frontendPath, 'index.html'));
+      });
+    } else {
+      structuredLogger.warn('Frontend build not found. Serving API only.');
+    }
+  }
+  
+  // 404 handler
+  app.use('*', (req, res) => {
+    res.status(404).json({
+      error: 'Not Found',
+      message: 'The requested resource was not found',
+      timestamp: new Date().toISOString()
+    });
+  });
+}
+
+/**
+ * Setup error handling
+ */
+function setupErrorHandling() {
+  // Global error handler
+  app.use(errorHandler.globalErrorHandler);
+  
+  // Handle 404 errors
+  app.use((req, res, next) => {
+    const error = new Error('Not Found');
+    error.status = 404;
+    next(error);
+  });
+}
+
+/**
+ * Start server
+ */
+async function startServer() {
+  try {
+    // Initialize production systems
+    await initializeProductionSystems();
+    
+    // Setup middleware
+    setupMiddleware();
+    
+    // Setup routes
+    setupRoutes();
+    
+    // Setup error handling
+    setupErrorHandling();
+    
+    // Start server
+    const server = app.listen(PORT, () => {
+      structuredLogger.info(`CryptoPulse Trading Bot server started on port ${PORT}`);
+      structuredLogger.info(`Environment: ${NODE_ENV}`);
+      structuredLogger.info(`Health check: http://localhost:${PORT}/health`);
+      structuredLogger.info(`Metrics: http://localhost:${PORT}/metrics`);
+    });
+    
+    // Handle server errors
+    server.on('error', (error) => {
+      if (error.code === 'EADDRINUSE') {
+        structuredLogger.error(`Port ${PORT} is already in use`);
+        process.exit(1);
+      } else {
+        structuredLogger.error('Server error:', error);
+        throw error;
+      }
+    });
+    
+    return server;
+    
+  } catch (error) {
+    structuredLogger.error('Failed to start server:', error);
+    process.exit(1);
+  }
+}
+
+// Start the server
+if (require.main === module) {
+  startServer().catch((error) => {
+    structuredLogger.error('Fatal error starting server:', error);
+    process.exit(1);
+  });
+}
+
+module.exports = { app, startServer };

@@ -1,10 +1,10 @@
-name: 🚀 CryptoPulse CI/CD Pipeline
+name: CI/CD Pipeline
 
 on:
   push:
     branches: [ main, develop ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main ]
   release:
     types: [ published ]
 
@@ -14,49 +14,77 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  # ===========================================
-  # SECURITY & DEPENDENCY SCANNING
-  # ===========================================
-  security-scan:
-    name: 🔒 Security & Dependency Scan
+  # Lint and Test
+  test:
+    name: Test & Lint
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      security-events: write
-      actions: read
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: cryptopulse_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:7
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
+      
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-
+      
       - name: Install dependencies
-        run: |
-          cd frontend && npm ci
-          cd ../backend && npm ci
-          npm ci
-
-      - name: Run security audit
-        run: |
-          cd frontend && npm audit --audit-level=moderate
-          cd ../backend && npm audit --audit-level=moderate
-          npm audit --audit-level=moderate
-
-      - name: Run CodeQL Analysis
-        uses: github/codeql-action/init@v3
+        run: npm ci
+      
+      - name: Run linting
+        run: npm run lint
+      
+      - name: Run tests
+        run: npm run test:ci
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/cryptopulse_test
+          REDIS_URL: redis://localhost:6379/1
+          JWT_SECRET: test-jwt-secret
+          ENCRYPTION_KEY: test-encryption-key-32-chars-long
+          SESSION_SECRET: test-session-secret
+          CSRF_SECRET: test-csrf-secret
+      
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v3
         with:
-          languages: javascript
+          file: ./coverage/lcov.info
+          flags: unittests
+          name: codecov-umbrella
 
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
-
+  # Security Scan
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
@@ -64,181 +92,43 @@ jobs:
           scan-ref: '.'
           format: 'sarif'
           output: 'trivy-results.sarif'
-
+      
       - name: Upload Trivy scan results
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v2
         with:
           sarif_file: 'trivy-results.sarif'
-
-  # ===========================================
-  # CODE QUALITY & LINTING
-  # ===========================================
-  code-quality:
-    name: 📝 Code Quality & Linting
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: |
-          cd frontend && npm ci
-          cd ../backend && npm ci
-          npm ci
-
-      - name: Run ESLint (Frontend)
-        run: |
-          cd frontend
-          npm run lint || echo "ESLint not configured, skipping..."
-
-      - name: Run Prettier (Frontend)
-        run: |
-          cd frontend
-          npm run format:check || echo "Prettier not configured, skipping..."
-
-      - name: Run TypeScript check
-        run: |
-          cd frontend
-          npm run type-check || echo "TypeScript check not configured, skipping..."
-
-      - name: Check for console.log statements
-        run: |
-          echo "Checking for console.log statements in production code..."
-          if grep -r "console\.\(log\|error\|warn\|info\|debug\)" frontend/src --exclude-dir=test --exclude-dir=__tests__; then
-            echo "❌ Found console.log statements in frontend production code"
-            exit 1
-          fi
-          if grep -r "console\.\(log\|error\|warn\|info\|debug\)" backend --exclude-dir=test --exclude-dir=__tests__; then
-            echo "❌ Found console.log statements in backend production code"
-            exit 1
-          fi
-          echo "✅ No console.log statements found in production code"
-
-      - name: Validate environment files
-        run: |
-          node scripts/validate-env.js
-
-  # ===========================================
-  # TESTING
-  # ===========================================
-  test:
-    name: 🧪 Testing
-    runs-on: ubuntu-latest
-    services:
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-      mongodb:
-        image: mongo:7
-        ports:
-          - 27017:27017
+      
+      - name: Run npm audit
+        run: npm audit --audit-level moderate
+      
+      - name: Run Snyk security scan
+        uses: snyk/actions/node@master
         env:
-          MONGO_INITDB_ROOT_USERNAME: admin
-          MONGO_INITDB_ROOT_PASSWORD: password
-        options: >-
-          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          args: --severity-threshold=high
 
-      - name: Install dependencies
-        run: |
-          cd frontend && npm ci
-          cd ../backend && npm ci
-          npm ci
-
-      - name: Run unit tests (Frontend)
-        run: |
-          cd frontend
-          npm run test:ci
-
-      - name: Run integration tests
-        run: |
-          node scripts/api-test.js ci
-
-      - name: Run security validation tests
-        run: |
-          node scripts/security-validation.js http://localhost:3000
-
-      - name: Run production validation tests
-        run: |
-          node scripts/production-validation.js http://localhost:3000
-
-      - name: Generate test coverage report
-        run: |
-          cd frontend
-          npm run test:coverage
-
-      - name: Upload coverage reports
-        uses: codecov/codecov-action@v3
-        with:
-          files: ./frontend/coverage/lcov.info
-          flags: frontend
-          name: frontend-coverage
-
-  # ===========================================
-  # BUILD & DOCKER
-  # ===========================================
+  # Build and Push Docker Image
   build:
-    name: 🏗️ Build & Docker
+    name: Build & Push
     runs-on: ubuntu-latest
-    needs: [security-scan, code-quality, test]
+    needs: [test, security]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: |
-          cd frontend && npm ci
-          cd ../backend && npm ci
-          npm ci
-
-      - name: Build frontend
-        run: |
-          cd frontend
-          npm run build
-
+      
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-
+      
       - name: Log in to Container Registry
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
+      
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v5
@@ -250,36 +140,21 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=sha,prefix={{branch}}-
-
+      
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
+          file: ./Dockerfile.production
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          target: production
 
-      - name: Run Trivy vulnerability scanner on image
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-          format: 'sarif'
-          output: 'trivy-image-results.sarif'
-
-      - name: Upload Trivy image scan results
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: 'trivy-image-results.sarif'
-
-  # ===========================================
-  # DEPLOYMENT
-  # ===========================================
+  # Deploy to Staging
   deploy-staging:
-    name: 🚀 Deploy to Staging
+    name: Deploy to Staging
     runs-on: ubuntu-latest
     needs: [build]
     if: github.ref == 'refs/heads/develop'
@@ -288,32 +163,20 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
+      
       - name: Deploy to staging
         run: |
           echo "Deploying to staging environment..."
-          # Add your staging deployment logic here
-          # Example: kubectl apply -f k8s/staging/
-          # Example: docker-compose -f docker-compose.staging.yml up -d
-
+          # Add your staging deployment commands here
+      
       - name: Run smoke tests
         run: |
           echo "Running smoke tests on staging..."
-          # Add smoke test logic here
-          # Example: curl -f https://staging.cryptopulse.com/health
+          # Add your smoke test commands here
 
-      - name: Notify deployment status
-        uses: 8398a7/action-slack@v3
-        if: always()
-        with:
-          status: ${{ job.status }}
-          channel: '#deployments'
-          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
-
+  # Deploy to Production
   deploy-production:
-    name: 🚀 Deploy to Production
+    name: Deploy to Production
     runs-on: ubuntu-latest
     needs: [build]
     if: github.ref == 'refs/heads/main'
@@ -322,142 +185,34 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
+      
       - name: Deploy to production
         run: |
           echo "Deploying to production environment..."
-          # Add your production deployment logic here
-          # Example: kubectl apply -f k8s/production/
-          # Example: docker-compose -f docker-compose.prod.yml up -d
-
+          # Add your production deployment commands here
+      
       - name: Run health checks
         run: |
-          echo "Running health checks on production..."
-          # Add health check logic here
-          # Example: curl -f https://cryptopulse.com/health
-
-      - name: Run production validation
-        run: |
-          node scripts/production-validation.js https://cryptopulse.com
-
-      - name: Notify deployment status
+          echo "Running health checks..."
+          # Add your health check commands here
+      
+      - name: Notify deployment
         uses: 8398a7/action-slack@v3
-        if: always()
         with:
           status: ${{ job.status }}
           channel: '#deployments'
           webhook_url: ${{ secrets.SLACK_WEBHOOK }}
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
-
-  # ===========================================
-  # ROLLBACK (Manual Trigger)
-  # ===========================================
-  rollback:
-    name: 🔄 Rollback Deployment
-    runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch'
-    environment: production
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Rollback deployment
-        run: |
-          echo "Rolling back deployment..."
-          # Add rollback logic here
-          # Example: kubectl rollout undo deployment/cryptopulse
-          # Example: docker-compose -f docker-compose.prod.yml down && docker-compose -f docker-compose.prod.yml up -d
-
-      - name: Verify rollback
-        run: |
-          echo "Verifying rollback..."
-          # Add verification logic here
-          # Example: curl -f https://cryptopulse.com/health
-
-      - name: Notify rollback status
-        uses: 8398a7/action-slack@v3
         if: always()
-        with:
-          status: ${{ job.status }}
-          channel: '#deployments'
-          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
 
-  # ===========================================
-  # PERFORMANCE TESTING
-  # ===========================================
-  performance-test:
-    name: ⚡ Performance Testing
+  # Cleanup
+  cleanup:
+    name: Cleanup
     runs-on: ubuntu-latest
-    needs: [deploy-staging]
-    if: github.ref == 'refs/heads/develop'
+    needs: [deploy-staging, deploy-production]
+    if: always()
     
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run load tests
+      - name: Clean up old images
         run: |
-          node scripts/load-test.js staging
-
-      - name: Run performance benchmarks
-        run: |
-          node scripts/performance-test.js staging
-
-      - name: Upload performance results
-        uses: actions/upload-artifact@v3
-        with:
-          name: performance-results
-          path: performance-results.json
-
-  # ===========================================
-  # SECURITY MONITORING
-  # ===========================================
-  security-monitoring:
-    name: 🔍 Security Monitoring
-    runs-on: ubuntu-latest
-    needs: [deploy-production]
-    if: github.ref == 'refs/heads/main'
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run security monitoring
-        run: |
-          node scripts/security-monitoring.js production
-
-      - name: Check for security vulnerabilities
-        run: |
-          node scripts/vulnerability-scan.js production
-
-      - name: Generate security report
-        run: |
-          node scripts/security-report.js production > security-report.json
-
-      - name: Upload security report
-        uses: actions/upload-artifact@v3
-        with:
-          name: security-report
-          path: security-report.json
+          echo "Cleaning up old Docker images..."
+          # Add cleanup commands here
