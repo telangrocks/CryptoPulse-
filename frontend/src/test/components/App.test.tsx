@@ -44,12 +44,33 @@ vi.mock('../../contexts/AuthContext', () => ({
 
 // Mock the AppStateContext
 vi.mock('../../contexts/AppStateContext', () => ({
-  AppStateProvider: ({ children }: { children: React.ReactNode }) => <div data-testid="app-state-provider">{children}</div>
+  AppStateProvider: ({ children }: { children: React.ReactNode }) => <div data-testid="app-state-provider">{children}</div>,
+  useAppState: () => ({
+    state: {},
+    dispatch: vi.fn()
+  })
 }))
 
 // Mock the ThemeContext
 vi.mock('../../contexts/ThemeContext', () => ({
   ThemeProvider: ({ children }: { children: React.ReactNode }) => <div data-testid="theme-provider">{children}</div>
+}))
+
+// Mock other components that might cause issues
+vi.mock('../../components/ErrorBoundary', () => ({
+  default: ({ children }: { children: React.ReactNode }) => <div data-testid="error-boundary">{children}</div>
+}))
+
+vi.mock('../../components/GlobalLoadingIndicator', () => ({
+  default: () => <div data-testid="loading-indicator">Loading...</div>
+}))
+
+vi.mock('../../components/AccessibilityProvider', () => ({
+  AccessibilityProvider: ({ children }: { children: React.ReactNode }) => <div data-testid="accessibility-provider">{children}</div>
+}))
+
+vi.mock('../../hooks/useDocumentHead', () => ({
+  useDocumentHead: vi.fn()
 }))
 
 const AppWithRouter = () => (
@@ -65,7 +86,7 @@ describe('App Component', () => {
 
   it('renders without crashing', () => {
     render(<AppWithRouter />)
-    expect(screen.getByTestId('auth-provider')).toBeInTheDocument()
+    expect(screen.getByTestId('error-boundary')).toBeInTheDocument()
   })
 
   it('renders all context providers', () => {
@@ -73,11 +94,12 @@ describe('App Component', () => {
     expect(screen.getByTestId('auth-provider')).toBeInTheDocument()
     expect(screen.getByTestId('app-state-provider')).toBeInTheDocument()
     expect(screen.getByTestId('theme-provider')).toBeInTheDocument()
+    expect(screen.getByTestId('accessibility-provider')).toBeInTheDocument()
   })
 
   it('has proper accessibility attributes', () => {
     render(<AppWithRouter />)
-    const app = screen.getByTestId('auth-provider')
-    expect(app).toBeInTheDocument()
+    const errorBoundary = screen.getByTestId('error-boundary')
+    expect(errorBoundary).toBeInTheDocument()
   })
 })

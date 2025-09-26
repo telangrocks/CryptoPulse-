@@ -1,173 +1,176 @@
 import React, { ReactElement } from 'react'
 import { render, RenderOptions } from '@testing-library/react'
 import { BrowserRouter } from 'react-router-dom'
+import { vi } from 'vitest'
 import { AuthProvider } from '../contexts/AuthContext'
 import { ThemeProvider } from '../contexts/ThemeContext'
 import { AppStateProvider } from '../contexts/AppStateContext'
 
 // Mock Parse
-jest.mock('parse', () => ({
-  initialize: jest.fn(),
-  serverURL: '',
-  User: {
-    current: jest.fn(),
-    logIn: jest.fn(),
-    logOut: jest.fn(),
-    signUp: jest.fn(),
-  },
-  Query: jest.fn(),
-  Cloud: {
-    run: jest.fn(),
+vi.mock('parse', () => ({
+  default: {
+    initialize: vi.fn(),
+    serverURL: '',
+    User: {
+      current: vi.fn(),
+      logIn: vi.fn(),
+      logOut: vi.fn(),
+      signUp: vi.fn(),
+    },
+    Query: vi.fn(),
+    Cloud: {
+      run: vi.fn(),
+    },
   },
 }))
 
 // Mock analytics
-jest.mock('../lib/analytics', () => ({
+vi.mock('../lib/analytics', () => ({
   analytics: {
-    track: jest.fn(),
-    trackPageView: jest.fn(),
-    trackClick: jest.fn(),
-    trackScroll: jest.fn(),
-    trackFormInteraction: jest.fn(),
-    trackAPICall: jest.fn(),
-    trackTradeEvent: jest.fn(),
-    trackError: jest.fn(),
+    track: vi.fn(),
+    trackPageView: vi.fn(),
+    trackClick: vi.fn(),
+    trackScroll: vi.fn(),
+    trackFormInteraction: vi.fn(),
+    trackAPICall: vi.fn(),
+    trackTradeEvent: vi.fn(),
+    trackError: vi.fn(),
   },
   useAnalytics: () => ({
-    track: jest.fn(),
-    trackPageView: jest.fn(),
-    trackClick: jest.fn(),
-    trackScroll: jest.fn(),
-    trackFormInteraction: jest.fn(),
-    trackAPICall: jest.fn(),
-    trackTradeEvent: jest.fn(),
-    trackError: jest.fn(),
+    track: vi.fn(),
+    trackPageView: vi.fn(),
+    trackClick: vi.fn(),
+    trackScroll: vi.fn(),
+    trackFormInteraction: vi.fn(),
+    trackAPICall: vi.fn(),
+    trackTradeEvent: vi.fn(),
+    trackError: vi.fn(),
   }),
-  initializeAnalytics: jest.fn(),
+  initializeAnalytics: vi.fn(),
 }))
 
 // Mock performance monitoring
-jest.mock('../lib/performance', () => ({
+vi.mock('../lib/performance', () => ({
   performanceMonitor: {
-    recordMetric: jest.fn(),
-    mark: jest.fn(),
-    measure: jest.fn(),
-    getMetrics: jest.fn(() => []),
-    getAverageMetric: jest.fn(() => 0),
-    cleanup: jest.fn(),
+    recordMetric: vi.fn(),
+    mark: vi.fn(),
+    measure: vi.fn(),
+    getMetrics: vi.fn(() => []),
+    getAverageMetric: vi.fn(() => 0),
+    cleanup: vi.fn(),
   },
   usePerformanceMonitor: () => ({
-    mark: jest.fn(),
-    measure: jest.fn(),
-    recordMetric: jest.fn(),
+    mark: vi.fn(),
+    measure: vi.fn(),
+    recordMetric: vi.fn(),
   }),
-  measureAsync: jest.fn((name, fn) => fn()),
-  measureSync: jest.fn((name, fn) => fn()),
+  measureAsync: vi.fn((name, fn) => fn()),
+  measureSync: vi.fn((name, fn) => fn()),
 }))
 
 // Mock advanced cache
-jest.mock('../lib/advancedCache', () => ({
+vi.mock('../lib/advancedCache', () => ({
   apiCache: {
-    get: jest.fn(),
-    set: jest.fn(),
-    has: jest.fn(),
-    delete: jest.fn(),
-    clear: jest.fn(),
+    get: vi.fn(),
+    set: vi.fn(),
+    has: vi.fn(),
+    delete: vi.fn(),
+    clear: vi.fn(),
   },
   userCache: {
-    get: jest.fn(),
-    set: jest.fn(),
-    has: jest.fn(),
-    delete: jest.fn(),
-    clear: jest.fn(),
+    get: vi.fn(),
+    set: vi.fn(),
+    has: vi.fn(),
+    delete: vi.fn(),
+    clear: vi.fn(),
   },
   marketDataCache: {
-    get: jest.fn(),
-    set: jest.fn(),
-    has: jest.fn(),
-    delete: jest.fn(),
-    clear: jest.fn(),
+    get: vi.fn(),
+    set: vi.fn(),
+    has: vi.fn(),
+    delete: vi.fn(),
+    clear: vi.fn(),
   },
-  useCache: jest.fn(() => ({
-    get: jest.fn(),
-    set: jest.fn(),
-    invalidate: jest.fn(),
+  useCache: vi.fn(() => ({
+    get: vi.fn(),
+    set: vi.fn(),
+    invalidate: vi.fn(),
     cache: {},
   })),
-  cached: jest.fn((fn) => fn),
+  cached: vi.fn((fn) => fn),
 }))
 
 // Mock security
-jest.mock('../lib/security', () => ({
+vi.mock('../lib/security', () => ({
   rateLimiter: {
-    isAllowed: jest.fn(() => true),
-    getRemainingRequests: jest.fn(() => 100),
-    reset: jest.fn(),
+    isAllowed: vi.fn(() => true),
+    getRemainingRequests: vi.fn(() => 100),
+    reset: vi.fn(),
   },
-  sanitizeInput: jest.fn((input) => input),
-  validateEmail: jest.fn(() => true),
-  validatePassword: jest.fn(() => ({ isValid: true, errors: [] })),
-  validateAPIKey: jest.fn(() => true),
-  validateAPISecret: jest.fn(() => true),
-  escapeHtml: jest.fn((text) => text),
+  sanitizeInput: vi.fn((input) => input),
+  validateEmail: vi.fn(() => true),
+  validatePassword: vi.fn(() => ({ isValid: true, errors: [] })),
+  validateAPIKey: vi.fn(() => true),
+  validateAPISecret: vi.fn(() => true),
+  escapeHtml: vi.fn((text) => text),
   csrfManager: {
-    generateToken: jest.fn(() => 'mock-token'),
-    getToken: jest.fn(() => 'mock-token'),
-    validateToken: jest.fn(() => true),
-    invalidateToken: jest.fn(),
+    generateToken: vi.fn(() => 'mock-token'),
+    getToken: vi.fn(() => 'mock-token'),
+    validateToken: vi.fn(() => true),
+    invalidateToken: vi.fn(),
   },
   secureStorage: {
-    setItem: jest.fn(),
-    getItem: jest.fn(),
-    removeItem: jest.fn(),
+    setItem: vi.fn(),
+    getItem: vi.fn(),
+    removeItem: vi.fn(),
   },
   sessionManager: {
-    startSession: jest.fn(() => 'mock-session'),
-    getSessionId: jest.fn(() => 'mock-session'),
-    isSessionValid: jest.fn(() => true),
-    updateActivity: jest.fn(),
-    endSession: jest.fn(),
+    startSession: vi.fn(() => 'mock-session'),
+    getSessionId: vi.fn(() => 'mock-session'),
+    isSessionValid: vi.fn(() => true),
+    updateActivity: vi.fn(),
+    endSession: vi.fn(),
   },
-  getSecurityHeaders: jest.fn(() => ({})),
-  getCSPHeader: jest.fn(() => ''),
-  logSecurityEvent: jest.fn(),
-  initializeSecurity: jest.fn(),
+  getSecurityHeaders: vi.fn(() => ({})),
+  getCSPHeader: vi.fn(() => ''),
+  logSecurityEvent: vi.fn(),
+  initializeSecurity: vi.fn(),
 }))
 
 // Mock useAuthenticatedAPI
-jest.mock('../hooks/useAuthenticatedAPI', () => ({
+vi.mock('../hooks/useAuthenticatedAPI', () => ({
   useAuthenticatedAPI: () => ({
-    authenticatedCall: jest.fn(),
+    authenticatedCall: vi.fn(),
     isLoading: false,
     error: null,
   }),
 }))
 
 // Mock useDocumentHead
-jest.mock('../hooks/useDocumentHead', () => ({
-  useDocumentHead: jest.fn(),
+vi.mock('../hooks/useDocumentHead', () => ({
+  useDocumentHead: vi.fn(),
 }))
 
 // Mock useToast
-jest.mock('../hooks/use-toast', () => ({
+vi.mock('../hooks/use-toast', () => ({
   useToast: () => ({
-    toast: jest.fn(),
-    dismiss: jest.fn(),
+    toast: vi.fn(),
+    dismiss: vi.fn(),
   }),
 }))
 
 // Mock useAIAssistant
-jest.mock('../hooks/useAIAssistant', () => ({
+vi.mock('../hooks/useAIAssistant', () => ({
   useAIAssistant: () => ({
-    sendMessage: jest.fn(),
+    sendMessage: vi.fn(),
     isLoading: false,
     messages: [],
-    clearMessages: jest.fn(),
+    clearMessages: vi.fn(),
   }),
 }))
 
 // Mock use-mobile
-jest.mock('../hooks/use-mobile', () => ({
+vi.mock('../hooks/use-mobile', () => ({
   useMobile: () => false,
 }))
 
@@ -230,25 +233,25 @@ export const waitForLoadingToFinish = () => {
 }
 
 export const mockFetch = (data: any, status = 200) => {
-  global.fetch = jest.fn(() =>
+  global.fetch = vi.fn(() =>
     Promise.resolve({
       ok: status >= 200 && status < 300,
       status,
       json: () => Promise.resolve(data),
       text: () => Promise.resolve(JSON.stringify(data)),
     })
-  ) as jest.Mock
+  ) as any
 }
 
 export const mockWebSocket = () => {
   const mockWS = {
-    send: jest.fn(),
-    close: jest.fn(),
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
+    send: vi.fn(),
+    close: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
     readyState: WebSocket.OPEN,
   }
   
-  global.WebSocket = jest.fn(() => mockWS) as any
+  global.WebSocket = vi.fn(() => mockWS) as any
   return mockWS
 }
