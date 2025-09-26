@@ -128,24 +128,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = async (email: string, password: string, mobile?: string) => {
     try {
       const { logInfo, logError } = await import('../lib/logger');
+      const { getTrialManagementService } = await import('../lib/trialManagement');
+      
       logInfo('Attempting user registration', 'Auth');
+      
+      // Check if user can start a new trial
+      const trialService = getTrialManagementService();
+      const trialCheck = trialService.canStartTrial(email);
+      
+      if (!trialCheck.allowed) {
+        throw new Error(trialCheck.reason || 'Cannot start new trial');
+      }
       
       // Use Parse SDK with HTTP fallback
       const userData = await ParseUser.signUp(email, password, email)
+      
+      // Start trial for the user
+      const trialInfo = trialService.startTrial(email);
       
       const user = {
         id: userData.id,
         email: userData.email || email,
         username: userData.username,
         billingStatus: 'trial',
-        trialEnd: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+        trialEnd: trialInfo.trialEndDate.toISOString(),
         sessionToken: userData.sessionToken
       }
       
       setUser(user)
       localStorage.setItem('cryptopulse_user', JSON.stringify(user))
       localStorage.setItem('cryptopulse_session', userData.sessionToken)
-      logInfo('User registration successful', 'Auth');
+      logInfo('User registration successful with trial started', 'Auth');
     } catch (error: unknown) {
       const { logError } = await import('../lib/logger');
       logError('Registration failed', 'Auth', error);
