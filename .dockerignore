@@ -105,6 +105,11 @@ Dockerfile*
 docker-compose*
 .dockerignore
 
+# Development files
+*.log
+*.tmp
+*.temp
+
 # Monitoring
 monitoring/
 

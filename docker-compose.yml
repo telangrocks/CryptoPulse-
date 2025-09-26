@@ -1,0 +1,82 @@
+# Docker Compose for CryptoPulse Local Development
+# Includes backend (Parse Cloud Functions) and frontend (React/Vite)
+
+version: '3.8'
+
+services:
+  # Backend service for Parse Cloud Functions
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: cryptopulse-backend
+    ports:
+      - "1337:1337"
+    environment:
+      - NODE_ENV=development
+      - PARSE_SERVER_APPLICATION_ID=${PARSE_SERVER_APPLICATION_ID}
+      - PARSE_SERVER_MASTER_KEY=${PARSE_SERVER_MASTER_KEY}
+      - PARSE_SERVER_URL=${PARSE_SERVER_URL}
+      - FRONTEND_URL=http://localhost:3000
+    volumes:
+      - ./cloud:/app/cloud:ro
+      - ./logs:/app/logs
+    networks:
+      - cryptopulse-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "console.log('Backend health check')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Frontend service for React/Vite application
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: cryptopulse-frontend
+    ports:
+      - "3000:80"
+    environment:
+      - NODE_ENV=production
+      - VITE_PARSE_SERVER_APPLICATION_ID=${VITE_PARSE_SERVER_APPLICATION_ID}
+      - VITE_PARSE_SERVER_JAVASCRIPT_KEY=${VITE_PARSE_SERVER_JAVASCRIPT_KEY}
+      - VITE_PARSE_SERVER_URL=${VITE_PARSE_SERVER_URL}
+    depends_on:
+      - backend
+    networks:
+      - cryptopulse-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Redis for caching (optional, for production-like environment)
+  redis:
+    image: redis:7-alpine
+    container_name: cryptopulse-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - cryptopulse-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  cryptopulse-network:
+    driver: bridge
+
+volumes:
+  redis-data:
+    driver: local

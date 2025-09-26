@@ -1,0 +1,68 @@
+# Docker Compose for CryptoPulse Development Environment
+# Optimized for hot reloading and development workflow
+
+version: '3.8'
+
+services:
+  # Backend development service
+  backend-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: cryptopulse-backend-dev
+    ports:
+      - "1337:1337"
+    environment:
+      - NODE_ENV=development
+      - PARSE_SERVER_APPLICATION_ID=${PARSE_SERVER_APPLICATION_ID}
+      - PARSE_SERVER_MASTER_KEY=${PARSE_SERVER_MASTER_KEY}
+      - PARSE_SERVER_URL=${PARSE_SERVER_URL}
+      - FRONTEND_URL=http://localhost:5173
+    volumes:
+      - ./cloud:/app/cloud
+      - ./logs:/app/logs
+      - /app/node_modules
+    networks:
+      - cryptopulse-dev-network
+    restart: unless-stopped
+    command: ["sh", "-c", "npm install && npm run dev"]
+
+  # Frontend development service with Vite dev server
+  frontend-dev:
+    image: node:18-alpine
+    container_name: cryptopulse-frontend-dev
+    working_dir: /app
+    ports:
+      - "5173:5173"
+    environment:
+      - NODE_ENV=development
+      - VITE_PARSE_SERVER_APPLICATION_ID=${VITE_PARSE_SERVER_APPLICATION_ID}
+      - VITE_PARSE_SERVER_JAVASCRIPT_KEY=${VITE_PARSE_SERVER_JAVASCRIPT_KEY}
+      - VITE_PARSE_SERVER_URL=${VITE_PARSE_SERVER_URL}
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - cryptopulse-dev-network
+    restart: unless-stopped
+    command: ["sh", "-c", "npm install && npm run dev -- --host 0.0.0.0"]
+
+  # Redis for development
+  redis-dev:
+    image: redis:7-alpine
+    container_name: cryptopulse-redis-dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-dev-data:/data
+    networks:
+      - cryptopulse-dev-network
+    restart: unless-stopped
+
+networks:
+  cryptopulse-dev-network:
+    driver: bridge
+
+volumes:
+  redis-dev-data:
+    driver: local
