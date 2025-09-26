@@ -5,9 +5,21 @@ const crypto = require('crypto');
 const winston = require('winston');
 
 // Import monitoring modules
-const { updateHealthData, recordRequest, getHealthStatus, getSystemStatus } = require('./healthCheck');
+const { updateHealthData, recordRequest, getHealthStatus, getSystemStatus, productionHealthCheck } = require('./healthCheck');
 const { sendAlert, alertSystemDown, alertSecurityBreach, alertCriticalError } = require('./alerting');
 const { recordRequest: recordMetric, recordError, recordTrading, recordSecurityEvent } = require('./metrics');
+const { 
+  trackSecurityEvent, 
+  validateInput, 
+  validatePassword, 
+  validateApiKey, 
+  sanitizeInput, 
+  checkRateLimit, 
+  isIPAllowed, 
+  getSecurityHeaders, 
+  auditLog,
+  getSecurityStats 
+} = require('./security');
 
 // Configure logger
 const logger = winston.createLogger({
@@ -58,37 +70,107 @@ const MAX_REQUESTS_PER_WINDOW = 100;
 // Trading Bot Cloud Function - Production Ready
 Parse.Cloud.define('tradingBot', async (request) => {
   try {
+    // Security checks
+    if (!isIPAllowed(request.ip)) {
+      trackSecurityEvent('blocked_ip_access', { ip: request.ip }, 'high');
+      throw new Parse.Error(Parse.Error.ACCESS_DENIED, 'Access denied from this IP');
+    }
+    
+    // Rate limiting
+    const rateLimitKey = `trading_${request.user?.id || request.ip}`;
+    if (!checkRateLimit(rateLimitKey)) {
+      trackSecurityEvent('rate_limit_exceeded', { 
+        ip: request.ip, 
+        userId: request.user?.id,
+        endpoint: 'tradingBot' 
+      }, 'medium');
+      throw new Parse.Error(Parse.Error.RATE_LIMIT_EXCEEDED, 'Rate limit exceeded');
+    }
+    
     // Validate user authentication
     if (!request.user) {
-      logger.warn('Unauthorized trading bot access attempt', { ip: request.ip });
+      trackSecurityEvent('unauthorized_access', { 
+        ip: request.ip, 
+        endpoint: 'tradingBot' 
+      }, 'high');
       throw new Parse.Error(Parse.Error.SESSION_MISSING, 'User not authenticated');
     }
     
-    const { action, pair, amount, strategy } = request.params;
+    // Sanitize and validate input
+    const { action, pair, amount, strategy } = sanitizeInput(request.params);
     
     // Input validation
-    if (!action || !['BUY', 'SELL'].includes(action)) {
-      throw new Parse.Error(Parse.Error.INVALID_QUERY, 'Invalid action. Must be BUY or SELL');
+    const actionValidation = validateInput(action, { 
+      required: true, 
+      type: 'string', 
+      pattern: /^(BUY|SELL)$/ 
+    });
+    if (!actionValidation.valid) {
+      trackSecurityEvent('invalid_input', { 
+        ip: request.ip, 
+        userId: request.user.id,
+        field: 'action',
+        errors: actionValidation.errors 
+      }, 'medium');
+      throw new Parse.Error(Parse.Error.INVALID_QUERY, `Invalid action: ${actionValidation.errors.join(', ')}`);
     }
     
-    if (!pair || !/^[A-Z]{3,10}\/[A-Z]{3,10}$/.test(pair)) {
-      throw new Parse.Error(Parse.Error.INVALID_QUERY, 'Invalid pair format');
+    const pairValidation = validateInput(pair, { 
+      required: true, 
+      type: 'string', 
+      pattern: /^[A-Z]{3,10}\/[A-Z]{3,10}$/ 
+    });
+    if (!pairValidation.valid) {
+      trackSecurityEvent('invalid_input', { 
+        ip: request.ip, 
+        userId: request.user.id,
+        field: 'pair',
+        errors: pairValidation.errors 
+      }, 'medium');
+      throw new Parse.Error(Parse.Error.INVALID_QUERY, `Invalid pair format: ${pairValidation.errors.join(', ')}`);
     }
     
-    if (!amount || amount < SECURITY_CONFIG.MIN_ORDER_AMOUNT || amount > SECURITY_CONFIG.MAX_ORDER_AMOUNT) {
-      throw new Parse.Error(Parse.Error.INVALID_QUERY, 'Invalid amount');
+    const amountValidation = validateInput(amount, { 
+      required: true, 
+      type: 'number', 
+      min: SECURITY_CONFIG.MIN_ORDER_AMOUNT, 
+      max: SECURITY_CONFIG.MAX_ORDER_AMOUNT 
+    });
+    if (!amountValidation.valid) {
+      trackSecurityEvent('invalid_input', { 
+        ip: request.ip, 
+        userId: request.user.id,
+        field: 'amount',
+        errors: amountValidation.errors 
+      }, 'medium');
+      throw new Parse.Error(Parse.Error.INVALID_QUERY, `Invalid amount: ${amountValidation.errors.join(', ')}`);
     }
     
-    if (!strategy || !['conservative', 'moderate', 'aggressive'].includes(strategy)) {
-      throw new Parse.Error(Parse.Error.INVALID_QUERY, 'Invalid strategy');
+    const strategyValidation = validateInput(strategy, { 
+      required: true, 
+      type: 'string', 
+      pattern: /^(conservative|moderate|aggressive)$/ 
+    });
+    if (!strategyValidation.valid) {
+      trackSecurityEvent('invalid_input', { 
+        ip: request.ip, 
+        userId: request.user.id,
+        field: 'strategy',
+        errors: strategyValidation.errors 
+      }, 'medium');
+      throw new Parse.Error(Parse.Error.INVALID_QUERY, `Invalid strategy: ${strategyValidation.errors.join(', ')}`);
     }
     
-    // Rate limiting check
-    const rateLimitKey = `trading_${request.user.id}`;
-    if (!checkRateLimit(rateLimitKey)) {
-      logger.warn('Rate limit exceeded for trading bot', { userId: request.user.id });
-      throw new Parse.Error(Parse.Error.RATE_LIMIT_EXCEEDED, 'Rate limit exceeded');
-    }
+    // Audit log
+    auditLog('trading_bot_execution', {
+      ip: request.ip,
+      userId: request.user.id,
+      action,
+      pair,
+      amount,
+      strategy,
+      userAgent: request.headers['user-agent']
+    });
     
     // Log trading attempt
     logger.info('Trading bot execution started', {
@@ -1619,6 +1701,47 @@ Parse.Cloud.define('getSystemStatus', async (request) => {
     
     logger.error('Error getting system status:', error);
     await alertCriticalError(error, 'getSystemStatus');
+    
+    throw new Parse.Error(Parse.Error.SCRIPT_FAILED, error.message);
+  }
+});
+
+// Production Health Check Cloud Function - Enhanced for Production
+Parse.Cloud.define('productionHealthCheck', async (request) => {
+  const startTime = Date.now();
+  
+  try {
+    // Record request metric
+    recordRequest('productionHealthCheck', 'GET', 200, Date.now() - startTime);
+    
+    // Get comprehensive production health status
+    const healthStatus = await productionHealthCheck();
+    
+    // Check if any critical services are down
+    const criticalServices = Object.entries(healthStatus.services)
+      .filter(([service, status]) => {
+        if (service === 'exchanges') {
+          return Object.values(status).some(exchange => exchange.status === 'unhealthy');
+        }
+        return status.status === 'unhealthy';
+      })
+      .map(([service]) => service);
+    
+    if (criticalServices.length > 0) {
+      await alertSystemDown(criticalServices.join(', '), new Error('Production health check failed'));
+    }
+    
+    return {
+      success: true,
+      ...healthStatus
+    };
+  } catch (error) {
+    const responseTime = Date.now() - startTime;
+    recordRequest('productionHealthCheck', 'GET', 500, responseTime);
+    recordError(error, 'productionHealthCheck');
+    
+    logger.error('Production health check failed:', error);
+    await alertCriticalError(error, 'productionHealthCheck');
     
     throw new Parse.Error(Parse.Error.SCRIPT_FAILED, error.message);
   }

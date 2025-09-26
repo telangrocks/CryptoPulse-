@@ -164,15 +164,40 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       
-      - name: Deploy to staging
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install Back4App CLI
+        run: npm install -g @back4app/cli
+      
+      - name: Deploy Backend to Back4App Staging
         run: |
-          echo "Deploying to staging environment..."
-          # Add your staging deployment commands here
+          echo "Deploying backend to Back4App staging..."
+          back4app deploy cloud --app-id ${{ secrets.BACK4APP_STAGING_APP_ID }} --master-key ${{ secrets.BACK4APP_STAGING_MASTER_KEY }} --environment staging
+      
+      - name: Build Frontend
+        run: |
+          cd frontend
+          npm ci
+          npm run build
+      
+      - name: Deploy Frontend to Back4App Staging
+        run: |
+          echo "Deploying frontend to Back4App staging..."
+          back4app deploy static --app-id ${{ secrets.BACK4APP_STAGING_APP_ID }} --master-key ${{ secrets.BACK4APP_STAGING_MASTER_KEY }} --environment staging
       
       - name: Run smoke tests
         run: |
           echo "Running smoke tests on staging..."
-          # Add your smoke test commands here
+          # Wait for deployment to complete
+          sleep 30
+          # Test health endpoint
+          curl -f ${{ secrets.STAGING_URL }}/health || exit 1
+          # Test API endpoints
+          curl -f ${{ secrets.STAGING_URL }}/parse/functions/healthCheck || exit 1
 
   # Deploy to Production
   deploy-production:
@@ -186,15 +211,53 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       
-      - name: Deploy to production
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install Back4App CLI
+        run: npm install -g @back4app/cli
+      
+      - name: Validate Secrets
         run: |
-          echo "Deploying to production environment..."
-          # Add your production deployment commands here
+          echo "Validating production secrets..."
+          node scripts/validate-secrets.js production
+      
+      - name: Deploy Backend to Back4App Production
+        run: |
+          echo "Deploying backend to Back4App production..."
+          back4app deploy cloud --app-id ${{ secrets.BACK4APP_APP_ID }} --master-key ${{ secrets.BACK4APP_MASTER_KEY }} --environment production
+      
+      - name: Build Frontend
+        run: |
+          cd frontend
+          npm ci
+          npm run build
+      
+      - name: Deploy Frontend to Back4App Production
+        run: |
+          echo "Deploying frontend to Back4App production..."
+          back4app deploy static --app-id ${{ secrets.BACK4APP_APP_ID }} --master-key ${{ secrets.BACK4APP_MASTER_KEY }} --environment production
       
       - name: Run health checks
         run: |
-          echo "Running health checks..."
-          # Add your health check commands here
+          echo "Running production health checks..."
+          # Wait for deployment to complete
+          sleep 60
+          # Test health endpoint
+          curl -f ${{ secrets.PRODUCTION_URL }}/health || exit 1
+          # Test API endpoints
+          curl -f ${{ secrets.PRODUCTION_URL }}/parse/functions/productionHealthCheck || exit 1
+          # Test monitoring endpoints
+          curl -f ${{ secrets.PRODUCTION_URL }}/parse/functions/getSystemStatus || exit 1
+      
+      - name: Run Performance Tests
+        run: |
+          echo "Running performance tests..."
+          # Add performance testing commands here
+          # Example: npm run test:performance
       
       - name: Notify deployment
         uses: 8398a7/action-slack@v3
