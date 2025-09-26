@@ -1,13 +1,13 @@
 {
   "appName": "CryptoPulse",
-  "description": "AI-Powered Cryptocurrency Trading Bot with Real-time Market Analysis",
-  "version": "1.0.0",
+  "description": "AI-Powered Cryptocurrency Trading Bot with Real-time Market Analysis - Production Ready",
+  "version": "2.0.0",
   "parseVersion": "3.5.1",
   "cloudCode": {
     "main": "cloud/main.js",
     "functions": [
       "tradingBot",
-      "marketAnalysis",
+      "marketAnalysis", 
       "userAuthentication",
       "portfolioManagement",
       "riskAssessment",
@@ -23,34 +23,90 @@
       "getExchangeOrderHistory",
       "healthCheck",
       "getSystemStatus"
+    ],
+    "jobs": [
+      {
+        "name": "marketDataSync",
+        "schedule": "0 */5 * * * *",
+        "description": "Sync market data every 5 minutes"
+      },
+      {
+        "name": "riskAssessment",
+        "schedule": "0 0 */6 * * *",
+        "description": "Run risk assessment every 6 hours"
+      },
+      {
+        "name": "cleanupOldData",
+        "schedule": "0 0 2 * * *",
+        "description": "Clean up old data daily at 2 AM"
+      }
     ]
   },
   "webHosting": {
     "public": "frontend-dist",
     "index": "index.html",
     "spa": true,
-    "buildCommand": "echo 'Using Docker build instead'",
-    "installCommand": "echo 'Using Docker build instead'"
+    "buildCommand": "cd frontend && npm run build:production",
+    "installCommand": "cd frontend && npm ci --production=false"
   },
   "database": {
     "adapter": "mongo",
     "collections": [
       "User",
       "TradingBot",
-      "Portfolio",
+      "Portfolio", 
       "Transaction",
+      "Order",
       "MarketData",
-      "TradingSignal"
+      "TradingSignal",
+      "RiskAssessment",
+      "AuditLog",
+      "SystemHealth"
+    ],
+    "indexes": [
+      {
+        "collection": "Order",
+        "fields": ["userId", "createdAt"],
+        "options": { "background": true }
+      },
+      {
+        "collection": "MarketData", 
+        "fields": ["pair", "timestamp"],
+        "options": { "background": true }
+      },
+      {
+        "collection": "AuditLog",
+        "fields": ["userId", "action", "timestamp"],
+        "options": { "background": true }
+      }
     ]
   },
   "security": {
     "cors": {
-      "origin": "*",
-      "credentials": true
+      "origin": ["https://cryptopulse.b4a.app", "https://cryptopulse.app"],
+      "credentials": true,
+      "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+      "allowedHeaders": ["Content-Type", "Authorization", "X-Requested-With", "X-CSRF-Token"]
     },
     "rateLimit": {
       "requests": 1000,
-      "window": 3600
+      "window": 3600,
+      "burst": 100
+    },
+    "apiSecurity": {
+      "requireMasterKey": true,
+      "allowClientClassCreation": false,
+      "allowCustomObjectId": false,
+      "allowExpiredAuthDataToken": false,
+      "revokeSessionOnPasswordReset": true,
+      "maxLimit": 1000
+    },
+    "passwordPolicy": {
+      "minLength": 8,
+      "requireUppercase": true,
+      "requireLowercase": true,
+      "requireNumbers": true,
+      "requireSpecialChars": true
     }
   },
   "features": {
@@ -58,6 +114,30 @@
     "webHosting": true,
     "pushNotifications": true,
     "analytics": true,
-    "fileStorage": true
+    "fileStorage": true,
+    "liveQuery": true,
+    "hooks": true,
+    "jobs": true
+  },
+  "environment": {
+    "NODE_ENV": "production",
+    "LOG_LEVEL": "info",
+    "CACHE_TTL": "300000",
+    "RATE_LIMIT_WINDOW": "3600000",
+    "MAX_REQUESTS_PER_WINDOW": "1000"
+  },
+  "monitoring": {
+    "healthCheck": {
+      "endpoint": "/health",
+      "interval": 30000
+    },
+    "metrics": {
+      "enabled": true,
+      "retention": "30d"
+    },
+    "alerts": {
+      "enabled": true,
+      "channels": ["email", "webhook"]
+    }
   }
 }

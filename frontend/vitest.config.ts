@@ -18,9 +18,7 @@ export default defineConfig({
         '**/*.d.ts',
         '**/*.config.*',
         '**/coverage/**',
-        '**/dist/**',
-        '**/.{idea,git,cache,output,temp}/**',
-        '**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build}.config.*'
+        '**/dist/**'
       ],
       thresholds: {
         global: {
@@ -34,7 +32,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
-    },
-  },
+      '@': path.resolve(__dirname, './src')
+    }
+  }
 })

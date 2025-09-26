@@ -5,9 +5,23 @@
   "type": "module",
   "homepage": "https://your-back4app-domain.b4a.app",
   "scripts": {
+    "dev": "vite",
+    "build": "vite build",
     "build:production": "vite build --mode production",
+    "preview": "vite preview",
     "setup-env": "node setup-env.cjs",
-    "prebuild": "npm run setup-env"
+    "prebuild": "npm run setup-env",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage",
+    "test:ci": "vitest --ci --coverage --watchAll=false",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "lint:fix": "eslint . --ext ts,tsx --fix",
+    "type-check": "tsc --noEmit",
+    "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
+    "analyze": "vite-bundle-analyzer",
+    "security-audit": "npm audit --audit-level=moderate"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",
@@ -50,6 +64,22 @@
     "tailwindcss-animate": "^1.0.7",
     "typescript": "~5.6.2",
     "vite": "^5.4.0",
-    "rollup": "^4.9.0"
+    "rollup": "^4.9.0",
+    "vitest": "^1.6.0",
+    "@vitest/ui": "^1.6.0",
+    "@vitest/coverage-v8": "^1.6.0",
+    "eslint": "^8.57.0",
+    "@typescript-eslint/eslint-plugin": "^7.7.0",
+    "@typescript-eslint/parser": "^7.7.0",
+    "eslint-plugin-react": "^7.34.1",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.7",
+    "prettier": "^3.3.3",
+    "prettier-plugin-tailwindcss": "^0.6.8",
+    "vite-bundle-analyzer": "^0.11.0",
+    "@testing-library/react": "^16.0.0",
+    "@testing-library/jest-dom": "^6.4.2",
+    "@testing-library/user-event": "^14.5.2",
+    "jsdom": "^24.1.0"
   }
 }

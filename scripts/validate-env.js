@@ -48,42 +48,31 @@ function validateEnvironment() {
   log('🔍 Validating Environment Configuration...', 'blue');
   log('=' .repeat(60), 'cyan');
   
-  const frontendEnv = parseEnvFile(path.join(__dirname, '..', 'frontend', 'env.example'));
-  const productionEnv = parseEnvFile(path.join(__dirname, '..', 'env.production.example'));
+  const back4appEnv = parseEnvFile(path.join(__dirname, '..', 'back4app-env.example'));
+  const frontendEnv = parseEnvFile(path.join(__dirname, '..', 'frontend', 'env.production.example'));
   
-  // Required environment variables
-  const requiredVars = [
+  // Required Back4App environment variables
+  const back4appRequiredVars = [
+    'BACK4APP_APP_ID',
+    'BACK4APP_JAVASCRIPT_KEY',
+    'BACK4APP_MASTER_KEY',
+    'BACK4APP_SERVER_URL',
+    'BINANCE_API_KEY',
+    'BINANCE_SECRET_KEY',
+    'COINBASE_API_KEY',
+    'COINBASE_SECRET_KEY',
+    'ALPHA_VANTAGE_API_KEY',
+    'JWT_SECRET',
+    'SESSION_SECRET',
+    'CSRF_SECRET'
+  ];
+  
+  // Required frontend environment variables
+  const frontendRequiredVars = [
     'VITE_BACK4APP_APP_ID',
     'VITE_BACK4APP_CLIENT_KEY',
     'VITE_BACK4APP_MASTER_KEY',
     'VITE_BACK4APP_SERVER_URL',
-    'VITE_APP_NAME',
-    'VITE_APP_VERSION',
-    'VITE_APP_ENVIRONMENT',
-    'VITE_API_URL',
-    'VITE_API_TIMEOUT',
-    'VITE_ENABLE_LIVE_TRADING',
-    'VITE_ENABLE_AI_AUTOMATION',
-    'VITE_ENABLE_BACKTESTING',
-    'VITE_ENABLE_ANALYTICS',
-    'VITE_DEFAULT_PAIRS',
-    'VITE_DEFAULT_STRATEGY',
-    'VITE_RISK_LEVEL',
-    'VITE_THEME',
-    'VITE_LANGUAGE',
-    'VITE_CURRENCY',
-    'VITE_LOG_LEVEL',
-    'VITE_ENABLE_CONSOLE_LOGS',
-    'VITE_CACHE_DURATION',
-    'VITE_MAX_RETRY_ATTEMPTS',
-    'VITE_REQUEST_TIMEOUT',
-    'VITE_ENCRYPTION_KEY',
-    'VITE_ENABLE_2FA',
-    'VITE_SESSION_TIMEOUT',
-    'VITE_SSL_ENABLED',
-    'VITE_FORCE_HTTPS',
-    'VITE_BINANCE_API_URL',
-    'VITE_COINGECKO_API_URL',
     'VITE_CASHFREE_MODE',
     'VITE_CASHFREE_SANDBOX_APP_ID',
     'VITE_CASHFREE_LIVE_APP_ID'
@@ -92,9 +81,21 @@ function validateEnvironment() {
   let allValid = true;
   const issues = [];
   
+  // Check Back4App environment
+  log('\n🔧 Back4App Environment (back4app-env.example):', 'yellow');
+  back4appRequiredVars.forEach(varName => {
+    if (back4appEnv[varName]) {
+      log(`  ✅ ${varName}`, 'green');
+    } else {
+      log(`  ❌ ${varName} - MISSING`, 'red');
+      issues.push(`Back4App missing: ${varName}`);
+      allValid = false;
+    }
+  });
+  
   // Check frontend environment
-  log('\n📁 Frontend Environment (frontend/env.example):', 'yellow');
-  requiredVars.forEach(varName => {
+  log('\n📁 Frontend Environment (frontend/env.production.example):', 'yellow');
+  frontendRequiredVars.forEach(varName => {
     if (frontendEnv[varName]) {
       log(`  ✅ ${varName}`, 'green');
     } else {
@@ -104,39 +105,25 @@ function validateEnvironment() {
     }
   });
   
-  // Check production environment
-  log('\n🏭 Production Environment (env.production.example):', 'yellow');
-  requiredVars.forEach(varName => {
-    if (productionEnv[varName]) {
-      log(`  ✅ ${varName}`, 'green');
-    } else {
-      log(`  ❌ ${varName} - MISSING`, 'red');
-      issues.push(`Production missing: ${varName}`);
-      allValid = false;
-    }
-  });
-  
-  // Check for inconsistencies
+  // Check for inconsistencies between Back4App and Frontend
   log('\n🔄 Checking for inconsistencies:', 'yellow');
   const inconsistencies = [];
   
-  requiredVars.forEach(varName => {
-    const frontendValue = frontendEnv[varName];
-    const productionValue = productionEnv[varName];
+  // Check Back4App vs Frontend consistency
+  const back4appToFrontendMapping = {
+    'BACK4APP_APP_ID': 'VITE_BACK4APP_APP_ID',
+    'BACK4APP_JAVASCRIPT_KEY': 'VITE_BACK4APP_CLIENT_KEY',
+    'BACK4APP_MASTER_KEY': 'VITE_BACK4APP_MASTER_KEY',
+    'BACK4APP_SERVER_URL': 'VITE_BACK4APP_SERVER_URL'
+  };
+  
+  Object.entries(back4appToFrontendMapping).forEach(([back4appKey, frontendKey]) => {
+    const back4appValue = back4appEnv[back4appKey];
+    const frontendValue = frontendEnv[frontendKey];
     
-    if (frontendValue && productionValue && frontendValue !== productionValue) {
-      // Some variables are expected to be different
-      const allowedDifferences = [
-        'VITE_APP_ENVIRONMENT',
-        'VITE_CASHFREE_MODE',
-        'VITE_LOG_LEVEL',
-        'VITE_ENABLE_CONSOLE_LOGS'
-      ];
-      
-      if (!allowedDifferences.includes(varName)) {
-        inconsistencies.push(`${varName}: Frontend="${frontendValue}" vs Production="${productionValue}"`);
-        allValid = false;
-      }
+    if (back4appValue && frontendValue && back4appValue !== frontendValue) {
+      inconsistencies.push(`${back4appKey} vs ${frontendKey}: "${back4appValue}" vs "${frontendValue}"`);
+      allValid = false;
     }
   });
   
@@ -151,13 +138,13 @@ function validateEnvironment() {
   // Check for placeholder values
   log('\n🔍 Checking for placeholder values:', 'yellow');
   const placeholderChecks = [
-    { file: 'Frontend', env: frontendEnv },
-    { file: 'Production', env: productionEnv }
+    { file: 'Back4App', env: back4appEnv },
+    { file: 'Frontend', env: frontendEnv }
   ];
   
   placeholderChecks.forEach(({ file, env }) => {
     Object.entries(env).forEach(([key, value]) => {
-      if (value.includes('your-') || value.includes('YOUR_') || value === 'your-domain.com') {
+      if (value.includes('your-') || value.includes('YOUR_') || value === 'your-domain.com' || value.includes('your-app-id') || value.includes('your-javascript-key')) {
         log(`  ⚠️  ${file}: ${key} contains placeholder value`, 'yellow');
       }
     });

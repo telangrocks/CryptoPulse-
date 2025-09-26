@@ -1,11 +1,21 @@
 {
   "name": "cryptopulse-backend",
-  "version": "1.0.0",
-  "description": "Backend cloud functions for CryptoPulse Trading Bot",
+  "version": "2.0.0",
+  "description": "Production-ready backend cloud functions for CryptoPulse Trading Bot",
   "main": "cloud-functions.js",
   "scripts": {
     "start": "node cloud-functions.js",
-    "dev": "node cloud-functions.js"
+    "dev": "node cloud-functions.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:ci": "jest --ci --coverage --watchAll=false",
+    "test:security": "jest --testNamePattern=security",
+    "test:integration": "jest --testNamePattern=integration",
+    "lint": "eslint . --ext .js",
+    "lint:fix": "eslint . --ext .js --fix",
+    "validate": "node scripts/validate-config.js",
+    "security-audit": "npm audit --audit-level=moderate"
   },
   "dependencies": {
     "parse": "^3.5.1",
@@ -13,28 +23,47 @@
     "redis": "^4.6.0",
     "prom-client": "^15.0.0",
     "winston": "^3.11.0",
-    "uuid": "^9.0.1"
+    "uuid": "^9.0.1",
+    "joi": "^17.11.0",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "crypto": "^1.0.1",
+    "helmet": "^7.1.0",
+    "express-rate-limit": "^7.1.5",
+    "cors": "^2.8.5",
+    "compression": "^1.7.4",
+    "dotenv": "^16.3.1",
+    "moment": "^2.29.4",
+    "lodash": "^4.17.21",
+    "node-cron": "^3.0.3"
   },
   "devDependencies": {
     "jest": "^29.7.0",
     "supertest": "^6.3.3",
-    "@types/jest": "^29.5.8"
-  },
-  "scripts": {
-    "start": "node cloud-functions.js",
-    "dev": "node cloud-functions.js",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
-    "test:ci": "jest --ci --coverage --watchAll=false"
+    "@types/jest": "^29.5.8",
+    "eslint": "^8.57.0",
+    "eslint-config-standard": "^17.1.0",
+    "eslint-plugin-import": "^2.29.1",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-promise": "^6.1.1",
+    "eslint-plugin-security": "^1.7.1",
+    "nodemon": "^3.0.2"
   },
   "keywords": [
     "cryptocurrency",
     "trading",
     "bot",
     "backend",
-    "cloud-functions"
+    "cloud-functions",
+    "back4app",
+    "parse",
+    "production",
+    "secure"
   ],
   "author": "Shrikant Telang",
-  "license": "MIT"
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
 }

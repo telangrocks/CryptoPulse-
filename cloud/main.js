@@ -1,7 +1,30 @@
-// Back4App Cloud Functions for CryptoPulse Trading Bot
+// Back4App Cloud Functions for CryptoPulse Trading Bot - Production Ready
 const Parse = require('parse/node');
 const https = require('https');
 const crypto = require('crypto');
+const winston = require('winston');
+
+// Import monitoring modules
+const { updateHealthData, recordRequest, getHealthStatus, getSystemStatus } = require('./healthCheck');
+const { sendAlert, alertSystemDown, alertSecurityBreach, alertCriticalError } = require('./alerting');
+const { recordRequest: recordMetric, recordError, recordTrading, recordSecurityEvent } = require('./metrics');
+
+// Configure logger
+const logger = winston.createLogger({
+  level: process.env.LOG_LEVEL || 'info',
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.json()
+  ),
+  transports: [
+    new winston.transports.Console(),
+    new winston.transports.File({ filename: 'logs/cloud-functions.log' })
+  ]
+});
+
+// Start monitoring
+updateHealthData();
+setInterval(updateHealthData, 30000); // Update every 30 seconds
 
 // Initialize Parse with Back4App configuration
 Parse.initialize(
@@ -10,6 +33,15 @@ Parse.initialize(
   process.env.BACK4APP_MASTER_KEY || process.env.MASTER_KEY || 'your-master-key'
 );
 Parse.serverURL = process.env.BACK4APP_SERVER_URL || process.env.SERVER_URL || 'https://parseapi.back4app.com/';
+
+// Security configuration
+const SECURITY_CONFIG = {
+  RATE_LIMIT_WINDOW: 60000, // 1 minute
+  MAX_REQUESTS_PER_WINDOW: 100,
+  CACHE_TTL: 300000, // 5 minutes
+  MAX_ORDER_AMOUNT: 1000000,
+  MIN_ORDER_AMOUNT: 0.001
+};
 
 // External API Configuration
 const BINANCE_API_URL = 'https://api.binance.com/api/v3';
@@ -23,15 +55,52 @@ const CACHE_TTL = 60000; // 1 minute cache
 const RATE_LIMIT_WINDOW = 60000; // 1 minute window
 const MAX_REQUESTS_PER_WINDOW = 100;
 
-// Trading Bot Cloud Function
+// Trading Bot Cloud Function - Production Ready
 Parse.Cloud.define('tradingBot', async (request) => {
   try {
-    const { action, pair, amount, strategy } = request.params;
-    
     // Validate user authentication
     if (!request.user) {
-      throw new Error('User not authenticated');
+      logger.warn('Unauthorized trading bot access attempt', { ip: request.ip });
+      throw new Parse.Error(Parse.Error.SESSION_MISSING, 'User not authenticated');
     }
+    
+    const { action, pair, amount, strategy } = request.params;
+    
+    // Input validation
+    if (!action || !['BUY', 'SELL'].includes(action)) {
+      throw new Parse.Error(Parse.Error.INVALID_QUERY, 'Invalid action. Must be BUY or SELL');
+    }
+    
+    if (!pair || !/^[A-Z]{3,10}\/[A-Z]{3,10}$/.test(pair)) {
+      throw new Parse.Error(Parse.Error.INVALID_QUERY, 'Invalid pair format');
+    }
+    
+    if (!amount || amount < SECURITY_CONFIG.MIN_ORDER_AMOUNT || amount > SECURITY_CONFIG.MAX_ORDER_AMOUNT) {
+      throw new Parse.Error(Parse.Error.INVALID_QUERY, 'Invalid amount');
+    }
+    
+    if (!strategy || !['conservative', 'moderate', 'aggressive'].includes(strategy)) {
+      throw new Parse.Error(Parse.Error.INVALID_QUERY, 'Invalid strategy');
+    }
+    
+    // Rate limiting check
+    const rateLimitKey = `trading_${request.user.id}`;
+    if (!checkRateLimit(rateLimitKey)) {
+      logger.warn('Rate limit exceeded for trading bot', { userId: request.user.id });
+      throw new Parse.Error(Parse.Error.RATE_LIMIT_EXCEEDED, 'Rate limit exceeded');
+    }
+    
+    // Log trading attempt
+    logger.info('Trading bot execution started', {
+      userId: request.user.id,
+      action,
+      pair,
+      amount,
+      strategy
+    });
+    
+    // Record trading metric
+    recordTrading(pair, strategy, action, amount, false, 0);
     
     // Trading bot logic
     const result = await executeTradingStrategy({
@@ -42,12 +111,28 @@ Parse.Cloud.define('tradingBot', async (request) => {
       userId: request.user.id
     });
     
+    // Record trading result
+    const isSuccess = result.status === 'executed';
+    const profit = result.profit || 0;
+    recordTrading(pair, strategy, action, amount, isSuccess, profit);
+    
+    // Log successful execution
+    logger.info('Trading bot execution completed', {
+      userId: request.user.id,
+      result: result.status
+    });
+    
     return {
       success: true,
       result,
       timestamp: new Date()
     };
   } catch (error) {
+    logger.error('Trading bot execution failed', {
+      userId: request.user?.id,
+      error: error.message,
+      stack: error.stack
+    });
     throw new Parse.Error(Parse.Error.SCRIPT_FAILED, error.message);
   }
 });
@@ -1476,44 +1561,65 @@ async function getCoinDCXOrderHistory(credentials, symbol, limit) {
   }
 }
 
-// Health Check Cloud Function
+// Health Check Cloud Function - Production Ready
 Parse.Cloud.define('healthCheck', async (request) => {
+  const startTime = Date.now();
+  
   try {
-    return {
-      success: true,
-      status: 'healthy',
-      timestamp: new Date(),
-      version: '1.0.0',
-      services: {
-        database: 'connected',
-        marketData: 'operational',
-        trading: 'operational',
-        riskManagement: 'operational'
-      }
-    };
-  } catch (error) {
-    console.error('Health check failed:', error);
-    throw new Error(`Health check failed: ${error.message}`);
-  }
-});
-
-// Get System Status Cloud Function
-Parse.Cloud.define('getSystemStatus', async (request) => {
-  try {
-    const status = {
-      uptime: process.uptime(),
-      memory: process.memoryUsage(),
-      timestamp: new Date(),
-      environment: process.env.NODE_ENV || 'development',
-      version: '1.0.0'
-    };
+    // Record request metric
+    recordRequest('healthCheck', 'GET', 200, Date.now() - startTime);
+    
+    // Get current health status
+    const healthStatus = getHealthStatus();
+    
+    // Check if any critical services are down
+    const criticalServices = Object.entries(healthStatus.services)
+      .filter(([service, status]) => status === 'unhealthy')
+      .map(([service]) => service);
+    
+    if (criticalServices.length > 0) {
+      await alertSystemDown(criticalServices.join(', '), new Error('Service health check failed'));
+    }
     
     return {
       success: true,
-      status
+      ...healthStatus
     };
   } catch (error) {
-    console.error('Error getting system status:', error);
-    throw new Error(`Failed to get system status: ${error.message}`);
+    const responseTime = Date.now() - startTime;
+    recordRequest('healthCheck', 'GET', 500, responseTime);
+    recordError(error, 'healthCheck');
+    
+    logger.error('Health check failed:', error);
+    await alertCriticalError(error, 'healthCheck');
+    
+    throw new Parse.Error(Parse.Error.SCRIPT_FAILED, error.message);
+  }
+});
+
+// Get System Status Cloud Function - Production Ready
+Parse.Cloud.define('getSystemStatus', async (request) => {
+  const startTime = Date.now();
+  
+  try {
+    // Record request metric
+    recordRequest('getSystemStatus', 'GET', 200, Date.now() - startTime);
+    
+    // Get detailed system status
+    const systemStatus = getSystemStatus();
+    
+    return {
+      success: true,
+      ...systemStatus
+    };
+  } catch (error) {
+    const responseTime = Date.now() - startTime;
+    recordRequest('getSystemStatus', 'GET', 500, responseTime);
+    recordError(error, 'getSystemStatus');
+    
+    logger.error('Error getting system status:', error);
+    await alertCriticalError(error, 'getSystemStatus');
+    
+    throw new Parse.Error(Parse.Error.SCRIPT_FAILED, error.message);
   }
 });
