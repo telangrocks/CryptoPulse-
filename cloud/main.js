@@ -8,6 +8,7 @@ const winston = require('winston');
 const { updateHealthData, recordRequest, getHealthStatus, getSystemStatus, productionHealthCheck } = require('./healthCheck');
 const { sendAlert, alertSystemDown, alertSecurityBreach, alertCriticalError } = require('./alerting');
 const { recordRequest: recordMetric, recordError, recordTrading, recordSecurityEvent } = require('./metrics');
+const { recordRequest: apmRecordRequest, recordTradingActivity, recordError: apmRecordError, getMetrics: getAPMMetrics, performHealthCheck: apmHealthCheck } = require('./apm');
 const { 
   trackSecurityEvent, 
   validateInput, 
@@ -36,7 +37,15 @@ const logger = winston.createLogger({
 
 // Start monitoring
 updateHealthData();
-setInterval(updateHealthData, 30000); // Update every 30 seconds
+setInterval(updateHealthData, 30000);
+
+// Start APM monitoring
+setInterval(() => {
+  const healthStatus = apmHealthCheck();
+  if (healthStatus.status !== 'healthy') {
+    logger.warn('APM health check failed', healthStatus);
+  }
+}, 30000); // Update every 30 seconds
 
 // Initialize Parse with Back4App configuration
 Parse.initialize(
@@ -198,6 +207,17 @@ Parse.Cloud.define('tradingBot', async (request) => {
     const profit = result.profit || 0;
     recordTrading(pair, strategy, action, amount, isSuccess, profit);
     
+    // Record APM trading activity
+    apmRecordTradingActivity({
+      type: 'trade_execution',
+      pair,
+      amount,
+      price: result.executionPrice || 0,
+      success: isSuccess,
+      pnl: profit,
+      userId: request.user.id
+    });
+    
     // Log successful execution
     logger.info('Trading bot execution completed', {
       userId: request.user.id,
@@ -210,6 +230,13 @@ Parse.Cloud.define('tradingBot', async (request) => {
       timestamp: new Date()
     };
   } catch (error) {
+    // Record APM error
+    apmRecordError('trading_bot_failed', {
+      userId: request.user?.id,
+      error: error.message,
+      endpoint: 'tradingBot'
+    });
+    
     logger.error('Trading bot execution failed', {
       userId: request.user?.id,
       error: error.message,
@@ -882,20 +909,54 @@ function calculateVolatility(prices) {
   return Math.sqrt(variance) * Math.sqrt(252); // Annualized volatility
 }
 
-// Advanced trading signal generation
+/**
+ * Advanced Trading Signal Generation Algorithm
+ * 
+ * This function implements a comprehensive technical analysis system that combines
+ * multiple indicators to generate high-confidence trading signals. The algorithm
+ * uses a scoring system where each indicator contributes points toward buy/sell
+ * decisions, with final confidence calculated as a percentage of maximum possible score.
+ * 
+ * Technical Indicators Used:
+ * - RSI (Relative Strength Index): Momentum oscillator (0-100)
+ * - Moving Averages: Trend direction analysis (SMA 20, 50, 200)
+ * - MACD: Trend change detection (Moving Average Convergence Divergence)
+ * - Bollinger Bands: Volatility and mean reversion signals
+ * - Volume Analysis: Confirmation of price movements
+ * - Market Sentiment: Additional context for signal validation
+ * 
+ * Risk Management:
+ * - Position sizing based on confidence level
+ * - Stop-loss and take-profit levels calculated dynamically
+ * - Risk level assessment (low/medium/high) based on market conditions
+ * 
+ * @param {Object} analysis - Technical analysis data object
+ * @param {number} analysis.rsi - RSI value (0-100)
+ * @param {Object} analysis.sma20 - 20-period Simple Moving Average
+ * @param {Object} analysis.sma50 - 50-period Simple Moving Average  
+ * @param {Object} analysis.sma200 - 200-period Simple Moving Average
+ * @param {Object} analysis.macd - MACD indicator data
+ * @param {Object} analysis.bollingerBands - Bollinger Bands data
+ * @param {Object} analysis.volume - Volume analysis data
+ * @param {number} analysis.currentPrice - Current market price
+ * @returns {Object} Trading signals with confidence and risk assessment
+ */
 async function generateTradingSignals(analysis) {
   try {
+    // Initialize signal object with default conservative values
     const signals = {
       buy: false,
       sell: false,
       hold: true,
-      confidence: 0.5,
+      confidence: 0.5, // Default 50% confidence
       reasons: [],
       riskLevel: 'medium',
       stopLoss: null,
       takeProfit: null
     };
     
+    // Scoring system: Each indicator can contribute points toward buy/sell decision
+    // Maximum possible score is 10, minimum is -10
     let score = 0;
     const maxScore = 10;
     
