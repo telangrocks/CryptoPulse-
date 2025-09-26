@@ -9,7 +9,6 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      "events": path.resolve(__dirname, "./src/polyfills/events.js"),
     },
   },
   build: {
@@ -85,7 +84,6 @@ export default defineConfig({
       'tailwind-merge',
       'parse'
     ],
-    exclude: ['events'],
     esbuildOptions: {
       target: 'es2018'
     }
