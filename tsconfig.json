@@ -1,65 +1,14 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "ESNext",
-    "moduleResolution": "node",
-    "allowSyntheticDefaultImports": true,
-    "esModuleInterop": true,
-    "allowJs": true,
-    "checkJs": false,
+    "module": "CommonJS",
     "strict": true,
-    "noImplicitAny": true,
-    "strictNullChecks": true,
-    "strictFunctionTypes": true,
-    "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true,
-    "noUncheckedIndexedAccess": true,
-    "exactOptionalPropertyTypes": false,
-    "noImplicitOverride": true,
-    "noPropertyAccessFromIndexSignature": false,
+    "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "declaration": false,
-    "declarationMap": false,
-    "sourceMap": false,
-    "outDir": "./dist",
-    "rootDir": "./",
-    "removeComments": false,
-    "importHelpers": true,
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
-    "types": ["node", "jest"],
-    "lib": ["ES2022", "DOM"],
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["./backend/*"],
-      "@config/*": ["./backend/config/*"],
-      "@database/*": ["./backend/database/*"],
-      "@routes/*": ["./backend/routes/*"],
-      "@utils/*": ["./backend/*"],
-      "@tests/*": ["./backend/tests/*"]
-    }
+    "outDir": "dist",
+    "resolveJsonModule": true
   },
-  "include": [
-    "scripts/**/*",
-    "backend/**/*",
-    "cloud/**/*",
-    "*.js",
-    "*.mjs"
-  ],
-  "exclude": [
-    "node_modules",
-    "frontend",
-    "dist",
-    "build",
-    "coverage",
-    "**/*.test.js",
-    "**/*.spec.js"
-  ],
-  "ts-node": {
-    "esm": true,
-    "experimentalSpecifierResolution": "node"
-  }
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules", "dist", "build", "coverage"]
 }
