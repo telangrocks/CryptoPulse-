@@ -1,17 +1,13 @@
-import js from "@eslint/js";
+import js from '@eslint/js';
 
 export default [
   js.configs.recommended,
   {
-    files: ["**/*.js", "**/*.ts"],
-    ignores: ["node_modules", "dist", "build", "coverage"],
-    languageOptions: {
-      ecmaVersion: "latest",
-      sourceType: "module"
-    },
     rules: {
-      "no-unused-vars": "warn",
-      "no-console": "off"
+      'no-console': 'warn',
+      'semi': ['error', 'always'],
+      'quotes': ['error', 'single'],
+      // Add additional project-specific rules as needed
     }
   }
 ];

@@ -1,13 +1,14 @@
-/** @type {import('jest').Config} */
-export default {
-  preset: "ts-jest",
-  testEnvironment: "node",
-  roots: ["<rootDir>/"],
-  moduleFileExtensions: ["ts", "js", "json"],
+module.exports = {
+  preset: 'ts-jest',
+  testEnvironment: 'node',
   moduleNameMapper: {
-    "^@src/(.*)$": "<rootDir>/src/$1"
+    '^@config/(.*)$': '<rootDir>/backend/config/$1',
+    '^@database/(.*)$': '<rootDir>/backend/database/$1',
+    '^@routes/(.*)$': '<rootDir>/backend/routes/$1',
+    '^@tests/(.*)$': '<rootDir>/backend/tests/$1',
+    '^@utils/(.*)$': '<rootDir>/backend/$1'
   },
-  transform: {
-    "^.+\\.ts$": "ts-jest"
-  }
+  coverageDirectory: '<rootDir>/coverage',
+  collectCoverageFrom: ['<rootDir>/backend/**/*.ts'],
+  watchPlugins: []
 };
