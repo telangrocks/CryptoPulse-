@@ -1448,6 +1448,152 @@ Parse.Cloud.define('getExchangeBalances', async (request) => {
   }
 });
 
+// Enhanced balance analysis with trading recommendations
+Parse.Cloud.define('analyzeBalanceAndGenerateStrategy', async (request) => {
+  try {
+    const { exchangeCredentials, userPreferences } = request.params;
+    
+    if (!exchangeCredentials) {
+      throw new Error('Exchange credentials are required');
+    }
+    
+    // Get balances from exchanges
+    const balanceResult = await Parse.Cloud.run('getExchangeBalances', { exchangeCredentials });
+    
+    if (!balanceResult.success) {
+      throw new Error('Failed to fetch exchange balances');
+    }
+    
+    // Analyze balances and generate trading strategy
+    const analysis = {
+      totalAvailableBalance: 0,
+      totalLockedBalance: 0,
+      exchangeBalances: {},
+      recommendedStrategy: null,
+      tradingRecommendations: [],
+      riskAssessment: 'low',
+      notifications: []
+    };
+    
+    // Process each exchange balance
+    for (const [exchangeName, exchangeBalances] of Object.entries(balanceResult.balances)) {
+      if (exchangeBalances.error) {
+        analysis.exchangeBalances[exchangeName] = { error: exchangeBalances.error };
+        continue;
+      }
+      
+      let totalAvailable = 0;
+      let totalLocked = 0;
+      
+      // Calculate totals for this exchange
+      if (Array.isArray(exchangeBalances)) {
+        exchangeBalances.forEach(balance => {
+          totalAvailable += parseFloat(balance.free || 0);
+          totalLocked += parseFloat(balance.locked || 0);
+        });
+      }
+      
+      analysis.exchangeBalances[exchangeName] = {
+        available: totalAvailable,
+        locked: totalLocked,
+        total: totalAvailable + totalLocked
+      };
+      
+      analysis.totalAvailableBalance += totalAvailable;
+      analysis.totalLockedBalance += totalLocked;
+    }
+    
+    // Generate trading strategy based on total balance
+    const totalBalance = analysis.totalAvailableBalance + analysis.totalLockedBalance;
+    
+    if (totalBalance < 100) {
+      analysis.recommendedStrategy = {
+        name: 'Conservative',
+        maxPositionSize: 0.05,
+        riskLevel: 'low',
+        recommendedPairs: ['BTC/USDT', 'ETH/USDT'],
+        description: 'Low-risk trading with small position sizes due to limited capital'
+      };
+      analysis.riskAssessment = 'high';
+      analysis.notifications.push({
+        type: 'low_balance',
+        title: 'Low Balance Alert',
+        message: `Your total balance ($${totalBalance.toFixed(2)}) is below the recommended minimum. Consider depositing more funds.`,
+        priority: 'critical'
+      });
+    } else if (totalBalance < 500) {
+      analysis.recommendedStrategy = {
+        name: 'Moderate',
+        maxPositionSize: 0.1,
+        riskLevel: 'medium',
+        recommendedPairs: ['BTC/USDT', 'ETH/USDT', 'BNB/USDT'],
+        description: 'Balanced risk with moderate position sizes'
+      };
+      analysis.riskAssessment = 'medium';
+    } else if (totalBalance < 1000) {
+      analysis.recommendedStrategy = {
+        name: 'Aggressive',
+        maxPositionSize: 0.15,
+        riskLevel: 'high',
+        recommendedPairs: ['BTC/USDT', 'ETH/USDT', 'BNB/USDT', 'ADA/USDT', 'SOL/USDT'],
+        description: 'Higher risk with larger position sizes'
+      };
+      analysis.riskAssessment = 'medium';
+    } else {
+      analysis.recommendedStrategy = {
+        name: 'Premium',
+        maxPositionSize: 0.2,
+        riskLevel: 'high',
+        recommendedPairs: ['BTC/USDT', 'ETH/USDT', 'BNB/USDT', 'ADA/USDT', 'SOL/USDT', 'DOT/USDT', 'MATIC/USDT'],
+        description: 'Maximum risk with premium position sizes'
+      };
+      analysis.riskAssessment = 'low';
+      analysis.notifications.push({
+        type: 'trading_opportunity',
+        title: 'Premium Trading Available',
+        message: `Your balance ($${totalBalance.toFixed(2)}) qualifies for premium trading strategies.`,
+        priority: 'high'
+      });
+    }
+    
+    // Generate trading recommendations
+    analysis.tradingRecommendations = [
+      {
+        action: 'position_sizing',
+        message: `Recommended position size: ${(totalBalance * analysis.recommendedStrategy.maxPositionSize).toFixed(2)} per trade`,
+        priority: 'medium'
+      },
+      {
+        action: 'risk_management',
+        message: `Risk level: ${analysis.recommendedStrategy.riskLevel} - ${analysis.recommendedStrategy.description}`,
+        priority: 'medium'
+      },
+      {
+        action: 'pair_recommendations',
+        message: `Recommended trading pairs: ${analysis.recommendedStrategy.recommendedPairs.join(', ')}`,
+        priority: 'low'
+      }
+    ];
+    
+    // Add strategy recommendation notification
+    analysis.notifications.push({
+      type: 'strategy_recommendation',
+      title: 'Trading Strategy Recommendation',
+      message: `Based on your balance, we recommend the "${analysis.recommendedStrategy.name}" strategy.`,
+      priority: 'medium'
+    });
+    
+    return {
+      success: true,
+      analysis,
+      timestamp: new Date()
+    };
+  } catch (error) {
+    console.error('Error analyzing balance and generating strategy:', error);
+    throw new Error(`Failed to analyze balance: ${error.message}`);
+  }
+});
+
 Parse.Cloud.define('executeRealTrade', async (request) => {
   try {
     const { 

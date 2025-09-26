@@ -30,10 +30,12 @@ import PaymentSuccess from './components/PaymentSuccess'
 import CashfreePayment from './components/CashfreePayment'
 import DisclaimerScreen from './components/DisclaimerScreen'
 import ExchangeIntegration from './components/ExchangeIntegration'
+import BalanceDashboard from './components/BalanceDashboard'
 import { AccessibilityProvider } from './components/AccessibilityProvider'
 import { useAuth } from './contexts/AuthContext'
 import { useDocumentHead } from './hooks/useDocumentHead'
 import { useWebSocketSignalIntegration } from './lib/websocketSignalIntegration'
+import { useBalanceMonitoring } from './lib/balanceMonitoringService'
 import './App.css'
 
 // Protected Route Component
@@ -55,6 +57,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function AppContent() {
   const { user, loading } = useAuth()
   const { isConnected: wsConnected } = useWebSocketSignalIntegration()
+  const { isMonitoring: balanceMonitoring, balanceStatus } = useBalanceMonitoring()
   useDocumentHead()
 
   if (loading) {
@@ -184,6 +187,12 @@ function AppContent() {
         <Route path="/notifications" element={
           <ProtectedRoute>
             <EnhancedNotificationCenter />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/balance" element={
+          <ProtectedRoute>
+            <BalanceDashboard />
           </ProtectedRoute>
         } />
         
