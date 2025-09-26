@@ -31,6 +31,7 @@ import CashfreePayment from './components/CashfreePayment'
 import DisclaimerScreen from './components/DisclaimerScreen'
 import ExchangeIntegration from './components/ExchangeIntegration'
 import BalanceDashboard from './components/BalanceDashboard'
+import SubscriptionManagement from './components/SubscriptionManagement'
 import TrialProtectedRoute from './components/TrialProtectedRoute'
 import { AccessibilityProvider } from './components/AccessibilityProvider'
 import { useAuth } from './contexts/AuthContext'
@@ -196,6 +197,12 @@ function AppContent() {
         <Route path="/balance" element={
           <ProtectedRoute>
             <BalanceDashboard />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/subscription" element={
+          <ProtectedRoute>
+            <SubscriptionManagement />
           </ProtectedRoute>
         } />
         

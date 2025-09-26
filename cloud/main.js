@@ -1656,6 +1656,310 @@ Parse.Cloud.define('executeRealTrade', async (request) => {
   }
 });
 
+// Cashfree Payment Integration
+Parse.Cloud.define('createSubscription', async (request) => {
+  try {
+    if (!request.user) {
+      throw new Error('User not authenticated');
+    }
+
+    const { userId } = request.params;
+    const user = request.user;
+    
+    // Validate user
+    if (user.id !== userId) {
+      throw new Error('Unauthorized access');
+    }
+
+    // Check if user already has active subscription
+    const Subscription = Parse.Object.extend('Subscription');
+    const subscriptionQuery = new Parse.Query(Subscription);
+    subscriptionQuery.equalTo('userId', userId);
+    subscriptionQuery.equalTo('status', 'active');
+    const existingSubscription = await subscriptionQuery.first();
+    
+    if (existingSubscription) {
+      return {
+        success: false,
+        message: 'User already has an active subscription',
+        subscriptionId: existingSubscription.id
+      };
+    }
+
+    // Create order ID
+    const orderId = `cryptopulse_${userId}_${Date.now()}`;
+    const amount = 99900; // ₹999 in paise
+    const currency = 'INR';
+    
+    // Create subscription record
+    const subscription = new Subscription();
+    subscription.set('userId', userId);
+    subscription.set('userEmail', user.get('email'));
+    subscription.set('orderId', orderId);
+    subscription.set('amount', amount);
+    subscription.set('currency', currency);
+    subscription.set('status', 'pending');
+    subscription.set('planType', 'monthly');
+    subscription.set('billingCycle', 'monthly');
+    subscription.set('createdAt', new Date());
+    subscription.set('trialUsed', true);
+    
+    await subscription.save();
+
+    // Create Cashfree order (simplified - in production, use Cashfree API)
+    const cashfreeOrderData = {
+      order_id: orderId,
+      order_amount: amount,
+      order_currency: currency,
+      customer_details: {
+        customer_id: userId,
+        customer_email: user.get('email'),
+        customer_name: user.get('username') || user.get('email'),
+        customer_phone: user.get('phone') || ''
+      },
+      order_meta: {
+        return_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/payment-success`,
+        notify_url: `${process.env.BACKEND_URL || 'https://your-backend.com'}/webhook/cashfree`
+      }
+    };
+
+    // In production, make actual API call to Cashfree
+    // const cashfreeResponse = await createCashfreeOrder(cashfreeOrderData);
+    
+    // For now, return sandbox URL
+    const paymentUrl = `https://sandbox.cashfree.com/pg/orders/${orderId}/pay`;
+
+    return {
+      success: true,
+      order_id: orderId,
+      payment_url: paymentUrl,
+      amount: amount,
+      currency: currency,
+      subscription_id: subscription.id
+    };
+
+  } catch (error) {
+    console.error('Error creating subscription:', error);
+    throw new Error(`Failed to create subscription: ${error.message}`);
+  }
+});
+
+// Payment Webhook Handler
+Parse.Cloud.define('handlePaymentWebhook', async (request) => {
+  try {
+    const { 
+      type, 
+      data, 
+      order_id, 
+      payment_status, 
+      payment_amount, 
+      payment_currency,
+      payment_time,
+      customer_details 
+    } = request.params;
+
+    console.log('Payment webhook received:', { type, order_id, payment_status });
+
+    // Find subscription by order ID
+    const Subscription = Parse.Object.extend('Subscription');
+    const subscriptionQuery = new Parse.Query(Subscription);
+    subscriptionQuery.equalTo('orderId', order_id);
+    const subscription = await subscriptionQuery.first();
+
+    if (!subscription) {
+      console.error('Subscription not found for order:', order_id);
+      return { success: false, message: 'Subscription not found' };
+    }
+
+    // Update subscription based on payment status
+    if (payment_status === 'SUCCESS') {
+      subscription.set('status', 'active');
+      subscription.set('paymentStatus', 'success');
+      subscription.set('paymentAmount', payment_amount);
+      subscription.set('paymentCurrency', payment_currency);
+      subscription.set('paymentTime', new Date(payment_time));
+      subscription.set('activatedAt', new Date());
+      subscription.set('nextBillingDate', new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)); // 30 days from now
+      
+      // Update user billing status
+      const User = Parse.Object.extend('_User');
+      const userQuery = new Parse.Query(User);
+      userQuery.equalTo('objectId', subscription.get('userId'));
+      const user = await userQuery.first();
+      
+      if (user) {
+        user.set('billingStatus', 'active');
+        user.set('subscriptionStatus', 'active');
+        user.set('subscriptionId', subscription.id);
+        await user.save();
+      }
+
+      console.log('Subscription activated successfully:', order_id);
+      
+    } else if (payment_status === 'FAILED') {
+      subscription.set('status', 'failed');
+      subscription.set('paymentStatus', 'failed');
+      subscription.set('failureReason', data?.reason || 'Payment failed');
+      
+      console.log('Payment failed for subscription:', order_id);
+    }
+
+    await subscription.save();
+
+    return {
+      success: true,
+      message: 'Webhook processed successfully',
+      subscription_id: subscription.id,
+      status: subscription.get('status')
+    };
+
+  } catch (error) {
+    console.error('Error processing payment webhook:', error);
+    throw new Error(`Failed to process webhook: ${error.message}`);
+  }
+});
+
+// Get User Subscription Status
+Parse.Cloud.define('getSubscriptionStatus', async (request) => {
+  try {
+    if (!request.user) {
+      throw new Error('User not authenticated');
+    }
+
+    const userId = request.user.id;
+    
+    // Get user's subscription
+    const Subscription = Parse.Object.extend('Subscription');
+    const subscriptionQuery = new Parse.Query(Subscription);
+    subscriptionQuery.equalTo('userId', userId);
+    subscriptionQuery.descending('createdAt');
+    const subscription = await subscriptionQuery.first();
+
+    if (!subscription) {
+      return {
+        success: true,
+        hasSubscription: false,
+        status: 'none',
+        message: 'No subscription found'
+      };
+    }
+
+    const now = new Date();
+    const nextBillingDate = subscription.get('nextBillingDate');
+    const isActive = subscription.get('status') === 'active';
+    const isExpired = nextBillingDate && new Date(nextBillingDate) < now;
+
+    return {
+      success: true,
+      hasSubscription: true,
+      subscription: {
+        id: subscription.id,
+        status: subscription.get('status'),
+        planType: subscription.get('planType'),
+        amount: subscription.get('amount'),
+        currency: subscription.get('currency'),
+        createdAt: subscription.get('createdAt'),
+        activatedAt: subscription.get('activatedAt'),
+        nextBillingDate: subscription.get('nextBillingDate'),
+        paymentStatus: subscription.get('paymentStatus'),
+        isActive: isActive && !isExpired,
+        isExpired: isExpired
+      }
+    };
+
+  } catch (error) {
+    console.error('Error getting subscription status:', error);
+    throw new Error(`Failed to get subscription status: ${error.message}`);
+  }
+});
+
+// Cancel Subscription
+Parse.Cloud.define('cancelSubscription', async (request) => {
+  try {
+    if (!request.user) {
+      throw new Error('User not authenticated');
+    }
+
+    const userId = request.user.id;
+    
+    // Find active subscription
+    const Subscription = Parse.Object.extend('Subscription');
+    const subscriptionQuery = new Parse.Query(Subscription);
+    subscriptionQuery.equalTo('userId', userId);
+    subscriptionQuery.equalTo('status', 'active');
+    const subscription = await subscriptionQuery.first();
+
+    if (!subscription) {
+      return {
+        success: false,
+        message: 'No active subscription found'
+      };
+    }
+
+    // Update subscription status
+    subscription.set('status', 'cancelled');
+    subscription.set('cancelledAt', new Date());
+    await subscription.save();
+
+    // Update user billing status
+    const User = Parse.Object.extend('_User');
+    const userQuery = new Parse.Query(User);
+    userQuery.equalTo('objectId', userId);
+    const user = await userQuery.first();
+    
+    if (user) {
+      user.set('billingStatus', 'cancelled');
+      user.set('subscriptionStatus', 'cancelled');
+      await user.save();
+    }
+
+    return {
+      success: true,
+      message: 'Subscription cancelled successfully',
+      subscription_id: subscription.id
+    };
+
+  } catch (error) {
+    console.error('Error cancelling subscription:', error);
+    throw new Error(`Failed to cancel subscription: ${error.message}`);
+  }
+});
+
+// Update Billing Status (for trial management integration)
+Parse.Cloud.define('updateBillingStatus', async (request) => {
+  try {
+    if (!request.user) {
+      throw new Error('User not authenticated');
+    }
+
+    const { billingStatus, subscriptionStatus } = request.params;
+    const userId = request.user.id;
+
+    // Update user billing status
+    const User = Parse.Object.extend('_User');
+    const userQuery = new Parse.Query(User);
+    userQuery.equalTo('objectId', userId);
+    const user = await userQuery.first();
+    
+    if (user) {
+      user.set('billingStatus', billingStatus);
+      if (subscriptionStatus) {
+        user.set('subscriptionStatus', subscriptionStatus);
+      }
+      await user.save();
+    }
+
+    return {
+      success: true,
+      message: 'Billing status updated successfully'
+    };
+
+  } catch (error) {
+    console.error('Error updating billing status:', error);
+    throw new Error(`Failed to update billing status: ${error.message}`);
+  }
+});
+
 Parse.Cloud.define('getExchangeOrderHistory', async (request) => {
   try {
     const { exchangeCredentials, exchange, symbol, limit = 50 } = request.params;

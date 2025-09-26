@@ -26,10 +26,19 @@ export default function CashfreePayment() {
         userId: user.id
       })
 
-      if (orderData.order_id) {
-        window.location.href = `https://sandbox.cashfree.com/pg/orders/${orderData.order_id}/pay`
+      if (orderData.success && orderData.order_id) {
+        // Store order details for success page
+        localStorage.setItem('cryptopulse_payment_order', JSON.stringify({
+          orderId: orderData.order_id,
+          amount: orderData.amount,
+          currency: orderData.currency,
+          subscriptionId: orderData.subscription_id
+        }))
+        
+        // Redirect to Cashfree payment page
+        window.location.href = orderData.payment_url
       } else {
-        setError('Failed to create payment order')
+        setError(orderData.message || 'Failed to create payment order')
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Payment initialization failed')

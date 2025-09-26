@@ -84,17 +84,17 @@ export default function Dashboard() {
   const getTrialStatus = () => {
     if (!billingInfo) return null
     
-    if (billingInfo.trial_active) {
-      return {
-        status: 'trial',
-        message: `${billingInfo.days_remaining} days remaining`,
-        color: 'bg-green-500'
-      }
-    } else if (billingInfo.subscription_status === 'active') {
+    if (billingInfo.subscription_status === 'active') {
       return {
         status: 'active',
         message: 'Active Subscription',
         color: 'bg-blue-500'
+      }
+    } else if (billingInfo.trial_active) {
+      return {
+        status: 'trial',
+        message: `${billingInfo.days_remaining} days remaining`,
+        color: 'bg-green-500'
       }
     } else {
       return {
