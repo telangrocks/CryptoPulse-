@@ -25,7 +25,7 @@ import WorldClassDashboard from './components/WorldClassDashboard'
 import AIAssistant from './components/AIAssistant'
 import AutomationDashboard from './components/AutomationDashboard'
 import EnhancedTradeConfirmation from './components/EnhancedTradeConfirmation'
-import NotificationCenter from './components/NotificationCenter'
+import EnhancedNotificationCenter from './components/EnhancedNotificationCenter'
 import PaymentSuccess from './components/PaymentSuccess'
 import CashfreePayment from './components/CashfreePayment'
 import DisclaimerScreen from './components/DisclaimerScreen'
@@ -33,6 +33,7 @@ import ExchangeIntegration from './components/ExchangeIntegration'
 import { AccessibilityProvider } from './components/AccessibilityProvider'
 import { useAuth } from './contexts/AuthContext'
 import { useDocumentHead } from './hooks/useDocumentHead'
+import { useWebSocketSignalIntegration } from './lib/websocketSignalIntegration'
 import './App.css'
 
 // Protected Route Component
@@ -53,6 +54,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 // Main App Component
 function AppContent() {
   const { user, loading } = useAuth()
+  const { isConnected: wsConnected } = useWebSocketSignalIntegration()
   useDocumentHead()
 
   if (loading) {
@@ -181,7 +183,7 @@ function AppContent() {
         
         <Route path="/notifications" element={
           <ProtectedRoute>
-            <NotificationCenter />
+            <EnhancedNotificationCenter />
           </ProtectedRoute>
         } />
         

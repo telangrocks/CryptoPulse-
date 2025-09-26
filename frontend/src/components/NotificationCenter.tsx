@@ -1,9 +1,23 @@
 import React, { useState, useEffect } from 'react'
-import { Bell, X, CheckCircle, AlertTriangle, Info, XCircle } from 'lucide-react'
+import { Bell, X, CheckCircle, AlertTriangle, Info, XCircle, TrendingUp, Shield, Target, DollarSign } from 'lucide-react'
 import { Button } from './ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { Badge } from './ui/badge'
 import { ScrollArea } from './ui/scroll-area'
+import { useAppState } from '../contexts/AppStateContext'
+
+interface TradeDetails {
+  pair: string
+  entry: number
+  stopLoss: number
+  takeProfit: number
+  strategy: string
+  confidence: number
+  riskLevel: 'low' | 'medium' | 'high'
+  quantity: number
+  side: 'BUY' | 'SELL'
+  timestamp: Date
+}
 
 interface Notification {
   id: string
@@ -12,6 +26,7 @@ interface Notification {
   message: string
   timestamp: Date
   read: boolean
+  tradeDetails?: TradeDetails
   action?: {
     label: string
     onClick: () => void
@@ -58,25 +73,31 @@ const mockNotifications: Notification[] = [
 ]
 
 export default function NotificationCenter() {
-  const [notifications, setNotifications] = useState<Notification[]>(mockNotifications)
+  const { state, markNotificationRead, removeNotification } = useAppState()
   const [isOpen, setIsOpen] = useState(false)
+  const [selectedTradeDetails, setSelectedTradeDetails] = useState<TradeDetails | null>(null)
 
+  const notifications = state.notifications
   const unreadCount = notifications.filter(n => !n.read).length
 
   const markAsRead = (id: string) => {
-    setNotifications(prev => 
-      prev.map(n => n.id === id ? { ...n, read: true } : n)
-    )
+    markNotificationRead(id)
   }
 
   const markAllAsRead = () => {
-    setNotifications(prev => 
-      prev.map(n => ({ ...n, read: true }))
-    )
+    notifications.forEach(notification => {
+      if (!notification.read) {
+        markNotificationRead(notification.id)
+      }
+    })
   }
 
-  const removeNotification = (id: string) => {
-    setNotifications(prev => prev.filter(n => n.id !== id))
+  const handleRemoveNotification = (id: string) => {
+    removeNotification(id)
+  }
+
+  const handleViewTradeDetails = (tradeDetails: TradeDetails) => {
+    setSelectedTradeDetails(tradeDetails)
   }
 
   const getIcon = (type: Notification['type']) => {
@@ -116,6 +137,21 @@ export default function NotificationCenter() {
     if (minutes < 60) return `${minutes}m ago`
     if (hours < 24) return `${hours}h ago`
     return `${days}d ago`
+  }
+
+  const getRiskColor = (riskLevel: string) => {
+    switch (riskLevel) {
+      case 'low': return 'text-green-500'
+      case 'medium': return 'text-yellow-500'
+      case 'high': return 'text-red-500'
+      default: return 'text-gray-500'
+    }
+  }
+
+  const getConfidenceColor = (confidence: number) => {
+    if (confidence >= 80) return 'text-green-500'
+    if (confidence >= 60) return 'text-yellow-500'
+    return 'text-red-500'
   }
 
   return (

@@ -8,6 +8,19 @@ interface AppState {
   userPreferences: UserPreferences
 }
 
+interface TradeDetails {
+  pair: string
+  entry: number
+  stopLoss: number
+  takeProfit: number
+  strategy: string
+  confidence: number
+  riskLevel: 'low' | 'medium' | 'high'
+  quantity: number
+  side: 'BUY' | 'SELL'
+  timestamp: Date
+}
+
 interface Notification {
   id: string
   type: 'success' | 'error' | 'warning' | 'info'
@@ -15,6 +28,7 @@ interface Notification {
   message: string
   timestamp: Date
   read: boolean
+  tradeDetails?: TradeDetails
   action?: {
     label: string
     onClick: () => void
@@ -43,6 +57,7 @@ interface AppStateContextType {
   setOnline: (online: boolean) => void
   updateActivity: () => void
   addNotification: (notification: Omit<Notification, 'id' | 'timestamp'>) => void
+  addTradeSignalNotification: (tradeDetails: TradeDetails) => void
   removeNotification: (id: string) => void
   markNotificationRead: (id: string) => void
   clearAllNotifications: () => void
@@ -115,6 +130,25 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
       }, 5000)
     }
   }, [])
+
+  const addTradeSignalNotification = useCallback((tradeDetails: TradeDetails) => {
+    const notification: Omit<Notification, 'id' | 'timestamp'> = {
+      type: 'success',
+      title: `Trade Signal Detected - ${tradeDetails.pair}`,
+      message: `${tradeDetails.side} signal for ${tradeDetails.pair} at $${tradeDetails.entry.toFixed(2)}`,
+      read: false,
+      tradeDetails,
+      action: {
+        label: 'View Details',
+        onClick: () => {
+          // This will be handled by the notification component
+          console.log('View trade details:', tradeDetails)
+        }
+      }
+    }
+    
+    addNotification(notification)
+  }, [addNotification])
 
   const removeNotification = useCallback((id: string) => {
     setState(prev => ({
@@ -192,6 +226,7 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
     setOnline,
     updateActivity,
     addNotification,
+    addTradeSignalNotification,
     removeNotification,
     markNotificationRead,
     clearAllNotifications,
