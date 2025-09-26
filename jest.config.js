@@ -71,7 +71,7 @@ module.exports = {
   detectLeaks: true,
   
   // Module name mapping
-  moduleNameMapping: {
+  moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/backend/$1',
     '^@config/(.*)$': '<rootDir>/backend/config/$1',
     '^@database/(.*)$': '<rootDir>/backend/database/$1',
@@ -149,9 +149,5 @@ module.exports = {
   // Cache directory
   cacheDirectory: '<rootDir>/.jest-cache',
   
-  // Watch plugins
-  watchPlugins: [
-    'jest-watch-typeahead/filename',
-    'jest-watch-typeahead/testname'
-  ]
+  // Watch plugins (removed - not needed for CI/production)
 };
