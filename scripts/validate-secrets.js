@@ -24,6 +24,8 @@ const REQUIRED_SECRETS = {
     WAZIRX_SECRET_KEY: { minLength: 20, description: 'WazirX Secret Key' },
     COINDCX_API_KEY: { minLength: 20, description: 'CoinDCX API Key' },
     COINDCX_SECRET_KEY: { minLength: 20, description: 'CoinDCX Secret Key' },
+    DELTA_API_KEY: { minLength: 20, description: 'Delta Exchange API Key' },
+    DELTA_SECRET_KEY: { minLength: 20, description: 'Delta Exchange Secret Key' },
     
     // Security Keys
     JWT_SECRET: { minLength: 32, description: 'JWT Secret Key (32+ chars)' },
@@ -47,6 +49,8 @@ const REQUIRED_SECRETS = {
     // Exchange API Keys (can use test keys for staging)
     BINANCE_API_KEY: { minLength: 20, description: 'Binance API Key' },
     BINANCE_SECRET_KEY: { minLength: 20, description: 'Binance Secret Key' },
+    DELTA_API_KEY: { minLength: 20, description: 'Delta Exchange API Key' },
+    DELTA_SECRET_KEY: { minLength: 20, description: 'Delta Exchange Secret Key' },
     
     // Security Keys
     JWT_SECRET: { minLength: 32, description: 'JWT Secret Key (32+ chars)' },

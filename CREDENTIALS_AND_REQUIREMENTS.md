@@ -56,6 +56,10 @@ WAZIRX_SECRET_KEY=your_wazirx_secret_key
 COINDCX_API_KEY=your_coindcx_api_key
 COINDCX_SECRET_KEY=your_coindcx_secret_key
 
+# Delta Exchange Trading API (India approved)
+DELTA_API_KEY=your_delta_api_key
+DELTA_SECRET_KEY=your_delta_secret_key
+
 # ==============================================
 # PAYMENT INTEGRATION (Cashfree)
 # ==============================================
@@ -275,6 +279,7 @@ npm run security:validate
 - **Binance**: Trading API access
 - **WazirX**: Indian exchange integration
 - **CoinDCX**: Alternative Indian exchange
+- **Delta Exchange**: India approved derivatives exchange
 - **Credentials**: API_KEY, SECRET_KEY for each
 
 ### 4. **Monitoring Services**
@@ -287,7 +292,7 @@ npm run security:validate
 
 ## 📋 CREDENTIAL CHECKLIST
 
-### **Backend Environment Variables (27 required):**
+### **Backend Environment Variables (29 required):**
 - [ ] BACK4APP_APP_ID
 - [ ] BACK4APP_MASTER_KEY
 - [ ] BACK4APP_JAVASCRIPT_KEY
@@ -297,6 +302,8 @@ npm run security:validate
 - [ ] WAZIRX_SECRET_KEY
 - [ ] COINDCX_API_KEY
 - [ ] COINDCX_SECRET_KEY
+- [ ] DELTA_API_KEY
+- [ ] DELTA_SECRET_KEY
 - [ ] CASHFREE_APP_ID
 - [ ] CASHFREE_SECRET_KEY
 - [ ] JWT_SECRET
