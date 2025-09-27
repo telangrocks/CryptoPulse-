@@ -3,3 +3,6 @@ dist
 build
 coverage
 .env
+.env.local
+.env.production
+cloud/cashfree-credentials.js
