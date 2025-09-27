@@ -36,7 +36,7 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    logError('ErrorBoundary caught an error:', error, errorInfo)
+    logError('ErrorBoundary caught an error:', 'ErrorBoundary', { error: error.message, stack: error.stack, errorInfo })
     
     this.setState({
       error,
@@ -67,9 +67,9 @@ class ErrorBoundary extends Component<Props, State> {
       //   body: JSON.stringify(errorData)
       // })
       
-      logInfo('Error logged:', errorData)
+      logInfo('Error logged:', 'ErrorBoundary', errorData)
     } catch (loggingError) {
-      logError('Failed to log error:', loggingError)
+      logError('Failed to log error:', 'ErrorBoundary', loggingError)
     }
   }
 

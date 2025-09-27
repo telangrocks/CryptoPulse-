@@ -15,11 +15,11 @@ export default function DisclaimerScreen() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    logInfo('🔍 DisclaimerScreen useEffect - user:', user)
+    logInfo('🔍 DisclaimerScreen useEffect - user:', 'DisclaimerScreen', user)
     if (user) {
       logInfo('🔄 Checking disclaimer status for user:', user.email)
       checkDisclaimerStatus().then(hasAccepted => {
-        logInfo('📋 Disclaimer status:', hasAccepted)
+        logInfo('📋 Disclaimer status:', 'DisclaimerScreen', hasAccepted)
         if (hasAccepted) {
           logInfo('✅ Disclaimer already accepted, navigating to dashboard...')
           navigate('/dashboard')
@@ -32,7 +32,7 @@ export default function DisclaimerScreen() {
 
   const handleAccept = async () => {
     if (!accepted || !user) {
-      logInfo('❌ Cannot accept disclaimer:', { accepted, user: !!user })
+      logInfo('❌ Cannot accept disclaimer:', 'DisclaimerScreen', { accepted, user: !!user })
       return
     }
 
@@ -43,7 +43,7 @@ export default function DisclaimerScreen() {
       logInfo('✅ Disclaimer accepted, navigating to dashboard...')
       navigate('/dashboard')
     } catch (error) {
-      logError('❌ Failed to accept disclaimer:', error)
+      logError('❌ Failed to accept disclaimer:', 'DisclaimerScreen', error)
       // Still navigate to dashboard even if disclaimer acceptance fails
       logInfo('⚠️ Navigating to dashboard despite disclaimer error...')
       navigate('/dashboard')

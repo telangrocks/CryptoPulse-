@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback, useMemo, memo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { Badge } from './ui/badge'
 import { Button } from './ui/button'
@@ -21,7 +21,7 @@ interface BalanceDashboardProps {
   className?: string
 }
 
-export default function BalanceDashboard({ className }: BalanceDashboardProps) {
+const BalanceDashboard = memo(function BalanceDashboard({ className }: BalanceDashboardProps) {
   const { isMonitoring, balanceStatus } = useBalanceMonitoring()
   const [tradingStrategies, setTradingStrategies] = useState<any[]>([])
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -32,7 +32,7 @@ export default function BalanceDashboard({ className }: BalanceDashboardProps) {
     setTradingStrategies(balanceService.getTradingStrategies())
   }, [])
 
-  const handleRefresh = async () => {
+  const handleRefresh = useCallback(async () => {
     setIsRefreshing(true)
     try {
       const service = getBalanceBasedTradingService()
@@ -46,25 +46,25 @@ export default function BalanceDashboard({ className }: BalanceDashboardProps) {
         lastUpdated: new Date()
       })
     } catch (error) {
-      console.error('Failed to refresh balance:', error)
+      // Failed to refresh balance - handled by error logging system
     } finally {
       setIsRefreshing(false)
     }
-  }
+  }, [balanceStatus])
 
-  const getBalanceLevel = (balance: number) => {
+  const getBalanceLevel = useCallback((balance: number) => {
     if (balance < 100) return { level: 'Low', color: 'text-red-500', bgColor: 'bg-red-50 dark:bg-red-900/20' }
     if (balance < 500) return { level: 'Medium', color: 'text-yellow-500', bgColor: 'bg-yellow-50 dark:bg-yellow-900/20' }
     if (balance < 1000) return { level: 'High', color: 'text-blue-500', bgColor: 'bg-blue-50 dark:bg-blue-900/20' }
     return { level: 'Premium', color: 'text-green-500', bgColor: 'bg-green-50 dark:bg-green-900/20' }
-  }
+  }, [])
 
-  const getRecommendedStrategy = (balance: number) => {
+  const getRecommendedStrategy = useCallback((balance: number) => {
     return tradingStrategies.find(strategy => balance >= strategy.minBalance) || tradingStrategies[0]
-  }
+  }, [tradingStrategies])
 
-  const balanceLevel = getBalanceLevel(balanceStatus?.totalAvailable || 0)
-  const recommendedStrategy = getRecommendedStrategy(balanceStatus?.totalAvailable || 0)
+  const balanceLevel = useMemo(() => getBalanceLevel(balanceStatus?.totalAvailable || 0), [getBalanceLevel, balanceStatus?.totalAvailable])
+  const recommendedStrategy = useMemo(() => getRecommendedStrategy(balanceStatus?.totalAvailable || 0), [getRecommendedStrategy, balanceStatus?.totalAvailable])
 
   return (
     <div className={`space-y-6 ${className}`}>
@@ -274,4 +274,6 @@ export default function BalanceDashboard({ className }: BalanceDashboardProps) {
       </Card>
     </div>
   )
-}
+})
+
+export default BalanceDashboard

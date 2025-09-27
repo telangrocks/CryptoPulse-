@@ -299,8 +299,8 @@ export default function EndToEndAutomation() {
       // Validate API key format
       const validation = {
         isValid: true,
-        errors: [],
-        warnings: []
+        errors: [] as string[],
+        warnings: [] as string[]
       };
       
       if (!apiKeys.marketDataKey || !apiKeys.tradeExecutionKey) {

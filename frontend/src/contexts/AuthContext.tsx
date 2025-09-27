@@ -22,8 +22,8 @@ interface AuthContextType {
   logout: () => void
   acceptDisclaimer: () => Promise<void>
   checkDisclaimerStatus: () => Promise<boolean>
-  requestPasswordReset: (email: string) => Promise<void>
-  resetPassword: (token: string, newPassword: string) => Promise<void>
+  requestPasswordReset: (email: string) => Promise<{ message: string; resetToken?: string }>
+  resetPassword: (token: string, newPassword: string) => Promise<{ message: string }>
   validateResetToken: (token: string) => Promise<boolean>
 }
 

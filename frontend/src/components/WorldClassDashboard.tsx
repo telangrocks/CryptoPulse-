@@ -84,7 +84,7 @@ export default function WorldClassDashboard() {
           setAiInsights(insightsData.insights || [])
         }
       } catch (error) {
-        logError('Failed to fetch dashboard data:', error)
+        logError('Failed to fetch dashboard data:', 'WorldClassDashboard', error)
       } finally {
         setIsLoading(false)
       }

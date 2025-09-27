@@ -64,7 +64,7 @@ export default function AIAutomation() {
       setSettings(data.settings || settings)
       setIsRunning(data.settings?.enabled || false)
     } catch (error) {
-      logError('Error fetching AI settings:', error)
+      logError('Error fetching AI settings:', 'AIAutomation', error)
     } finally {
       setIsLoading(false)
     }
@@ -76,7 +76,7 @@ export default function AIAutomation() {
       
       setPerformance(data.performance || performance)
     } catch (error) {
-      logError('Error fetching AI performance:', error)
+      logError('Error fetching AI performance:', 'AIAutomation', error)
     }
   }
 
@@ -87,7 +87,7 @@ export default function AIAutomation() {
       
       setIsRunning(settings.enabled)
     } catch (error) {
-      logError('Error saving AI settings:', error)
+      logError('Error saving AI settings:', 'AIAutomation', error)
     } finally {
       setIsSaving(false)
     }
@@ -110,7 +110,7 @@ export default function AIAutomation() {
       
       setIsRunning(newSettings.enabled)
     } catch (error) {
-      logError('Error toggling AI:', error)
+      logError('Error toggling AI:', 'AIAutomation', error)
     }
   }
 

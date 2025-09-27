@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useCallback, memo } from 'react'
 import {
   LineChart,
   Line,
@@ -56,7 +56,7 @@ interface AdvancedChartsProps {
 
 const COLORS = ['#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
 
-export default function AdvancedCharts({ data, symbol, timeframe, onTimeframeChange }: AdvancedChartsProps) {
+const AdvancedCharts = memo(function AdvancedCharts({ data, symbol, timeframe, onTimeframeChange }: AdvancedChartsProps) {
   const [chartType, setChartType] = useState<'line' | 'area' | 'candlestick' | 'volume'>('line')
   const [indicators, setIndicators] = useState<string[]>(['sma', 'ema'])
   const [showVolume, setShowVolume] = useState(true)
@@ -76,17 +76,17 @@ export default function AdvancedCharts({ data, symbol, timeframe, onTimeframeCha
     }))
   }, [data])
 
-  // Calculate Simple Moving Average
-  function calculateSMA(data: ChartData[], period: number, timestamp: number): number {
+  // Calculate Simple Moving Average - memoized
+  const calculateSMA = useCallback((data: ChartData[], period: number, timestamp: number): number => {
     const index = data.findIndex(item => item.timestamp === timestamp)
     if (index < period - 1) return 0
     
     const slice = data.slice(index - period + 1, index + 1)
     return slice.reduce((sum, item) => sum + item.close, 0) / period
-  }
+  }, [])
 
-  // Calculate Exponential Moving Average
-  function calculateEMA(data: ChartData[], period: number, timestamp: number): number {
+  // Calculate Exponential Moving Average - memoized
+  const calculateEMA = useCallback((data: ChartData[], period: number, timestamp: number): number => {
     const index = data.findIndex(item => item.timestamp === timestamp)
     if (index < period - 1) return 0
     
@@ -98,10 +98,10 @@ export default function AdvancedCharts({ data, symbol, timeframe, onTimeframeCha
     }
     
     return ema
-  }
+  }, [])
 
-  // Calculate RSI
-  function calculateRSI(data: ChartData[], timestamp: number): number {
+  // Calculate RSI - memoized
+  const calculateRSI = useCallback((data: ChartData[], timestamp: number): number => {
     const index = data.findIndex(item => item.timestamp === timestamp)
     if (index < 14) return 50
     
@@ -119,17 +119,17 @@ export default function AdvancedCharts({ data, symbol, timeframe, onTimeframeCha
     const avgLoss = losses / 14
     const rs = avgGain / avgLoss
     return 100 - (100 / (1 + rs))
-  }
+  }, [])
 
-  // Calculate MACD
-  function calculateMACD(data: ChartData[], timestamp: number): number {
+  // Calculate MACD - memoized
+  const calculateMACD = useCallback((data: ChartData[], timestamp: number): number => {
     const ema12 = calculateEMA(data, 12, timestamp)
     const ema26 = calculateEMA(data, 26, timestamp)
     return ema12 - ema26
-  }
+  }, [calculateEMA])
 
-  // Calculate Bollinger Bands
-  function calculateBollingerBands(data: ChartData[], period: number, stdDev: number, timestamp: number) {
+  // Calculate Bollinger Bands - memoized
+  const calculateBollingerBands = useCallback((data: ChartData[], period: number, stdDev: number, timestamp: number) => {
     const sma = calculateSMA(data, period, timestamp)
     const index = data.findIndex(item => item.timestamp === timestamp)
     
@@ -144,10 +144,10 @@ export default function AdvancedCharts({ data, symbol, timeframe, onTimeframeCha
       lower: sma - (standardDeviation * stdDev),
       middle: sma
     }
-  }
+  }, [calculateSMA])
 
-  // Custom tooltip
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  // Custom tooltip - memoized
+  const CustomTooltip = useCallback(({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-slate-800 border border-slate-700 rounded-lg p-3 shadow-lg">
@@ -161,10 +161,10 @@ export default function AdvancedCharts({ data, symbol, timeframe, onTimeframeCha
       )
     }
     return null
-  }
+  }, [])
 
-  // Render chart based on type
-  const renderChart = () => {
+  // Render chart based on type - memoized
+  const renderChart = useCallback((): React.ReactElement => {
     switch (chartType) {
       case 'line':
         return (
@@ -253,9 +253,23 @@ export default function AdvancedCharts({ data, symbol, timeframe, onTimeframeCha
         )
       
       default:
-        return null
+        return (
+          <LineChart data={processedData}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+            <XAxis dataKey="time" stroke="#9ca3af" />
+            <YAxis stroke="#9ca3af" />
+            <Tooltip content={<CustomTooltip />} />
+            <Line 
+              type="monotone" 
+              dataKey="close" 
+              stroke="#8b5cf6" 
+              strokeWidth={2}
+              dot={false}
+            />
+          </LineChart>
+        )
     }
-  }
+  }, [chartType, processedData, indicators, showVolume, CustomTooltip])
 
   return (
     <Card className="w-full">
@@ -338,4 +352,6 @@ export default function AdvancedCharts({ data, symbol, timeframe, onTimeframeCha
       </CardContent>
     </Card>
   )
-}
+})
+
+export default AdvancedCharts

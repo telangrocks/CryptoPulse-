@@ -70,9 +70,9 @@ class BrowserCompatibilityChecker {
 
   private checkAsyncAwaitSupport(): boolean {
     try {
-      // Test async/await support
-      eval('(async () => {})()');
-      return true;
+      // Test async/await support without eval
+      const testAsync = async () => {};
+      return typeof testAsync === 'function';
     } catch {
       return false;
     }
@@ -110,12 +110,7 @@ class BrowserCompatibilityChecker {
       this.showCompatibilityWarning(unsupportedFeatures);
     }
 
-    // Log browser info for debugging
-    console.log('🌐 Browser Compatibility Check:', {
-      browser: `${this.browserInfo.name} ${this.browserInfo.version}`,
-      supported: this.browserInfo.supported,
-      unsupportedFeatures
-    });
+    // Browser compatibility check completed
   }
 
   private showCompatibilityWarning(unsupportedFeatures: string[]): void {

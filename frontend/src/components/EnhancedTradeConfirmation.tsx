@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useCallback, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
 import { Alert, AlertDescription } from './ui/alert'
@@ -14,30 +14,7 @@ import {
   TrendingDown
 } from 'lucide-react'
 
-interface TradeSignal {
-  pair: string
-  action: 'BUY' | 'SELL'
-  entry: number
-  stopLoss: number
-  takeProfit: number
-  confidence: number
-  timestamp: string
-}
-
-interface UserApiKeys {
-  marketDataKey: string
-  marketDataSecret: string
-  tradeExecutionKey: string
-  tradeExecutionSecret: string
-  exchange: string
-}
-
-interface EnhancedTradeConfirmationProps {
-  signal: TradeSignal
-  userApiKeys: UserApiKeys
-  onConfirm: (confirmed: boolean, tradeData?: any) => void
-  onClose: () => void
-}
+import type { TradeSignal, UserApiKeys, EnhancedTradeConfirmationProps } from '../types';
 
 export default function EnhancedTradeConfirmation({
   signal,

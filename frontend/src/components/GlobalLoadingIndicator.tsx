@@ -15,13 +15,15 @@ export default function GlobalLoadingIndicator() {
         }} />
       </div>
       
-      <style jsx>{`
-        @keyframes loading-bar {
-          0% { transform: translateX(-100%); }
-          50% { transform: translateX(0%); }
-          100% { transform: translateX(100%); }
-        }
-      `}</style>
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          @keyframes loading-bar {
+            0% { transform: translateX(-100%); }
+            50% { transform: translateX(0%); }
+            100% { transform: translateX(100%); }
+          }
+        `
+      }} />
     </div>
   )
 }

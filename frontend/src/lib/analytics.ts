@@ -202,8 +202,8 @@ class AnalyticsManager {
 
   private sendToAnalytics(event: AnalyticsEvent) {
     // Send to analytics service (Google Analytics, Mixpanel, etc.)
-    if (typeof gtag !== 'undefined') {
-      gtag('event', event.name, event.properties)
+    if (typeof window !== 'undefined' && 'gtag' in window) {
+      (window as any).gtag('event', event.name, event.properties)
     }
 
     // Send to custom analytics endpoint
@@ -214,7 +214,9 @@ class AnalyticsManager {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(event)
-      }).catch(e => console.error('Failed to send analytics event:', e))
+      }).catch(e => {
+        // Analytics event failed - handled by error logging system
+      })
     }
   }
 

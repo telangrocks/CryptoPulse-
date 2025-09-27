@@ -63,7 +63,7 @@ export default function AlertsSettings() {
       const data = await callBack4AppFunction('getAlertSettings')
       setSettings(data.settings || settings)
     } catch (error) {
-      logError('Error fetching alert settings:', error)
+      logError('Error fetching alert settings:', 'AlertsSettings', error)
     } finally {
       setIsLoading(false)
     }
@@ -76,7 +76,7 @@ export default function AlertsSettings() {
       setSaveSuccess(true)
       setTimeout(() => setSaveSuccess(false), 3000)
     } catch (error) {
-      logError('Error saving alert settings:', error)
+      logError('Error saving alert settings:', 'AlertsSettings', error)
     } finally {
       setIsSaving(false)
     }

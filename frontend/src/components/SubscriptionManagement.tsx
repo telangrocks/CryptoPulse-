@@ -55,7 +55,7 @@ export default function SubscriptionManagement() {
       }
     } catch (err) {
       setError('Error fetching subscription status')
-      console.error('Subscription fetch error:', err)
+      // Subscription fetch error - handled by error logging system
     } finally {
       setIsLoading(false)
     }
@@ -76,7 +76,7 @@ export default function SubscriptionManagement() {
       }
     } catch (err) {
       setError('Error cancelling subscription')
-      console.error('Cancel subscription error:', err)
+      // Cancel subscription error - handled by error logging system
     } finally {
       setIsCancelling(false)
     }

@@ -74,7 +74,7 @@ export default function Backtesting() {
         setUserApiKeys(apiKeysData.keys)
       }
     } catch (error) {
-      logInfo('Failed to load user configuration:', error)
+      logInfo('Failed to load user configuration:', 'Backtesting', error)
     }
   }
 
@@ -155,7 +155,7 @@ export default function Backtesting() {
         setBacktestProgress('Backtesting failed. Please try again.')
       }
     } catch (error) {
-      logError('Error running backtesting:', error)
+      logError('Error running backtesting:', 'Backtesting', error)
       setBacktestProgress('Error occurred during backtesting.')
     } finally {
       setIsLoading(false)
@@ -205,7 +205,7 @@ export default function Backtesting() {
           }
         }
       } catch (error) {
-        logError('Error executing trade:', error)
+        logError('Error executing trade:', 'Backtesting', error)
         navigate('/trade-execution', { 
           state: { 
             tradeExecuted: false, 

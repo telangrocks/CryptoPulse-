@@ -4,9 +4,8 @@
 // Import configuration from centralized config
 import { Back4AppConfig } from '../back4app/config';
 import { addCSRFTokenToHeaders } from './csrfProtection';
-
-
-import { logError, logWarn, logInfo, logDebug } from '../lib/logger'
+import { logError, logWarn, logInfo, logDebug } from './logger';
+import type { User, ApiResponse, ValidationResult } from '../types';
 // HTTP request helper
 async function makeRequest(url: string, options: RequestInit): Promise<any> {
   try {
@@ -45,9 +44,9 @@ async function makeRequest(url: string, options: RequestInit): Promise<any> {
 
 // Parse User operations using HTTP
 export class ParseUser {
-  private static currentUser: any = null;
+  private static currentUser: User | null = null;
 
-  static async logIn(username: string, password: string) {
+  static async logIn(username: string, password: string): Promise<User> {
     try {
       const response = await makeRequest(`${Back4AppConfig.serverURL}/login`, {
         method: 'POST',
@@ -64,15 +63,13 @@ export class ParseUser {
         username: response.username,
         email: response.email,
         sessionToken: response.sessionToken,
-        createdAt: response.createdAt,
-        updatedAt: response.updatedAt
       };
 
       // Store in localStorage
       localStorage.setItem('parse_user', JSON.stringify(this.currentUser));
       localStorage.setItem('parse_session', response.sessionToken);
 
-      return this.currentUser;
+      return this.currentUser!;
     } catch (error) {
       logError('Login error:', 'Auth', error);
       throw error;
@@ -99,15 +96,13 @@ export class ParseUser {
         username: response.username,
         email: response.email,
         sessionToken: response.sessionToken,
-        createdAt: response.createdAt,
-        updatedAt: response.updatedAt
       };
 
       // Store in localStorage
       localStorage.setItem('parse_user', JSON.stringify(this.currentUser));
       localStorage.setItem('parse_session', response.sessionToken);
 
-      return this.currentUser;
+      return this.currentUser!;
     } catch (error) {
       logError('Signup error:', 'Auth', error);
       throw error;
@@ -140,7 +135,7 @@ export class ParseUser {
 
   static current() {
     if (this.currentUser) {
-      return this.currentUser;
+      return this.currentUser!;
     }
 
     // Try to restore from localStorage
@@ -148,7 +143,7 @@ export class ParseUser {
     if (storedUser) {
       try {
         this.currentUser = JSON.parse(storedUser);
-        return this.currentUser;
+        return this.currentUser!;
       } catch (error) {
         logError('Failed to parse stored user:', 'Auth', error);
         localStorage.removeItem('parse_user');

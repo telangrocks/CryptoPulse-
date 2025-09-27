@@ -1,6 +1,6 @@
 import { logError, logWarn, logInfo, logDebug } from '../lib/logger'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useMemo, memo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from './ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
@@ -57,7 +57,7 @@ interface ChartData {
   cumulativeReturn: number
 }
 
-export default function PerformanceAnalytics() {
+const PerformanceAnalytics = memo(function PerformanceAnalytics() {
   const [metrics, setMetrics] = useState<PerformanceMetrics>({
     totalReturn: 0,
     winRate: 0,
@@ -78,18 +78,18 @@ export default function PerformanceAnalytics() {
   const [showDetails, setShowDetails] = useState(false)
   const navigate = useNavigate()
 
-  const periods = [
+  const periods = useMemo(() => [
     { value: '7d', label: '7 Days' },
     { value: '30d', label: '30 Days' },
     { value: '90d', label: '90 Days' },
     { value: '1y', label: '1 Year' }
-  ]
+  ], [])
 
   useEffect(() => {
     fetchPerformanceData()
   }, [selectedPeriod])
 
-  const fetchPerformanceData = async () => {
+  const fetchPerformanceData = useCallback(async () => {
     try {
       setIsRefreshing(true)
       const [metricsData, tradesData, chartDataResponse] = await Promise.all([
@@ -110,27 +110,27 @@ export default function PerformanceAnalytics() {
         setChartData(chartDataResponse.data || [])
       }
     } catch (error) {
-      logError('Failed to fetch performance data:', error)
+      logError('Failed to fetch performance data:', 'PerformanceAnalytics', error)
     } finally {
       setIsLoading(false)
       setIsRefreshing(false)
     }
-  }
+  }, [selectedPeriod])
 
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = useCallback((amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     }).format(amount)
-  }
+  }, [])
 
-  const formatPercentage = (value: number) => {
+  const formatPercentage = useCallback((value: number) => {
     return `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`
-  }
+  }, [])
 
-  const getMetricColor = (value: number, type: 'return' | 'ratio' | 'drawdown') => {
+  const getMetricColor = useCallback((value: number, type: 'return' | 'ratio' | 'drawdown') => {
     if (type === 'return') {
       return value >= 0 ? 'text-green-400' : 'text-red-400'
     } else if (type === 'ratio') {
@@ -139,9 +139,9 @@ export default function PerformanceAnalytics() {
       return value <= 5 ? 'text-green-400' : value <= 15 ? 'text-yellow-400' : 'text-red-400'
     }
     return 'text-white'
-  }
+  }, [])
 
-  const exportData = () => {
+  const exportData = useCallback(() => {
     const data = {
       metrics,
       tradeHistory,
@@ -159,7 +159,7 @@ export default function PerformanceAnalytics() {
     a.click()
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
-  }
+  }, [metrics, tradeHistory, chartData, selectedPeriod])
 
   if (isLoading) {
     return (
@@ -440,4 +440,6 @@ export default function PerformanceAnalytics() {
       </div>
     </div>
   )
-}
+})
+
+export default PerformanceAnalytics

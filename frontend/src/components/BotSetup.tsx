@@ -202,10 +202,10 @@ export default function BotSetup() {
       
       if (analysisData.success && analysisData.analysis) {
         const updatedPairs = pairs.map(pair => {
-          const analysis = analysisData.analysis.find(a => a.symbol === pair.symbol)
+          const analysis = analysisData.analysis.find((a: any) => a.symbol === pair.symbol)
           if (analysis) {
             // Determine category based on analysis
-            const category = analysis.score > 70 && analysis.volatility < 2 ? 'scalping' : 'day-trading'
+            const category = (analysis.score > 70 && analysis.volatility < 2 ? 'scalping' : 'day-trading') as 'scalping' | 'day-trading'
             return {
               ...pair,
               category,
@@ -226,7 +226,7 @@ export default function BotSetup() {
         setSelectedPairs(updatedPairs)
       }
     } catch (error) {
-      logInfo('Pair analysis failed, using default recommendations:', error)
+      logInfo('Pair analysis failed, using default recommendations:', 'BotSetup', error)
     }
   }
 
@@ -254,11 +254,18 @@ export default function BotSetup() {
         }
       }
     } catch (error) {
-      logInfo('Strategy recommendations failed, using mock data:', error)
+      logInfo('Strategy recommendations failed, using mock data:', 'BotSetup', error)
       // Use mock data as fallback
       try {
         // const mockData = await getMockData('getStrategyRecommendations') // Temporarily disabled
-        const mockData = { success: true, recommendations: [] } // Mock fallback
+        const mockData = { 
+          success: true, 
+          recommendations: {
+            pairCounts: { scalping: 0, dayTrading: 0 },
+            scalping: { strategy_type: 'scalping', risk_level: 'medium' },
+            dayTrading: { strategy_type: 'day_trading', risk_level: 'low' }
+          }
+        } // Mock fallback
         if (mockData.success && mockData.recommendations) {
           setStrategyRecommendations(mockData.recommendations)
           
@@ -266,18 +273,18 @@ export default function BotSetup() {
           const dayTradingCount = mockData.recommendations.pairCounts?.dayTrading || 0
           
           if (scalpingCount > dayTradingCount) {
-            setRecommendedStrategy(mockData.recommendations.scalping)
+            setRecommendedStrategy('scalping')
             setConfig(prev => ({ ...prev, strategy_type: 'scalping' }))
           } else if (dayTradingCount > scalpingCount) {
-            setRecommendedStrategy(mockData.recommendations.dayTrading)
+            setRecommendedStrategy('day-trading')
             setConfig(prev => ({ ...prev, strategy_type: 'day_trading' }))
           } else {
-            setRecommendedStrategy(mockData.recommendations.scalping)
+            setRecommendedStrategy('scalping')
             setConfig(prev => ({ ...prev, strategy_type: 'scalping' }))
           }
         }
       } catch (mockError) {
-        logInfo('Mock strategy recommendations also failed:', mockError)
+        logInfo('Mock strategy recommendations also failed:', 'BotSetup', mockError)
       }
     }
   }
@@ -314,7 +321,7 @@ export default function BotSetup() {
             await callBack4AppFunction('runBacktesting', {})
             navigate('/backtesting')
           } catch (error) {
-            logInfo('Auto-backtesting failed, navigating anyway:', error)
+            logInfo('Auto-backtesting failed, navigating anyway:', 'BotSetup', error)
             navigate('/backtesting')
           }
         }, 1500)

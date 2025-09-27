@@ -2,14 +2,17 @@ import React from 'react'
 import { Button } from './ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { AlertTriangle, RefreshCw, Home, Bug } from 'lucide-react'
+import { FallbackProps } from 'react-error-boundary'
 
 interface ErrorFallbackProps {
   error: Error
-  resetError: () => void
+  resetErrorBoundary: () => void
   errorInfo?: React.ErrorInfo
+  retryCount?: number
+  maxRetries?: number
 }
 
-export default function ErrorFallback({ error, resetError, errorInfo }: ErrorFallbackProps) {
+export default function ErrorFallback({ error, resetErrorBoundary, errorInfo, retryCount = 0, maxRetries = 3 }: ErrorFallbackProps) {
   const handleReportError = () => {
     const errorReport = {
       message: error.message,
@@ -21,7 +24,7 @@ export default function ErrorFallback({ error, resetError, errorInfo }: ErrorFal
     }
     
     // In production, send to error reporting service
-    console.error('Error Report:', errorReport)
+    // Error report generated - handled by error reporting system
     
     // For now, just show a toast
     alert('Error reported! Thank you for helping us improve.')
@@ -40,6 +43,11 @@ export default function ErrorFallback({ error, resetError, errorInfo }: ErrorFal
           <p className="text-gray-600 dark:text-gray-400 mt-2">
             We're sorry for the inconvenience. Our team has been notified and is working to fix this issue.
           </p>
+          {retryCount > 0 && (
+            <p className="text-sm text-yellow-600 dark:text-yellow-400 mt-2">
+              Retry attempt: {retryCount}/{maxRetries}
+            </p>
+          )}
         </CardHeader>
         
         <CardContent className="space-y-6">
@@ -54,12 +62,13 @@ export default function ErrorFallback({ error, resetError, errorInfo }: ErrorFal
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-3">
             <Button 
-              onClick={resetError}
+              onClick={resetErrorBoundary}
               className="flex-1"
               variant="default"
+              disabled={retryCount >= maxRetries}
             >
               <RefreshCw className="w-4 h-4 mr-2" />
-              Try Again
+              {retryCount >= maxRetries ? 'Max Retries Reached' : 'Try Again'}
             </Button>
             
             <Button 

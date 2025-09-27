@@ -63,7 +63,7 @@ export const getCSRFToken = (): string | null => {
     
     return csrfToken.token;
   } catch (error) {
-    logError('Failed to get CSRF token:', error);
+    logError('Failed to get CSRF token:', 'CSRFProtection', error);
     return null;
   }
 };
@@ -146,7 +146,7 @@ export const needsCSRFTokenRefresh = (): boolean => {
     // Refresh if less than 5 minutes left
     return timeUntilExpiry < 5 * 60 * 1000;
   } catch (error) {
-    logError('Failed to check CSRF token refresh:', error);
+    logError('Failed to check CSRF token refresh:', 'CSRFProtection', error);
     return true;
   }
 };

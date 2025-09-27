@@ -1,4 +1,7 @@
 
+import { logError, logWarn, logInfo, logDebug } from '../lib/logger'
+import { withRetry, retryConfigs } from '../lib/retryUtils'
+
 // Validate required environment variables
 const requiredEnvVars = {
   VITE_BACK4APP_APP_ID: import.meta.env.VITE_BACK4APP_APP_ID,
@@ -23,7 +26,7 @@ export const Back4AppConfig = {
 
 // Log warning if using demo values
 if (missingVars.length > 0) {
-  console.warn(`Using demo values for missing environment variables: ${missingVars.join(', ')}`);
+  // Using demo values for missing environment variables - this should be configured in production
 }
 
 export const CashfreeConfig = {
@@ -34,7 +37,9 @@ export const CashfreeConfig = {
 
 export async function callBack4AppFunction(functionName: string, params: Record<string, unknown> = {}, sessionToken?: string) {
   try {
-    const headers: Record<string, string> = {
+    return await withRetry(async () => {
+      try {
+        const headers: Record<string, string> = {
       'X-Parse-Application-Id': Back4AppConfig.appId,
       'X-Parse-REST-API-Key': Back4AppConfig.clientKey,
       'Content-Type': 'application/json'
@@ -60,19 +65,22 @@ export async function callBack4AppFunction(functionName: string, params: Record<
       body: JSON.stringify(params)
     });
     
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(`HTTP ${response.status}: ${errorData.error || response.statusText}`);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`HTTP ${response.status}: ${errorData.error || response.statusText}`);
+      }
+      
+      const data = await response.json();
+      return data.result || data;
+    } catch (error) {
+      // Log error using production logger
+      logError(`Back4App function ${functionName} error`, 'API', error);
+      throw error; // Re-throw to let retry mechanism handle it
     }
-    
-    const data = await response.json();
-    return data.result || data;
+  }, retryConfigs.apiCall);
   } catch (error) {
-    // Log error using production logger
-    const { logError } = await import('../lib/logger');
-    logError(`Back4App function ${functionName} error`, 'API', error);
-    
-    // Return fallback data for critical functions
+    // If all retries fail, return fallback data
+    logWarn(`All retry attempts failed for ${functionName}, using fallback data`, 'API');
     return getFallbackData(functionName, params);
   }
 }

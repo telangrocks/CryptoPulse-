@@ -345,7 +345,7 @@ export default function EnhancedNotificationCenter() {
                   className="flex-1" 
                   onClick={() => {
                     // Handle trade execution
-                    console.log('Execute trade:', selectedTradeDetails)
+                    // Execute trade action - handled by notification system
                     setSelectedTradeDetails(null)
                   }}
                 >

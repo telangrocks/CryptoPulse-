@@ -51,7 +51,7 @@ export function useAIAssistant() {
       const response = await callBack4AppFunction('getAISuggestions', { category })
       return response.suggestions || []
     } catch (err) {
-      logError('Failed to get suggestions:', err)
+      logError('Failed to get suggestions:', 'useAIAssistant', err)
       return []
     }
   }, [])
@@ -64,7 +64,7 @@ export function useAIAssistant() {
         recommendations: response.recommendations || []
       }
     } catch (err) {
-      logError('Failed to get user recommendations:', err)
+      logError('Failed to get user recommendations:', 'useAIAssistant', err)
       return {
         success: false,
         recommendations: []
@@ -77,7 +77,7 @@ export function useAIAssistant() {
       const response = await callBack4AppFunction('getPlatformStatus')
       return response
     } catch (err) {
-      logError('Failed to get platform status:', err)
+      logError('Failed to get platform status:', 'useAIAssistant', err)
       return {
         success: false,
         status: 'offline'

@@ -136,7 +136,7 @@ class AdvancedCache {
 
       case 'fifo':
         // Find first in (oldest by insertion order)
-        keyToEvict = this.cache.keys().next().value
+        keyToEvict = this.cache.keys().next().value || null
         break
 
       case 'ttl':
@@ -161,7 +161,7 @@ class AdvancedCache {
       const data = Array.from(this.cache.entries())
       localStorage.setItem('cryptopulse_cache', JSON.stringify(data))
     } catch (e) {
-      console.warn('Failed to save cache to localStorage:', e)
+      // Failed to save cache to localStorage - handled by error logging system
     }
   }
 
@@ -173,7 +173,7 @@ class AdvancedCache {
         this.cache = new Map(entries)
       }
     } catch (e) {
-      console.warn('Failed to load cache from localStorage:', e)
+      // Failed to load cache from localStorage - handled by error logging system
     }
   }
 

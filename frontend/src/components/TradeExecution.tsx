@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { withErrorBoundary } from './EnhancedErrorBoundary'
 import { useNavigate } from 'react-router-dom'
 import { Button } from './ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
@@ -24,7 +25,7 @@ interface TradeRecord {
   timestamp: string
 }
 
-export default function TradeExecution() {
+function TradeExecution() {
   const [tradeHistory, setTradeHistory] = useState<TradeRecord[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [currentTrade, setCurrentTrade] = useState<TradeRecord | null>(null)
@@ -121,7 +122,7 @@ export default function TradeExecution() {
         });
         
         if (!validation.isValid) {
-          logWarn('Invalid trade data detected:', validation.errors);
+          logWarn('Invalid trade data detected:', 'TradeExecution', validation.errors);
         }
         
         return trade;
@@ -132,7 +133,7 @@ export default function TradeExecution() {
         setCurrentTrade(validatedTrades[0])
       }
     } catch (error) {
-      logError('Error fetching trade history:', error)
+      logError('Error fetching trade history:', 'TradeExecution', error)
     } finally {
       setIsLoading(false)
     }
@@ -224,10 +225,10 @@ export default function TradeExecution() {
         })
 
         // Place stop loss order
-        const stopLossOrder: OrderRequest = {
+        const stopLossOrder = {
           symbol: tradeData.pair.replace('/', ''),
-          side: tradeData.action === 'BUY' ? 'SELL' : 'BUY',
-          type: 'STOP_LOSS',
+          side: (tradeData.action === 'BUY' ? 'SELL' : 'BUY') as 'BUY' | 'SELL',
+          type: 'STOP_LOSS' as 'MARKET' | 'LIMIT' | 'STOP_LOSS' | 'TAKE_PROFIT',
           quantity: orderResponse.quantity,
           price: tradeData.stopLoss,
           stopPrice: tradeData.stopLoss
@@ -529,3 +530,8 @@ export default function TradeExecution() {
     </div>
   )
 }
+
+export default withErrorBoundary(TradeExecution, {
+  resetKeys: ['exchangeConnected', 'currentTrade'],
+  resetOnPropsChange: true
+})

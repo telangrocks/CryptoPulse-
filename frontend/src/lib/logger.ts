@@ -105,8 +105,40 @@ class Logger {
 // Create singleton instance
 export const logger = new Logger();
 
+// Helper function to safely convert unknown to string
+function safeStringify(value: unknown): string {
+  if (value === null) return 'null';
+  if (value === undefined) return 'undefined';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (value instanceof Error) return value.message;
+  if (typeof value === 'object') {
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return String(value);
+    }
+  }
+  return String(value);
+}
+
 // Export convenience functions
-export const logError = (message: string, context?: string, data?: any) => logger.error(message, context, data);
-export const logWarn = (message: string, context?: string, data?: any) => logger.warn(message, context, data);
-export const logInfo = (message: string, context?: string, data?: any) => logger.info(message, context, data);
-export const logDebug = (message: string, context?: string, data?: any) => logger.debug(message, context, data);
+export const logError = (message: string, context?: string, data?: unknown) => {
+  const safeData = data !== undefined ? safeStringify(data) : undefined;
+  logger.error(message, context, safeData);
+};
+
+export const logWarn = (message: string, context?: string, data?: unknown) => {
+  const safeData = data !== undefined ? safeStringify(data) : undefined;
+  logger.warn(message, context, safeData);
+};
+
+export const logInfo = (message: string, context?: string, data?: unknown) => {
+  const safeData = data !== undefined ? safeStringify(data) : undefined;
+  logger.info(message, context, safeData);
+};
+
+export const logDebug = (message: string, context?: string, data?: unknown) => {
+  const safeData = data !== undefined ? safeStringify(data) : undefined;
+  logger.debug(message, context, safeData);
+};

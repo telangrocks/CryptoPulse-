@@ -78,7 +78,7 @@ export class CircuitBreaker {
       this.onFailure();
       
       // Check if we should retry
-      if (attempt < this.config.retryAttempts && this.state !== CircuitState.OPEN) {
+      if (attempt < this.config.retryAttempts && (this.state === CircuitState.CLOSED || this.state === CircuitState.HALF_OPEN)) {
         const delay = this.calculateRetryDelay(attempt);
         logWarn(`Operation failed, retrying in ${delay}ms (attempt ${attempt + 1}/${this.config.retryAttempts})`, 'CircuitBreaker');
         

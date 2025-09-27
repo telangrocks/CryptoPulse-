@@ -27,15 +27,6 @@ export default defineConfig({
     },
     // Optimize chunks for faster loading
     rollupOptions: {
-      output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
-          ui: ['@radix-ui/react-accordion', '@radix-ui/react-alert-dialog', '@radix-ui/react-avatar'],
-          charts: ['recharts'],
-          forms: ['react-hook-form', '@hookform/resolvers', 'zod']
-        }
-      }
-    },
       onwarn(warning, warn) {
         // Suppress mixed import warnings
         if (warning.code === 'MODULE_LEVEL_DIRECTIVE') return;

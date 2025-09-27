@@ -45,7 +45,7 @@ export default function TrialLockScreen({ trialInfo, onSubscribe }: TrialLockScr
       }
     }
     
-    if (trialInfo?.daysRemaining > 0) {
+    if (trialInfo?.daysRemaining && trialInfo.daysRemaining > 0) {
       return {
         icon: <Clock className="h-8 w-8 text-blue-500" />,
         title: 'Trial Active',
@@ -95,7 +95,7 @@ export default function TrialLockScreen({ trialInfo, onSubscribe }: TrialLockScr
               className={`${statusInfo.color} border-current text-lg px-4 py-2`}
             >
               {trialInfo?.subscriptionStatus === 'active' ? 'Premium User' : 
-               trialInfo?.daysRemaining > 0 ? 'Trial User' : 'Trial Expired'}
+               (trialInfo?.daysRemaining && trialInfo.daysRemaining > 0) ? 'Trial User' : 'Trial Expired'}
             </Badge>
           </div>
 

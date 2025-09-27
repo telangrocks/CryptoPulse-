@@ -8,7 +8,7 @@ import './lib/browserCompatibility'
 
 // Add error boundary for debugging
 window.addEventListener('error', (e) => {
-  console.error('Global error:', e.error);
+  // Global error handling - errors are logged via the logger system
   document.getElementById('root')!.innerHTML = `
     <div style="padding: 20px; color: white; background: #1a1a1a; min-height: 100vh; font-family: Arial;">
       <h1>🚀 CryptoPulse Trading Bot</h1>

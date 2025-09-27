@@ -265,10 +265,10 @@ async function runSecurityTests(): Promise<TestResult[]> {
   try {
     // Test 1: Encryption
     const startTime = Date.now();
-    const { encrypt, decrypt } = await import('../lib/encryption');
+    const { encryptData, decryptData } = await import('../lib/encryption');
     const testData = 'test data';
-    const encrypted = await encrypt(testData);
-    const decrypted = await decrypt(encrypted);
+    const encrypted = await encryptData(testData);
+    const decrypted = await decryptData(encrypted);
     const duration = Date.now() - startTime;
     
     results.push({
@@ -401,16 +401,16 @@ async function runPerformanceTests(): Promise<TestResult[]> {
   try {
     // Test 1: Cache Performance
     const startTime = Date.now();
-    const { setCacheItem, getCacheItem } = await import('../lib/cache');
+    const { cache } = await import('../lib/cache');
     
-    setCacheItem('perf_test', { data: 'test' }, 1000);
-    const cached = getCacheItem('perf_test');
+    cache.set('perf_test', { data: 'test' }, 1000);
+    const cached = cache.get('perf_test');
     const duration = Date.now() - startTime;
     
     results.push({
       test: 'Cache Performance',
-      status: cached && cached.data === 'test' ? 'PASS' : 'FAIL',
-      message: cached && cached.data === 'test' ? 'Cache working correctly' : 'Cache failed',
+      status: cached && (cached as any).data === 'test' ? 'PASS' : 'FAIL',
+      message: cached && (cached as any).data === 'test' ? 'Cache working correctly' : 'Cache failed',
       duration
     });
   } catch (error) {
@@ -425,9 +425,9 @@ async function runPerformanceTests(): Promise<TestResult[]> {
   try {
     // Test 2: Rate Limiting
     const startTime = Date.now();
-    const { defaultRateLimiter } = await import('../lib/rateLimiter');
+    const { apiRateLimiter } = await import('../lib/rateLimiter');
     
-    const canProceed = defaultRateLimiter.canProceed('test_user');
+    const canProceed = apiRateLimiter.isAllowed('test_user');
     const duration = Date.now() - startTime;
     
     results.push({

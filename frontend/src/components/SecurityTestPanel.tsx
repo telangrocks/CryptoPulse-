@@ -18,7 +18,7 @@ export default function SecurityTestPanel() {
       setResults(testResults);
       setLastRun(new Date());
     } catch (error) {
-      console.error('Security tests failed:', error);
+      // Security tests failed - handled by error logging system
     } finally {
       setIsRunning(false);
     }

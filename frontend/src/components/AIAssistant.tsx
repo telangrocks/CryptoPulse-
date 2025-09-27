@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -6,7 +6,8 @@ import { ScrollArea } from './ui/scroll-area';
 import { Badge } from './ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 
-import { logError, logWarn, logInfo, logDebug } from '../lib/logger'
+import { logError, logWarn, logInfo, logDebug } from '../lib/logger';
+import type { AIAssistantProps, Message } from '../types';
 import { 
   Bot, 
   Send, 
@@ -32,20 +33,7 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { useAIAssistant } from '../hooks/useAIAssistant';
 
-interface Message {
-  id: string;
-  type: 'user' | 'assistant' | 'system';
-  content: string;
-  timestamp: Date;
-  category?: 'trading' | 'technical' | 'risk' | 'general' | 'troubleshooting';
-  suggestions?: string[];
-  relatedFeatures?: string[];
-}
-
-interface AIAssistantProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
+// Types are now imported from types/index.ts
 
 const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose }) => {
   const { user } = useAuth();
@@ -225,7 +213,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose }) => {
           setRecommendations(response.recommendations);
         }
       } catch (error) {
-        logError('Failed to load recommendations:', error);
+        logError('Failed to load recommendations:', 'AIAssistant', error);
       }
     };
 
@@ -292,7 +280,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose }) => {
         return await processQueryLocal(query);
       }
     } catch (error) {
-      logError('AI Assistant error:', error);
+      logError('AI Assistant error:', 'AIAssistant', error);
       // Fallback to local processing
       return await processQueryLocal(query);
     }
@@ -381,7 +369,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose }) => {
       const response = await processQueryWrapper(inputValue);
       setMessages(prev => [...prev, response]);
     } catch (error) {
-      logError('Error processing query:', error);
+      logError('Error processing query:', 'AIAssistant', error);
       const errorMessage: Message = {
         id: Date.now().toString(),
         type: 'assistant',

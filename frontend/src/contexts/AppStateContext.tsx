@@ -142,7 +142,7 @@ export function AppStateProvider({ children }: AppStateProviderProps) {
         label: 'View Details',
         onClick: () => {
           // This will be handled by the notification component
-          console.log('View trade details:', tradeDetails)
+          // View trade details - handled by app state context
         }
       }
     }

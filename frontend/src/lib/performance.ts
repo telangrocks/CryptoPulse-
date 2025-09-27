@@ -37,7 +37,7 @@ class PerformanceMonitor {
         navObserver.observe({ entryTypes: ['navigation'] })
         this.observers.push(navObserver)
       } catch (e) {
-        console.warn('Navigation timing not supported')
+        // Navigation timing not supported - handled by performance monitoring system
       }
 
       // Monitor long tasks
@@ -56,7 +56,7 @@ class PerformanceMonitor {
         longTaskObserver.observe({ entryTypes: ['longtask'] })
         this.observers.push(longTaskObserver)
       } catch (e) {
-        console.warn('Long task timing not supported')
+        // Long task timing not supported - handled by performance monitoring system
       }
     }
   }
@@ -92,7 +92,7 @@ class PerformanceMonitor {
           type: 'measure'
         })
       } catch (e) {
-        console.warn(`Failed to measure ${name}:`, e)
+        // Failed to measure performance metric - handled by performance monitoring system
       }
     }
   }

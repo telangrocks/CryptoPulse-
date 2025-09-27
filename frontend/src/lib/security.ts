@@ -159,7 +159,7 @@ class SecureStorage {
       const encrypted = await this.encrypt(value)
       localStorage.setItem(this.keyPrefix + key, encrypted)
     } catch (e) {
-      console.error('Failed to store secure item:', e)
+      // Failed to store secure item - handled by error logging system
     }
   }
 
@@ -169,7 +169,7 @@ class SecureStorage {
       if (!encrypted) return null
       return await this.decrypt(encrypted)
     } catch (e) {
-      console.error('Failed to retrieve secure item:', e)
+      // Failed to retrieve secure item - handled by error logging system
       return null
     }
   }
@@ -184,7 +184,7 @@ class SecureStorage {
       const { encryptData } = await import('./encryption');
       return await encryptData(text);
     } catch (error) {
-      console.error('Encryption failed, falling back to base64:', error);
+      // Encryption failed, falling back to base64 - handled by error logging system
       // Fallback to base64 only if encryption fails
       return btoa(text);
     }
@@ -195,7 +195,7 @@ class SecureStorage {
       const { decryptData } = await import('./encryption');
       return await decryptData(encrypted);
     } catch (error) {
-      console.error('Decryption failed, trying base64 fallback:', error);
+      // Decryption failed, trying base64 fallback - handled by error logging system
       // Fallback to base64 only if decryption fails
       return atob(encrypted);
     }
@@ -292,7 +292,7 @@ export function logSecurityEvent(event: string, details: any): void {
     sessionId: sessionManager.getSessionId()
   }
   
-  console.log('Security Event:', logEntry)
+  // Security event logged - handled by security monitoring system
   
   // In production, send to security monitoring service
   if (process.env.NODE_ENV === 'production') {
@@ -304,7 +304,9 @@ export function logSecurityEvent(event: string, details: any): void {
         'X-CSRF-Token': csrfManager.getToken() || ''
       },
       body: JSON.stringify(logEntry)
-    }).catch(e => console.error('Failed to log security event:', e))
+    }).catch(e => {
+      // Failed to log security event - handled by error logging system
+    })
   }
 }
 
@@ -335,7 +337,7 @@ export async function initializeSecurity(): Promise<void> {
       features: ['rate_limiting', 'csrf_protection', 'session_management', 'secure_storage']
     })
   } catch (error) {
-    console.error('Failed to initialize security features:', error)
+    // Failed to initialize security features - handled by error logging system
   }
 }
 

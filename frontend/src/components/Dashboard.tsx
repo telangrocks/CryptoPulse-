@@ -1,6 +1,7 @@
 import { logError, logWarn, logInfo, logDebug } from '../lib/logger'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useMemo, memo } from 'react'
+import { withErrorBoundary } from './EnhancedErrorBoundary'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { Button } from './ui/button'
@@ -28,7 +29,7 @@ import {
 } from 'lucide-react'
 import { callBack4AppFunction } from '../back4app/config'
 
-export default function Dashboard() {
+const Dashboard = memo(function Dashboard() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [billingInfo, setBillingInfo] = useState<{
@@ -46,8 +47,7 @@ export default function Dashboard() {
   })
   const [isLoading, setIsLoading] = useState(true)
 
-  useEffect(() => {
-    const fetchData = async () => {
+  const fetchData = useCallback(async () => {
       try {
         setIsLoading(true)
         const [billingData, statsData] = await Promise.all([
@@ -66,22 +66,23 @@ export default function Dashboard() {
           })
         }
       } catch (error) {
-        logError('Failed to fetch dashboard data:', error)
+        logError('Failed to fetch dashboard data:', 'Dashboard', error)
       } finally {
         setIsLoading(false)
       }
-    }
+    }, [user])
 
+  useEffect(() => {
     if (user) {
       fetchData()
     }
-  }, [user])
+  }, [user, fetchData])
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     logout()
-  }
+  }, [logout])
 
-  const getTrialStatus = () => {
+  const getTrialStatus = useCallback(() => {
     if (!billingInfo) return null
     
     if (billingInfo.subscription_status === 'active') {
@@ -103,9 +104,9 @@ export default function Dashboard() {
         color: 'bg-red-500'
       }
     }
-  }
+  }, [billingInfo])
 
-  const trialStatus = getTrialStatus()
+  const trialStatus = useMemo(() => getTrialStatus(), [getTrialStatus])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
@@ -290,4 +291,9 @@ export default function Dashboard() {
       </div>
     </div>
   )
-}
+})
+
+export default withErrorBoundary(Dashboard, {
+  resetKeys: ['user'],
+  resetOnPropsChange: true
+})

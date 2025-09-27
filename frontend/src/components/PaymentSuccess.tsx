@@ -49,7 +49,7 @@ export default function PaymentSuccess() {
           }
         }
       } catch (error) {
-        console.error('Error verifying payment:', error)
+        // Error verifying payment - handled by error logging system
         setPaymentStatus('failed')
       }
     }

@@ -7,22 +7,15 @@ import { logError, logInfo, logWarn } from '../lib/logger';
 import { circuitBreakers, withCircuitBreaker } from './circuitBreaker';
 import type { 
   ExchangeCredentials, 
-  OrderRequest, 
-  OrderResponse, 
-  MarketData,
+  OrderRequest as ExternalOrderRequest, 
+  OrderResponse as ExternalOrderResponse, 
+  MarketData as ExternalMarketData,
   TradingPair,
   OrderSide,
   ExchangeName
 } from '../types/external-apis';
 
-export interface ExchangeConfig {
-  name: string;
-  apiKey: string;
-  apiSecret: string;
-  baseUrl: string;
-  sandbox?: boolean;
-}
-
+// Local type definitions to avoid conflicts
 export interface OrderRequest {
   symbol: string;
   side: 'BUY' | 'SELL';
@@ -36,11 +29,11 @@ export interface OrderRequest {
 export interface OrderResponse {
   orderId: string;
   symbol: string;
-  side: string;
-  type: string;
+  side: 'BUY' | 'SELL';
+  type: 'MARKET' | 'LIMIT';
   quantity: number;
   price: number;
-  status: 'NEW' | 'FILLED' | 'PARTIALLY_FILLED' | 'CANCELED' | 'REJECTED';
+  status: string;
   timestamp: number;
   filledQuantity: number;
   remainingQuantity: number;
@@ -58,10 +51,19 @@ export interface MarketData {
   symbol: string;
   price: number;
   volume: number;
+  change: number;
   change24h: number;
   high24h: number;
   low24h: number;
   timestamp: number;
+}
+
+export interface ExchangeConfig {
+  name: string;
+  apiKey: string;
+  apiSecret: string;
+  baseUrl: string;
+  sandbox?: boolean;
 }
 
 export interface AccountInfo {
@@ -136,6 +138,7 @@ class ExchangeIntegration {
         price: parseFloat(response.lastPrice),
         volume: parseFloat(response.volume),
         change: parseFloat(response.priceChangePercent),
+        change24h: parseFloat(response.priceChangePercent),
         high24h: parseFloat(response.highPrice),
         low24h: parseFloat(response.lowPrice),
         timestamp: response.closeTime
@@ -337,7 +340,11 @@ class ExchangeIntegration {
         quantity: parseFloat(response.origQty),
         price: parseFloat(response.price),
         status: response.status,
-        timestamp: response.time
+        timestamp: response.time,
+        filledQuantity: parseFloat(response.executedQty || '0'),
+        remainingQuantity: parseFloat(response.origQty) - parseFloat(response.executedQty || '0'),
+        averagePrice: parseFloat(response.cummulativeQuoteQty || response.price),
+        exchange: this.config.name
       };
     } catch (error) {
       logError(`Failed to get order status for ${orderId}`, 'Exchange', error);

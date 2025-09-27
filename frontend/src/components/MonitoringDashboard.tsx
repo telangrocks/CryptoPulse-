@@ -118,7 +118,7 @@ export default function MonitoringDashboard() {
         setBotStatus(botStatusData.status || botStatus)
       }
     } catch (error) {
-      logError('Failed to fetch monitoring data:', error)
+      logError('Failed to fetch monitoring data:', 'MonitoringDashboard', error)
     } finally {
       setIsLoading(false)
       setIsRefreshing(false)
@@ -135,7 +135,7 @@ export default function MonitoringDashboard() {
         setBotStatus(prev => ({ ...prev, isRunning: !prev.isRunning }))
       }
     } catch (error) {
-      logError('Failed to toggle bot:', error)
+      logError('Failed to toggle bot:', 'MonitoringDashboard', error)
     }
   }
 

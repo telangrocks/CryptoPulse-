@@ -51,7 +51,7 @@ export const encryptData = async (data: string): Promise<string> => {
     // Convert to base64 for storage
     return btoa(String.fromCharCode(...combined));
   } catch (error) {
-    logError('Encryption failed:', error);
+    logError('Encryption failed:', 'Encryption', error);
     throw new Error('Failed to encrypt data. Please check your encryption key.');
   }
 };
@@ -80,7 +80,7 @@ export const decryptData = async (encryptedData: string): Promise<string> => {
     
     return new TextDecoder().decode(decrypted);
   } catch (error) {
-    logError('Decryption failed:', error);
+    logError('Decryption failed:', 'Encryption', error);
     throw new Error('Failed to decrypt data. Please check your encryption key or data integrity.');
   }
 };
@@ -114,7 +114,7 @@ export const hashPassword = async (password: string, salt: Uint8Array): Promise<
   const derivedBits = await crypto.subtle.deriveBits(
     {
       name: 'PBKDF2',
-      salt,
+      salt: salt.buffer as ArrayBuffer,
       iterations: 100000,
       hash: 'SHA-256'
     },
@@ -141,5 +141,5 @@ export const generateSalt = (): Uint8Array => {
  * @returns True if valid
  */
 export const validateEncryptionKey = (key: string): boolean => {
-  return key && key.length === 32 && /^[a-zA-Z0-9]+$/.test(key);
+  return Boolean(key && key.length === 32 && /^[a-zA-Z0-9]+$/.test(key));
 };

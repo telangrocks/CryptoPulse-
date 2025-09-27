@@ -51,7 +51,9 @@ const mockNotifications: Notification[] = [
     read: false,
     action: {
       label: 'Renew Now',
-      onClick: () => console.log('Renew API key')
+      onClick: () => {
+        // Renew API key action - handled by notification system
+      }
     }
   },
   {

@@ -1,10 +1,13 @@
-import React from 'react'
+import React, { useState } from 'react'
+import { ErrorBoundary } from 'react-error-boundary'
+import EnhancedErrorBoundary from './components/EnhancedErrorBoundary'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { AppStateProvider } from './contexts/AppStateContext'
 import { Toaster } from './components/ui/toaster'
-import ErrorBoundary from './components/ErrorBoundary'
+import ErrorBoundaryComponent from './components/ErrorBoundary'
+import ErrorFallback from './components/ErrorFallback'
 import GlobalLoadingIndicator from './components/GlobalLoadingIndicator'
 import SplashScreen from './components/SplashScreen'
 import AuthScreen from './components/AuthScreen'
@@ -60,7 +63,7 @@ function AppContent() {
   const { user, loading } = useAuth()
   const { isConnected: wsConnected } = useWebSocketSignalIntegration()
   const { isMonitoring: balanceMonitoring, balanceStatus } = useBalanceMonitoring()
-  useDocumentHead()
+  useDocumentHead({ title: 'CryptoPulse - AI Trading Platform' })
 
   if (loading) {
     return <SplashScreen />
@@ -172,7 +175,7 @@ function AppContent() {
         
         <Route path="/ai-assistant" element={
           <ProtectedRoute>
-            <AIAssistant />
+            <AIAssistantWrapper />
           </ProtectedRoute>
         } />
         
@@ -184,7 +187,7 @@ function AppContent() {
         
         <Route path="/trade-confirmation" element={
           <ProtectedRoute>
-            <EnhancedTradeConfirmation />
+            <TradeConfirmationWrapper />
           </ProtectedRoute>
         } />
         
@@ -228,7 +231,12 @@ function AppContent() {
 // Main App Component with Providers
 function App() {
   return (
-    <ErrorBoundary>
+    <ErrorBoundary fallbackRender={({ error, resetErrorBoundary }) => (
+      <ErrorFallback 
+        error={error} 
+        resetErrorBoundary={resetErrorBoundary}
+      />
+    )}>
       <ThemeProvider>
         <AuthProvider>
           <AppStateProvider>
@@ -244,4 +252,71 @@ function App() {
   )
 }
 
-export default App
+// Wrapper components for components that need props
+function AIAssistantWrapper() {
+  const [isOpen, setIsOpen] = useState(false);
+  
+  return (
+    <AIAssistant 
+      isOpen={isOpen} 
+      onClose={() => setIsOpen(false)} 
+    />
+  );
+}
+
+function TradeConfirmationWrapper() {
+  // Mock data for demonstration
+  const mockSignal = {
+    pair: 'BTC/USDT',
+    action: 'BUY' as const,
+    entry: 45000,
+    stopLoss: 43000,
+    takeProfit: 47000,
+    confidence: 85,
+    timestamp: new Date().toISOString()
+  };
+
+  const mockApiKeys = {
+    marketDataKey: 'demo-key',
+    marketDataSecret: 'demo-secret',
+    tradeExecutionKey: 'demo-key',
+    tradeExecutionSecret: 'demo-secret',
+    exchange: 'wazirx'
+  };
+
+  const handleConfirm = (confirmed: boolean, tradeData?: any) => {
+    // Trade confirmation logic can be added here
+  };
+
+  const handleClose = () => {
+    // Trade confirmation close logic can be added here
+  };
+
+  return (
+    <EnhancedTradeConfirmation
+      signal={mockSignal}
+      userApiKeys={mockApiKeys}
+      onConfirm={handleConfirm}
+      onClose={handleClose}
+    />
+  );
+}
+
+function AppWithErrorBoundary() {
+  return (
+    <EnhancedErrorBoundary
+      onError={(error, errorInfo) => {
+        // Additional error handling can be added here
+      }}
+      onReset={() => {
+        // Clear any error state
+      }}
+      resetKeys={[window.location.pathname]}
+      resetOnPropsChange={true}
+    >
+      <App />
+    </EnhancedErrorBoundary>
+  );
+}
+
+export default AppWithErrorBoundary

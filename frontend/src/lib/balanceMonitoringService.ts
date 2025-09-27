@@ -54,7 +54,7 @@ class BalanceMonitoringService {
       this.appStateContext = appStateContext
       
       // Set up balance-based trading notifications
-      this.balanceBasedTrading.onBalanceNotification((notification) => {
+      this.balanceBasedTrading.onBalanceNotification((notification: any) => {
         if (this.appStateContext && this.appStateContext.addNotification) {
           this.appStateContext.addNotification({
             type: this.mapPriorityToType(notification.priority),
