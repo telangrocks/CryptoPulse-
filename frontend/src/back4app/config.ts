@@ -14,11 +14,11 @@ const missingVars = Object.entries(requiredEnvVars)
 
 // Use fallback values if environment variables are missing
 export const Back4AppConfig = {
-  appId: requiredEnvVars.VITE_BACK4APP_APP_ID || 'demo-app-id',
-  clientKey: requiredEnvVars.VITE_BACK4APP_CLIENT_KEY || 'demo-client-key',
+  appId: requiredEnvVars.VITE_BACK4APP_APP_ID || 'vCaSfrlHLY8xevRt2KH2Wg7I7hRIqKMY0UssPVC1',
+  clientKey: requiredEnvVars.VITE_BACK4APP_CLIENT_KEY || '4jsNlzxVKmoOe9s23tRDejWUBYMX4y3hnv3TUMvO',
   // Master key should NEVER be exposed to frontend
   // masterKey: process.env.VITE_BACK4APP_MASTER_KEY,
-  serverURL: requiredEnvVars.VITE_BACK4APP_SERVER_URL || 'https://demo.back4app.com'
+  serverURL: requiredEnvVars.VITE_BACK4APP_SERVER_URL || 'https://parseapi.back4app.com'
 };
 
 // Log warning if using demo values
