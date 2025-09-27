@@ -232,7 +232,7 @@ export default function EndToEndAutomation() {
         
         // Generate test user credentials
         const testEmail = `test_${Date.now()}@cryptopulse.com`;
-        const testPassword = 'TestPassword123!';
+        const testPassword = process.env.VITE_TEST_PASSWORD || 'TestPassword123!';
         
         try {
           await register(testEmail, testPassword);
@@ -283,10 +283,10 @@ export default function EndToEndAutomation() {
       } else {
         // Generate test API keys
         apiKeys = {
-          marketDataKey: 'test_market_key_' + Date.now(),
-          marketDataSecret: 'test_market_secret_' + Date.now(),
-          tradeExecutionKey: 'test_trade_key_' + Date.now(),
-          tradeExecutionSecret: 'test_trade_secret_' + Date.now(),
+          marketDataKey: process.env.VITE_TEST_MARKET_KEY || 'test_market_key_' + Date.now(),
+          marketDataSecret: process.env.VITE_TEST_MARKET_SECRET || 'test_market_secret_' + Date.now(),
+          tradeExecutionKey: process.env.VITE_TEST_TRADE_KEY || 'test_trade_key_' + Date.now(),
+          tradeExecutionSecret: process.env.VITE_TEST_TRADE_SECRET || 'test_trade_secret_' + Date.now(),
           exchange: 'binance',
           timestamp: new Date().toISOString()
         };

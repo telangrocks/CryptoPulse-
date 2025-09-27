@@ -5,7 +5,8 @@ interface ImportMetaEnv {
   readonly VITE_BACK4APP_APP_ID: string
   readonly VITE_BACK4APP_CLIENT_KEY: string
   readonly VITE_BACK4APP_SERVER_URL: string
-  readonly VITE_BACK4APP_MASTER_KEY: string
+  // Master key should NEVER be in frontend environment
+  // readonly VITE_BACK4APP_MASTER_KEY: string
   
   // Application Configuration
   readonly VITE_APP_NAME: string

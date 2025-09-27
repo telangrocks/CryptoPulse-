@@ -11,6 +11,8 @@
     "test:production": "node scripts/run-production-tests.js",
     "migrate": "node scripts/migrations/001_initial_schema.js",
     "backup:test": "node scripts/backup-testing.js",
+    "security:audit": "node scripts/security-audit.js",
+    "security:validate": "node scripts/validate-secrets.js",
     "start": "node cloud/main.js",
     "dev": "node cloud/main.js"
   },

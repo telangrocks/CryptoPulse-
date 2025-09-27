@@ -81,7 +81,7 @@ describe('Load Testing Suite', () => {
       const endpoint = `${API_BASE_URL}/userAuthentication`;
       const payload = {
         email: 'test@example.com',
-        password: 'testpassword123',
+        password: process.env.TEST_PASSWORD || 'testpassword123',
         action: 'login'
       };
 

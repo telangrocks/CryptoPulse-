@@ -16,7 +16,8 @@ const missingVars = Object.entries(requiredEnvVars)
 export const Back4AppConfig = {
   appId: requiredEnvVars.VITE_BACK4APP_APP_ID || 'demo-app-id',
   clientKey: requiredEnvVars.VITE_BACK4APP_CLIENT_KEY || 'demo-client-key',
-  masterKey: requiredEnvVars.VITE_BACK4APP_MASTER_KEY || 'demo-master-key',
+  // Master key should NEVER be exposed to frontend
+  // masterKey: process.env.VITE_BACK4APP_MASTER_KEY,
   serverURL: requiredEnvVars.VITE_BACK4APP_SERVER_URL || 'https://demo.back4app.com'
 };
 
