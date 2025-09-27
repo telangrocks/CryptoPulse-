@@ -98,9 +98,27 @@ SNYK_TOKEN=your_snyk_security_token
 # ==============================================
 NODE_ENV=production
 LOG_LEVEL=info
+APM_LOG_LEVEL=info
 CACHE_TTL=300000
 RATE_LIMIT_WINDOW=3600000
 MAX_REQUESTS_PER_WINDOW=1000
+
+# ==============================================
+# TESTING & DEVELOPMENT
+# ==============================================
+TEST_BASE_URL=http://localhost:3000
+API_BASE_URL=https://parseapi.back4app.com/parse/functions
+PARSE_APP_ID=test_app_id
+PARSE_REST_API_KEY=test_rest_key
+TEST_DATA_SIZE=1000
+BACKUP_DIR=./backups
+
+# ==============================================
+# DOCKER CONFIGURATION
+# ==============================================
+PARSE_SERVER_APPLICATION_ID=your_parse_app_id
+PARSE_SERVER_MASTER_KEY=your_parse_master_key
+PARSE_SERVER_URL=https://parseapi.back4app.com
 
 # URL Configuration
 FRONTEND_URL=https://your-production-domain.com
@@ -205,6 +223,12 @@ VITE_SESSION_TIMEOUT=3600
 VITE_ENCRYPTION_KEY=your_32_character_encryption_key
 
 # ==============================================
+# DEVELOPMENT & TESTING
+# ==============================================
+VITE_HTTPS=false
+VITE_ENABLE_LIVE_TRADING=false
+
+# ==============================================
 # TEST CREDENTIALS (Optional - for testing)
 # ==============================================
 VITE_TEST_PASSWORD=TestPassword123!
@@ -212,6 +236,14 @@ VITE_TEST_MARKET_KEY=test_market_key
 VITE_TEST_MARKET_SECRET=test_market_secret
 VITE_TEST_TRADE_KEY=test_trade_key
 VITE_TEST_TRADE_SECRET=test_trade_secret
+
+# ==============================================
+# TEST API KEYS (For exchange integration testing)
+# ==============================================
+BINANCE_TEST_API_KEY=test_binance_key
+BINANCE_TEST_SECRET_KEY=test_binance_secret
+WAZIRX_TEST_API_KEY=test_wazirx_key
+WAZIRX_TEST_SECRET_KEY=test_wazirx_secret
 ```
 
 ---
@@ -292,7 +324,7 @@ npm run security:validate
 
 ## 📋 CREDENTIAL CHECKLIST
 
-### **Backend Environment Variables (29 required):**
+### **Backend Environment Variables (39 required):**
 - [ ] BACK4APP_APP_ID
 - [ ] BACK4APP_MASTER_KEY
 - [ ] BACK4APP_JAVASCRIPT_KEY
@@ -322,8 +354,18 @@ npm run security:validate
 - [ ] STAGING_URL
 - [ ] NODE_ENV=production
 - [ ] LOG_LEVEL=info
+- [ ] APM_LOG_LEVEL=info
+- [ ] TEST_BASE_URL
+- [ ] API_BASE_URL
+- [ ] PARSE_APP_ID
+- [ ] PARSE_REST_API_KEY
+- [ ] TEST_DATA_SIZE
+- [ ] BACKUP_DIR
+- [ ] PARSE_SERVER_APPLICATION_ID
+- [ ] PARSE_SERVER_MASTER_KEY
+- [ ] PARSE_SERVER_URL
 
-### **Frontend Environment Variables (15 required):**
+### **Frontend Environment Variables (17 required):**
 - [ ] VITE_PARSE_SERVER_APPLICATION_ID
 - [ ] VITE_PARSE_SERVER_JAVASCRIPT_KEY
 - [ ] VITE_PARSE_SERVER_URL
@@ -339,6 +381,19 @@ npm run security:validate
 - [ ] VITE_RISK_LEVEL
 - [ ] VITE_THEME
 - [ ] VITE_ENCRYPTION_KEY
+- [ ] VITE_HTTPS
+- [ ] VITE_ENABLE_LIVE_TRADING
+
+### **Test Environment Variables (Optional - for testing):**
+- [ ] VITE_TEST_PASSWORD
+- [ ] VITE_TEST_MARKET_KEY
+- [ ] VITE_TEST_MARKET_SECRET
+- [ ] VITE_TEST_TRADE_KEY
+- [ ] VITE_TEST_TRADE_SECRET
+- [ ] BINANCE_TEST_API_KEY
+- [ ] BINANCE_TEST_SECRET_KEY
+- [ ] WAZIRX_TEST_API_KEY
+- [ ] WAZIRX_TEST_SECRET_KEY
 
 ---
 

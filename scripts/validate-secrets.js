@@ -36,7 +36,26 @@ const REQUIRED_SECRETS = {
     // External Services
     SLACK_WEBHOOK: { minLength: 50, description: 'Slack Webhook URL' },
     PRODUCTION_URL: { minLength: 10, description: 'Production URL' },
-    STAGING_URL: { minLength: 10, description: 'Staging URL' }
+    STAGING_URL: { minLength: 10, description: 'Staging URL' },
+    
+    // Testing & Development
+    TEST_BASE_URL: { minLength: 10, description: 'Test Base URL' },
+    API_BASE_URL: { minLength: 20, description: 'API Base URL' },
+    PARSE_APP_ID: { minLength: 10, description: 'Parse App ID' },
+    PARSE_REST_API_KEY: { minLength: 10, description: 'Parse REST API Key' },
+    TEST_DATA_SIZE: { minLength: 1, description: 'Test Data Size' },
+    BACKUP_DIR: { minLength: 5, description: 'Backup Directory' },
+    
+    // Docker Configuration
+    PARSE_SERVER_APPLICATION_ID: { minLength: 10, description: 'Parse Server App ID' },
+    PARSE_SERVER_MASTER_KEY: { minLength: 20, description: 'Parse Server Master Key' },
+    PARSE_SERVER_URL: { minLength: 20, description: 'Parse Server URL' },
+    
+    // Test API Keys
+    BINANCE_TEST_API_KEY: { minLength: 20, description: 'Binance Test API Key' },
+    BINANCE_TEST_SECRET_KEY: { minLength: 20, description: 'Binance Test Secret Key' },
+    WAZIRX_TEST_API_KEY: { minLength: 20, description: 'WazirX Test API Key' },
+    WAZIRX_TEST_SECRET_KEY: { minLength: 20, description: 'WazirX Test Secret Key' }
   },
   
   staging: {
