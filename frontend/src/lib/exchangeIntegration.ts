@@ -5,6 +5,15 @@
 
 import { logError, logInfo, logWarn } from '../lib/logger';
 import { circuitBreakers, withCircuitBreaker } from './circuitBreaker';
+import type { 
+  ExchangeCredentials, 
+  OrderRequest, 
+  OrderResponse, 
+  MarketData,
+  TradingPair,
+  OrderSide,
+  ExchangeName
+} from '../types/external-apis';
 
 export interface ExchangeConfig {
   name: string;

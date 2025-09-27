@@ -7,8 +7,10 @@ const winston = require('winston');
 // Import monitoring modules
 const { updateHealthData, recordRequest, getHealthStatus, getSystemStatus, productionHealthCheck } = require('./healthCheck');
 const { sendAlert, alertSystemDown, alertSecurityBreach, alertCriticalError } = require('./alerting');
-const { recordRequest: recordMetric, recordError, recordTrading, recordSecurityEvent } = require('./metrics');
+const { recordRequest: recordMetric, recordError, recordTrading, recordSecurityEvent } = require('./metrics-redis');
 const { recordRequest: apmRecordRequest, recordTradingActivity, recordError: apmRecordError, getMetrics: getAPMMetrics, performHealthCheck: apmHealthCheck } = require('./apm');
+const { withErrorHandling, createValidationError, createAuthenticationError, createBusinessLogicError } = require('./utils/errorHandler');
+const { createExchangeService, validateCredentials, getSupportedExchanges } = require('./exchange-service');
 const { 
   trackSecurityEvent, 
   validateInput, 
@@ -48,12 +50,29 @@ setInterval(() => {
 }, 30000); // Update every 30 seconds
 
 // Initialize Parse with Back4App configuration
+// SECURITY: No hardcoded credentials - must use environment variables
+const requiredEnvVars = {
+  APP_ID: process.env.BACK4APP_APP_ID || process.env.APP_ID,
+  JAVASCRIPT_KEY: process.env.BACK4APP_JAVASCRIPT_KEY || process.env.JAVASCRIPT_KEY,
+  MASTER_KEY: process.env.BACK4APP_MASTER_KEY || process.env.MASTER_KEY,
+  SERVER_URL: process.env.BACK4APP_SERVER_URL || process.env.SERVER_URL
+};
+
+// Validate required environment variables
+const missingVars = Object.entries(requiredEnvVars)
+  .filter(([key, value]) => !value)
+  .map(([key]) => key);
+
+if (missingVars.length > 0) {
+  throw new Error(`Missing required environment variables: ${missingVars.join(', ')}. Please configure your .env file.`);
+}
+
 Parse.initialize(
-  process.env.BACK4APP_APP_ID || process.env.APP_ID || 'vCaSfrlHLY8xevRt2KH2Wg7I7hRIqKMY0UssPVC1',
-  process.env.BACK4APP_JAVASCRIPT_KEY || process.env.JAVASCRIPT_KEY || 'l9BxFwYIloWojfjUGAk4oir2u0R0jxaKOdUWe1Vz',
-  process.env.BACK4APP_MASTER_KEY || process.env.MASTER_KEY || 'KyATtYQBqOOx8gqrnq9N18XCGoMmjgLTvEWh7FGz'
+  requiredEnvVars.APP_ID,
+  requiredEnvVars.JAVASCRIPT_KEY,
+  requiredEnvVars.MASTER_KEY
 );
-Parse.serverURL = process.env.BACK4APP_SERVER_URL || process.env.SERVER_URL || 'https://parseapi.back4app.com/';
+Parse.serverURL = requiredEnvVars.SERVER_URL;
 
 // Security configuration
 const SECURITY_CONFIG = {
@@ -76,34 +95,44 @@ const CACHE_TTL = 60000; // 1 minute cache
 const RATE_LIMIT_WINDOW = 60000; // 1 minute window
 const MAX_REQUESTS_PER_WINDOW = 100;
 
-// Trading Bot Cloud Function - Production Ready
-Parse.Cloud.define('tradingBot', async (request) => {
-  try {
-    // Security checks
-    if (!isIPAllowed(request.ip)) {
-      trackSecurityEvent('blocked_ip_access', { ip: request.ip }, 'high');
-      throw new Parse.Error(Parse.Error.ACCESS_DENIED, 'Access denied from this IP');
-    }
-    
-    // Rate limiting
-    const rateLimitKey = `trading_${request.user?.id || request.ip}`;
-    if (!checkRateLimit(rateLimitKey)) {
-      trackSecurityEvent('rate_limit_exceeded', { 
-        ip: request.ip, 
-        userId: request.user?.id,
-        endpoint: 'tradingBot' 
-      }, 'medium');
-      throw new Parse.Error(Parse.Error.RATE_LIMIT_EXCEEDED, 'Rate limit exceeded');
-    }
-    
-    // Validate user authentication
-    if (!request.user) {
-      trackSecurityEvent('unauthorized_access', { 
-        ip: request.ip, 
-        endpoint: 'tradingBot' 
-      }, 'high');
-      throw new Parse.Error(Parse.Error.SESSION_MISSING, 'User not authenticated');
-    }
+/**
+ * Trading Bot Cloud Function - Production Ready
+ * Executes trading strategies based on market analysis and user preferences
+ * @param {Object} request - Parse Cloud request object
+ * @param {Object} request.params - Request parameters
+ * @param {string} request.params.action - Trading action (BUY/SELL)
+ * @param {string} request.params.pair - Trading pair (e.g., BTC/USDT)
+ * @param {number} request.params.amount - Amount to trade
+ * @param {string} request.params.strategy - Trading strategy to use
+ * @param {Object} request.user - Authenticated user object
+ * @returns {Promise<Object>} Trading execution result
+ */
+Parse.Cloud.define('tradingBot', withErrorHandling(async (request) => {
+  // Security checks
+  if (!isIPAllowed(request.ip)) {
+    trackSecurityEvent('blocked_ip_access', { ip: request.ip }, 'high');
+    throw createAuthenticationError('Access denied from this IP');
+  }
+  
+  // Rate limiting
+  const rateLimitKey = `trading_${request.user?.id || request.ip}`;
+  if (!checkRateLimit(rateLimitKey)) {
+    trackSecurityEvent('rate_limit_exceeded', { 
+      ip: request.ip, 
+      userId: request.user?.id,
+      endpoint: 'tradingBot' 
+    }, 'medium');
+    throw createBusinessLogicError('Rate limit exceeded');
+  }
+  
+  // Validate user authentication
+  if (!request.user) {
+    trackSecurityEvent('unauthorized_access', { 
+      ip: request.ip, 
+      endpoint: 'tradingBot' 
+    }, 'high');
+    throw createAuthenticationError('User not authenticated');
+  }
     
     // Sanitize and validate input
     const { action, pair, amount, strategy } = sanitizeInput(request.params);
@@ -121,7 +150,7 @@ Parse.Cloud.define('tradingBot', async (request) => {
         field: 'action',
         errors: actionValidation.errors 
       }, 'medium');
-      throw new Parse.Error(Parse.Error.INVALID_QUERY, `Invalid action: ${actionValidation.errors.join(', ')}`);
+      throw createValidationError(`Invalid action: ${actionValidation.errors.join(', ')}`, actionValidation.errors);
     }
     
     const pairValidation = validateInput(pair, { 
@@ -136,7 +165,7 @@ Parse.Cloud.define('tradingBot', async (request) => {
         field: 'pair',
         errors: pairValidation.errors 
       }, 'medium');
-      throw new Parse.Error(Parse.Error.INVALID_QUERY, `Invalid pair format: ${pairValidation.errors.join(', ')}`);
+      throw createValidationError(`Invalid pair format: ${pairValidation.errors.join(', ')}`, pairValidation.errors);
     }
     
     const amountValidation = validateInput(amount, { 
@@ -152,7 +181,7 @@ Parse.Cloud.define('tradingBot', async (request) => {
         field: 'amount',
         errors: amountValidation.errors 
       }, 'medium');
-      throw new Parse.Error(Parse.Error.INVALID_QUERY, `Invalid amount: ${amountValidation.errors.join(', ')}`);
+      throw createValidationError(`Invalid amount: ${amountValidation.errors.join(', ')}`, amountValidation.errors);
     }
     
     const strategyValidation = validateInput(strategy, { 
@@ -167,7 +196,7 @@ Parse.Cloud.define('tradingBot', async (request) => {
         field: 'strategy',
         errors: strategyValidation.errors 
       }, 'medium');
-      throw new Parse.Error(Parse.Error.INVALID_QUERY, `Invalid strategy: ${strategyValidation.errors.join(', ')}`);
+      throw createValidationError(`Invalid strategy: ${strategyValidation.errors.join(', ')}`, strategyValidation.errors);
     }
     
     // Audit log
@@ -229,158 +258,181 @@ Parse.Cloud.define('tradingBot', async (request) => {
       result,
       timestamp: new Date()
     };
-  } catch (error) {
-    // Record APM error
-    apmRecordError('trading_bot_failed', {
-      userId: request.user?.id,
-      error: error.message,
-      endpoint: 'tradingBot'
-    });
-    
-    logger.error('Trading bot execution failed', {
-      userId: request.user?.id,
-      error: error.message,
-      stack: error.stack
-    });
-    throw new Parse.Error(Parse.Error.SCRIPT_FAILED, error.message);
-  }
-});
+}));
 
-// Market Analysis Cloud Function
-Parse.Cloud.define('marketAnalysis', async (request) => {
-  try {
-    const { pair, timeframe } = request.params;
-    
-    // Fetch market data
-    const marketData = await fetchMarketData(pair, timeframe);
-    
-    // Perform technical analysis
-    const analysis = await performTechnicalAnalysis(marketData);
-    
-    // Generate trading signals
-    const signals = await generateTradingSignals(analysis);
-    
+/**
+ * Market Analysis Cloud Function
+ * Performs technical analysis on market data and generates trading signals
+ * @param {Object} request - Parse Cloud request object
+ * @param {Object} request.params - Request parameters
+ * @param {string} request.params.pair - Trading pair to analyze
+ * @param {string} request.params.timeframe - Analysis timeframe (1h, 4h, 1d)
+ * @returns {Promise<Object>} Market analysis results with trading signals
+ */
+Parse.Cloud.define('marketAnalysis', withErrorHandling(async (request) => {
+  const { pair, timeframe } = request.params;
+  
+  if (!pair) {
+    throw createValidationError('Pair parameter is required');
+  }
+  
+  // Fetch market data
+  const marketData = await fetchMarketData(pair, timeframe);
+  
+  // Perform technical analysis
+  const analysis = await performTechnicalAnalysis(marketData);
+  
+  // Generate trading signals
+  const signals = await generateTradingSignals(analysis);
+  
+  return {
+    success: true,
+    data: {
+      pair,
+      timeframe,
+      analysis,
+      signals,
+      timestamp: new Date()
+    }
+  };
+}));
+
+/**
+ * User Authentication Cloud Function
+ * Handles user login and registration with security validation
+ * @param {Object} request - Parse Cloud request object
+ * @param {Object} request.params - Request parameters
+ * @param {string} request.params.email - User email address
+ * @param {string} request.params.password - User password
+ * @param {string} request.params.action - Action type (login/register)
+ * @returns {Promise<Object>} Authentication result with user data
+ */
+Parse.Cloud.define('userAuthentication', withErrorHandling(async (request) => {
+  const { email, password, action } = request.params;
+  
+  // Input validation
+  if (!email || !password || !action) {
+    throw createValidationError('Missing required fields: email, password, action');
+  }
+  
+  if (!['login', 'register'].includes(action)) {
+    throw createValidationError('Invalid action. Must be "login" or "register"');
+  }
+  
+  if (action === 'login') {
+    const user = await Parse.User.logIn(email, password);
     return {
       success: true,
-      data: {
-        pair,
-        timeframe,
-        analysis,
-        signals,
-        timestamp: new Date()
+      user: {
+        id: user.id,
+        email: user.get('email'),
+        username: user.get('username'),
+        sessionToken: user.getSessionToken()
       }
     };
-  } catch (error) {
-    throw new Parse.Error(Parse.Error.SCRIPT_FAILED, error.message);
-  }
-});
-
-// User Authentication Cloud Function
-Parse.Cloud.define('userAuthentication', async (request) => {
-  try {
-    const { email, password, action } = request.params;
-    
-    if (action === 'login') {
-      const user = await Parse.User.logIn(email, password);
-      return {
-        success: true,
-        user: {
-          id: user.id,
-          email: user.get('email'),
-          username: user.get('username'),
-          sessionToken: user.getSessionToken()
-        }
-      };
-    } else if (action === 'register') {
-      const user = new Parse.User();
-      user.set('username', email);
-      user.set('email', email);
-      user.set('password', password);
-      
-      const result = await user.signUp();
-      return {
-        success: true,
-        user: {
-          id: result.id,
-          email: result.get('email'),
-          username: result.get('username')
-        }
-      };
-    }
-  } catch (error) {
-    throw new Parse.Error(Parse.Error.SCRIPT_FAILED, error.message);
-  }
-});
-
-// Portfolio Management Cloud Function
-Parse.Cloud.define('portfolioManagement', async (request) => {
-  try {
-    if (!request.user) {
-      throw new Error('User not authenticated');
+  } else if (action === 'register') {
+    // Validate password strength
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.valid) {
+      throw createValidationError(`Password validation failed: ${passwordValidation.errors.join(', ')}`);
     }
     
-    const { action, data } = request.params;
+    const user = new Parse.User();
+    user.set('username', email);
+    user.set('email', email);
+    user.set('password', password);
     
-    const Portfolio = Parse.Object.extend('Portfolio');
-    const query = new Parse.Query(Portfolio);
-    query.equalTo('userId', request.user.id);
-    
-    if (action === 'get') {
-      const portfolios = await query.find();
-      return {
-        success: true,
-        portfolios: portfolios.map(p => ({
-          id: p.id,
-          name: p.get('name'),
-          balance: p.get('balance'),
-          assets: p.get('assets'),
-          createdAt: p.createdAt
-        }))
-      };
-    } else if (action === 'create') {
-      const portfolio = new Portfolio();
-      portfolio.set('userId', request.user.id);
-      portfolio.set('name', data.name);
-      portfolio.set('balance', data.balance || 0);
-      portfolio.set('assets', data.assets || []);
-      
-      const result = await portfolio.save();
-      return {
-        success: true,
-        portfolio: {
-          id: result.id,
-          name: result.get('name'),
-          balance: result.get('balance'),
-          assets: result.get('assets')
-        }
-      };
-    }
-  } catch (error) {
-    throw new Parse.Error(Parse.Error.SCRIPT_FAILED, error.message);
-  }
-});
-
-// Risk Assessment Cloud Function
-Parse.Cloud.define('riskAssessment', async (request) => {
-  try {
-    const { portfolio, marketData } = request.params;
-    
-    // Calculate portfolio risk metrics
-    const riskMetrics = await calculateRiskMetrics(portfolio, marketData);
-    
-    // Generate risk recommendations
-    const recommendations = await generateRiskRecommendations(riskMetrics);
-    
+    const result = await user.signUp();
     return {
       success: true,
-      riskMetrics,
-      recommendations,
-      timestamp: new Date()
+      user: {
+        id: result.id,
+        email: result.get('email'),
+        username: result.get('username')
+      }
     };
-  } catch (error) {
-    throw new Parse.Error(Parse.Error.SCRIPT_FAILED, error.message);
   }
-});
+}));
+
+// Portfolio Management Cloud Function
+Parse.Cloud.define('portfolioManagement', withErrorHandling(async (request) => {
+  if (!request.user) {
+    throw createAuthenticationError('User not authenticated');
+  }
+  
+  const { action, data } = request.params;
+  
+  if (!action) {
+    throw createValidationError('Action is required');
+  }
+  
+  const Portfolio = Parse.Object.extend('Portfolio');
+  const query = new Parse.Query(Portfolio);
+  query.equalTo('userId', request.user.id);
+  
+  if (action === 'get') {
+    const portfolios = await query.find();
+    return {
+      success: true,
+      portfolios: portfolios.map(p => ({
+        id: p.id,
+        name: p.get('name'),
+        balance: p.get('balance'),
+        assets: p.get('assets'),
+        createdAt: p.createdAt
+      }))
+    };
+  } else if (action === 'create') {
+    if (!data || !data.name) {
+      throw createValidationError('Portfolio name is required');
+    }
+    
+    const portfolio = new Portfolio();
+    portfolio.set('userId', request.user.id);
+    portfolio.set('name', data.name);
+    portfolio.set('balance', data.balance || 0);
+    portfolio.set('assets', data.assets || []);
+    
+    const result = await portfolio.save();
+    return {
+      success: true,
+      portfolio: {
+        id: result.id,
+        name: result.get('name'),
+        balance: result.get('balance'),
+        assets: result.get('assets')
+      }
+    };
+  } else {
+    throw createValidationError('Invalid action. Must be "get" or "create"');
+  }
+}));
+
+// Risk Assessment Cloud Function
+Parse.Cloud.define('riskAssessment', withErrorHandling(async (request) => {
+  const { portfolio, marketData } = request.params;
+  
+  if (!portfolio) {
+    throw createValidationError('Portfolio data is required');
+  }
+  
+  if (!marketData) {
+    throw createValidationError('Market data is required');
+  }
+  
+  // Calculate portfolio risk metrics
+  const riskMetrics = await calculateRiskMetrics(portfolio, marketData);
+  
+  // Generate risk recommendations
+  const recommendations = await generateRiskRecommendations(riskMetrics);
+  
+  return {
+    success: true,
+    riskMetrics,
+    recommendations,
+    timestamp: new Date()
+  };
+}));
 
 // Get Current Price Cloud Function
 Parse.Cloud.define('getCurrentPrice', async (request) => {
@@ -1169,7 +1221,16 @@ async function simulateOrderExecution(order, currentPrice) {
   }
 }
 
-// Real order execution with exchange APIs
+/**
+ * Real order execution with unified exchange service
+ * Executes actual trades on cryptocurrency exchanges using unified API
+ * @param {Object} order - Parse Order object
+ * @param {number} currentPrice - Current market price for the trading pair
+ * @param {Object} exchangeCredentials - Exchange API credentials
+ * @param {string} exchangeCredentials.primaryExchange - Primary exchange to use
+ * @param {Object} exchangeCredentials[exchange] - Exchange-specific credentials
+ * @returns {Promise<Object>} Order execution result
+ */
 async function executeRealOrder(order, currentPrice, exchangeCredentials) {
   try {
     const exchange = exchangeCredentials.primaryExchange || 'binance';
@@ -1177,93 +1238,70 @@ async function executeRealOrder(order, currentPrice, exchangeCredentials) {
     const side = order.get('action');
     const quantity = order.get('amount');
     
-    // Prepare order data based on exchange
-    let orderData;
-    let apiUrl;
-    let headers;
-    
-    switch (exchange) {
-      case 'binance':
-        apiUrl = `${BINANCE_API_URL}/order`;
-        orderData = {
-          symbol: symbol.replace('/', ''),
-          side: side,
-          type: 'MARKET',
-          quantity: quantity.toString(),
-          timestamp: Date.now()
-        };
-        headers = {
-          'X-MBX-APIKEY': exchangeCredentials.binance?.apiKey || '',
-          'Content-Type': 'application/json'
-        };
-        break;
-        
-      case 'wazirx':
-        apiUrl = 'https://api.wazirx.com/api/v2/orders';
-        orderData = {
-          market: symbol.replace('/', '').toLowerCase(),
-          side: side.toLowerCase(),
-          order_type: 'market',
-          quantity: quantity.toString()
-        };
-        headers = {
-          'X-Api-Key': exchangeCredentials.wazirx?.apiKey || '',
-          'Content-Type': 'application/json'
-        };
-        break;
-        
-      case 'coindcx':
-        apiUrl = 'https://api.coindcx.com/exchange/v1/orders/create';
-        orderData = {
-          market: symbol.replace('/', '').toUpperCase(),
-          side: side.toLowerCase(),
-          order_type: 'market_order',
-          quantity: quantity.toString()
-        };
-        headers = {
-          'X-AUTH-APIKEY': exchangeCredentials.coindcx?.apiKey || '',
-          'Content-Type': 'application/json'
-        };
-        break;
-        
-      default:
-        throw new Error(`Unsupported exchange: ${exchange}`);
+    // Validate credentials
+    const credentials = exchangeCredentials[exchange];
+    if (!credentials) {
+      throw new Error(`No credentials found for exchange: ${exchange}`);
     }
     
-    // Make API call to exchange
-    const response = await makeHttpRequest('POST', apiUrl, orderData, headers);
+    const validation = validateCredentials(exchange, credentials);
+    if (!validation.valid) {
+      throw new Error(`Invalid credentials: ${validation.errors.join(', ')}`);
+    }
     
-    if (response && response.orderId) {
-      // Order created successfully
-      order.set('status', 'executed');
-      order.set('executionPrice', currentPrice.price);
-      order.set('executedAt', new Date());
-      order.set('exchangeOrderId', response.orderId);
-      order.set('exchangeUsed', exchange);
+    // Create exchange service
+    const exchangeService = createExchangeService(exchange, credentials);
+    
+    // Test connection first
+    const connected = await exchangeService.testConnection();
+    if (!connected) {
+      throw new Error(`Failed to connect to ${exchange}`);
+    }
+    
+    // Prepare order data
+    const orderData = {
+      symbol: symbol,
+      side: side,
+      quantity: quantity
+    };
+    
+    // Execute market order
+    const response = await exchangeService.placeMarketOrder(orderData);
+    
+    if (response && (response.orderId || response.id)) {
+      const orderId = response.orderId || response.id;
+      
+      // Update order with exchange response
+      order.set('exchangeOrderId', orderId);
+      order.set('status', 'FILLED');
+      order.set('filledPrice', currentPrice);
+      order.set('filledAt', new Date());
       await order.save();
       
+      // Record successful trade
+      recordTrading(symbol, 'real_trading', side, quantity, true, 0);
+      
       return {
-        status: 'executed',
-        price: currentPrice.price,
-        amount: quantity,
-        fees: quantity * currentPrice.price * 0.001, // 0.1% fee
-        totalValue: quantity * currentPrice.price,
-        exchangeOrderId: response.orderId,
-        exchangeUsed: exchange
+        success: true,
+        orderId: orderId,
+        status: 'FILLED',
+        filledPrice: currentPrice,
+        message: 'Order executed successfully',
+        exchange: exchange
       };
     } else {
-      throw new Error('Failed to create order on exchange');
+      throw new Error('Invalid response from exchange');
     }
-    
   } catch (error) {
-    console.error('Error executing real order:', error);
+    // Record failed trade
+    recordTrading(order.get('pair'), 'real_trading', order.get('action'), order.get('amount'), false, 0);
     
-    // Update order as failed
-    order.set('status', 'failed');
-    order.set('failureReason', error.message);
+    // Update order status
+    order.set('status', 'FAILED');
+    order.set('error', error.message);
     await order.save();
     
-    throw new Error(`Real order execution failed: ${error.message}`);
+    throw error;
   }
 }
 
