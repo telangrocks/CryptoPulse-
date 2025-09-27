@@ -88,7 +88,7 @@ export const getCurrentSession = async (): Promise<SessionData | null> => {
     
     return session;
   } catch (error) {
-    logError('Failed to get current session:', error);
+      logError('Failed to get current session:', 'Session', error);
     return null;
   }
 };
@@ -113,7 +113,7 @@ export const updateSessionActivity = async (sessionData?: Partial<SessionData>):
       ttl: DEFAULT_OPTIONS.maxSessionTime 
     });
   } catch (error) {
-    logError('Failed to update session activity:', error);
+      logError('Failed to update session activity:', 'Session', error);
   }
 };
 
@@ -137,7 +137,7 @@ export const refreshSessionToken = async (newToken: string): Promise<void> => {
       ttl: DEFAULT_OPTIONS.maxSessionTime 
     });
   } catch (error) {
-    logError('Failed to refresh session token:', error);
+      logError('Failed to refresh session token:', 'Session', error);
   }
 };
 
@@ -149,7 +149,7 @@ export const clearSession = async (): Promise<void> => {
     await removeSecureItem('cryptopulse_session');
     stopSessionMonitoring();
   } catch (error) {
-    logError('Failed to clear session:', error);
+      logError('Failed to clear session:', 'Session', error);
   }
 };
 
@@ -167,7 +167,7 @@ export const needsRefresh = async (): Promise<boolean> => {
     
     return timeUntilExpiry < DEFAULT_OPTIONS.refreshThreshold;
   } catch (error) {
-    logError('Failed to check if session needs refresh:', error);
+      logError('Failed to check if session needs refresh:', 'Session', error);
     return false;
   }
 };
@@ -207,7 +207,7 @@ export const getSessionStatus = async (): Promise<{
       idleTime
     };
   } catch (error) {
-    logError('Failed to get session status:', error);
+      logError('Failed to get session status:', 'Session', error);
     return {
       isValid: false,
       isExpired: true,

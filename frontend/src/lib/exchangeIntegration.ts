@@ -42,6 +42,10 @@ export interface OrderResponse {
   price: number;
   status: 'NEW' | 'FILLED' | 'PARTIALLY_FILLED' | 'CANCELED' | 'REJECTED';
   timestamp: number;
+  filledQuantity: number;
+  remainingQuantity: number;
+  averagePrice: number;
+  exchange: string;
   fills?: Array<{
     price: number;
     quantity: number;
@@ -131,7 +135,7 @@ class ExchangeIntegration {
         symbol: response.symbol,
         price: parseFloat(response.lastPrice),
         volume: parseFloat(response.volume),
-        change24h: parseFloat(response.priceChangePercent),
+        change: parseFloat(response.priceChangePercent),
         high24h: parseFloat(response.highPrice),
         low24h: parseFloat(response.lowPrice),
         timestamp: response.closeTime
@@ -172,6 +176,10 @@ class ExchangeIntegration {
         price: parseFloat(response.price || response.fills?.[0]?.price || 0),
         status: response.status,
         timestamp: response.transactTime,
+        filledQuantity: parseFloat(response.executedQty || '0'),
+        remainingQuantity: parseFloat(response.origQty) - parseFloat(response.executedQty || '0'),
+        averagePrice: parseFloat(response.price || response.fills?.[0]?.price || 0),
+        exchange: 'binance',
         fills: response.fills?.map((fill: any) => ({
           price: parseFloat(fill.price),
           quantity: parseFloat(fill.qty),
@@ -223,7 +231,11 @@ class ExchangeIntegration {
         quantity: parseFloat(response.origQty),
         price: parseFloat(response.price),
         status: response.status,
-        timestamp: response.transactTime
+        timestamp: response.transactTime,
+        filledQuantity: parseFloat(response.executedQty || '0'),
+        remainingQuantity: parseFloat(response.origQty) - parseFloat(response.executedQty || '0'),
+        averagePrice: parseFloat(response.price),
+        exchange: 'binance'
       };
 
       logInfo(`Limit order placed successfully: ${orderResponse.orderId}`, 'Exchange');
@@ -270,7 +282,11 @@ class ExchangeIntegration {
         quantity: parseFloat(response.origQty),
         price: parseFloat(response.price),
         status: response.status,
-        timestamp: response.transactTime
+        timestamp: response.transactTime,
+        filledQuantity: parseFloat(response.executedQty || '0'),
+        remainingQuantity: parseFloat(response.origQty) - parseFloat(response.executedQty || '0'),
+        averagePrice: parseFloat(response.price),
+        exchange: 'binance'
       };
 
       logInfo(`Stop loss order placed successfully: ${orderResponse.orderId}`, 'Exchange');

@@ -410,7 +410,7 @@ export async function runSecurityTests(): Promise<SecurityTestResult[]> {
     const testKey = 'security_test_storage'
     const testValue = 'test_value_' + Date.now()
     secureStorage.setItem(testKey, testValue)
-    const retrieved = secureStorage.getItem(testKey)
+    const retrieved = await secureStorage.getItem(testKey)
     const isWorking = retrieved === testValue
     secureStorage.removeItem(testKey)
     

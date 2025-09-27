@@ -81,7 +81,7 @@ class BrowserCompatibilityChecker {
   private checkModuleSupport(): boolean {
     try {
       // Test ES6 module support
-      return typeof import !== 'undefined';
+      return typeof (globalThis as any).import !== 'undefined';
     } catch {
       return false;
     }

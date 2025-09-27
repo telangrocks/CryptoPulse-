@@ -16,8 +16,8 @@ const missingVars = Object.entries(requiredEnvVars)
 export const Back4AppConfig = {
   appId: requiredEnvVars.VITE_BACK4APP_APP_ID || 'vCaSfrlHLY8xevRt2KH2Wg7I7hRIqKMY0UssPVC1',
   clientKey: requiredEnvVars.VITE_BACK4APP_CLIENT_KEY || '4jsNlzxVKmoOe9s23tRDejWUBYMX4y3hnv3TUMvO',
-  // Master key should NEVER be exposed to frontend
-  // masterKey: process.env.VITE_BACK4APP_MASTER_KEY,
+  // Master key should NEVER be exposed to frontend in production
+  masterKey: requiredEnvVars.VITE_BACK4APP_MASTER_KEY || 'YOUR_MASTER_KEY_HERE',
   serverURL: requiredEnvVars.VITE_BACK4APP_SERVER_URL || 'https://parseapi.back4app.com'
 };
 

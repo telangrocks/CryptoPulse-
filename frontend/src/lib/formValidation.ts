@@ -2,6 +2,7 @@
  * Advanced form validation system with real-time validation
  */
 
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { z } from 'zod'
 
 // Common validation schemas
@@ -99,6 +100,7 @@ export class FormValidator {
 
         return {
           success: true,
+          errors: [],
           data: result.data
         }
       } else {
@@ -127,7 +129,7 @@ export class FormValidator {
 
   validateField(field: string, value: any): ValidationError | null {
     try {
-      const fieldSchema = this.schema.shape[field]
+      const fieldSchema = (this.schema as any).shape?.[field]
       if (!fieldSchema) return null
 
       const result = fieldSchema.safeParse(value)
@@ -274,7 +276,7 @@ export function ValidationField({
     onValidate(field, value)
   }, [field, value, onValidate])
 
-  return <>{children}</>
+  return React.createElement(React.Fragment, null, children);
 }
 
 // Common validation rules

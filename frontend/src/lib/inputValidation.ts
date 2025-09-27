@@ -192,7 +192,7 @@ export function validateRateLimit(
 // SQL injection prevention
 export function sanitizeForDatabase(input: string): string {
   return sanitizeString(input)
-    .replace(/[';--]/g, '') // Remove SQL injection patterns
+    .replace(/[';\-]/g, '') // Remove SQL injection patterns
     .replace(/union\s+select/gi, '') // Remove union select
     .replace(/drop\s+table/gi, '') // Remove drop table
     .replace(/delete\s+from/gi, ''); // Remove delete from

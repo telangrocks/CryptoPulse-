@@ -25,7 +25,7 @@ class PerformanceMonitor {
           if (entry.entryType === 'navigation') {
             this.recordMetric({
               name: 'page_load_time',
-              value: entry.loadEventEnd - entry.loadEventStart,
+              value: (entry as PerformanceNavigationTiming).loadEventEnd - (entry as PerformanceNavigationTiming).loadEventStart,
               timestamp: Date.now(),
               type: 'navigation'
             })
@@ -115,8 +115,8 @@ class PerformanceMonitor {
   private sendToAnalytics(metric: PerformanceMetric) {
     // In production, send to your analytics service
     // Example: Google Analytics, Mixpanel, etc.
-    if (typeof gtag !== 'undefined') {
-      gtag('event', 'performance_metric', {
+    if (typeof (window as any).gtag !== 'undefined') {
+      (window as any).gtag('event', 'performance_metric', {
         metric_name: metric.name,
         metric_value: metric.value,
         metric_type: metric.type

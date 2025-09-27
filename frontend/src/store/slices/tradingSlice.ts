@@ -57,7 +57,7 @@ const initialState: TradingState = {
 // Async thunks
 export const executeTrade = createAsyncThunk(
   'trading/executeTrade',
-  async (tradeData: Omit<Trade, 'id' | 'timestamp' | 'status'>, { rejectWithValue }) => {
+  async (tradeData: Omit<Trade, 'id' | 'timestamp' | 'status'>, { rejectWithValue }: any) => {
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 2000))
@@ -78,7 +78,7 @@ export const executeTrade = createAsyncThunk(
 
 export const cancelOrder = createAsyncThunk(
   'trading/cancelOrder',
-  async (orderId: string, { rejectWithValue }) => {
+  async (orderId: string, { rejectWithValue }: any) => {
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000))
@@ -91,7 +91,7 @@ export const cancelOrder = createAsyncThunk(
 
 export const fetchTrades = createAsyncThunk(
   'trading/fetchTrades',
-  async (_, { rejectWithValue }) => {
+  async (_: any, { rejectWithValue }: any) => {
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000))
@@ -133,7 +133,7 @@ export const fetchTrades = createAsyncThunk(
 
 export const fetchPositions = createAsyncThunk(
   'trading/fetchPositions',
-  async (_, { rejectWithValue }) => {
+  async (_: any, { rejectWithValue }: any) => {
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000))
@@ -164,92 +164,92 @@ const tradingSlice = createSlice({
   name: 'trading',
   initialState,
   reducers: {
-    setSelectedSymbol: (state, action: PayloadAction<string>) => {
+    setSelectedSymbol: (state: any, action: PayloadAction<string>) => {
       state.selectedSymbol = action.payload
     },
-    setTradingEnabled: (state, action: PayloadAction<boolean>) => {
+    setTradingEnabled: (state: any, action: PayloadAction<boolean>) => {
       state.tradingEnabled = action.payload
     },
-    setRiskLevel: (state, action: PayloadAction<'LOW' | 'MEDIUM' | 'HIGH'>) => {
+    setRiskLevel: (state: any, action: PayloadAction<'LOW' | 'MEDIUM' | 'HIGH'>) => {
       state.riskLevel = action.payload
     },
-    setMaxPositions: (state, action: PayloadAction<number>) => {
+    setMaxPositions: (state: any, action: PayloadAction<number>) => {
       state.maxPositions = action.payload
     },
-    setStopLoss: (state, action: PayloadAction<number>) => {
+    setStopLoss: (state: any, action: PayloadAction<number>) => {
       state.stopLoss = action.payload
     },
-    setTakeProfit: (state, action: PayloadAction<number>) => {
+    setTakeProfit: (state: any, action: PayloadAction<number>) => {
       state.takeProfit = action.payload
     },
-    clearError: (state) => {
+    clearError: (state: any) => {
       state.error = null
     },
-    addTrade: (state, action: PayloadAction<Trade>) => {
+    addTrade: (state: any, action: PayloadAction<Trade>) => {
       state.trades.unshift(action.payload)
     },
-    updateTrade: (state, action: PayloadAction<{ id: string; updates: Partial<Trade> }>) => {
-      const index = state.trades.findIndex(trade => trade.id === action.payload.id)
+    updateTrade: (state: any, action: PayloadAction<{ id: string; updates: Partial<Trade> }>) => {
+      const index = state.trades.findIndex((trade: any) => trade.id === action.payload.id)
       if (index !== -1) {
         state.trades[index] = { ...state.trades[index], ...action.payload.updates }
       }
     },
-    removeTrade: (state, action: PayloadAction<string>) => {
-      state.trades = state.trades.filter(trade => trade.id !== action.payload)
+    removeTrade: (state: any, action: PayloadAction<string>) => {
+      state.trades = state.trades.filter((trade: any) => trade.id !== action.payload)
     },
-    updatePosition: (state, action: PayloadAction<{ symbol: string; updates: Partial<Position> }>) => {
-      const index = state.positions.findIndex(pos => pos.symbol === action.payload.symbol)
+    updatePosition: (state: any, action: PayloadAction<{ symbol: string; updates: Partial<Position> }>) => {
+      const index = state.positions.findIndex((pos: any) => pos.symbol === action.payload.symbol)
       if (index !== -1) {
         state.positions[index] = { ...state.positions[index], ...action.payload.updates }
       }
     }
   },
-  extraReducers: (builder) => {
+  extraReducers: (builder: any) => {
     builder
       // Execute trade
-      .addCase(executeTrade.pending, (state) => {
+      .addCase(executeTrade.pending, (state: any) => {
         state.isLoading = true
         state.error = null
       })
-      .addCase(executeTrade.fulfilled, (state, action) => {
+      .addCase(executeTrade.fulfilled, (state: any, action: any) => {
         state.isLoading = false
         state.trades.unshift(action.payload)
       })
-      .addCase(executeTrade.rejected, (state, action) => {
+      .addCase(executeTrade.rejected, (state: any, action: any) => {
         state.isLoading = false
         state.error = action.payload as string
       })
       
       // Cancel order
-      .addCase(cancelOrder.fulfilled, (state, action) => {
-        state.activeOrders = state.activeOrders.filter(order => order.id !== action.payload)
+      .addCase(cancelOrder.fulfilled, (state: any, action: any) => {
+        state.activeOrders = state.activeOrders.filter((order: any) => order.id !== action.payload)
       })
-      .addCase(cancelOrder.rejected, (state, action) => {
+      .addCase(cancelOrder.rejected, (state: any, action: any) => {
         state.error = action.payload as string
       })
       
       // Fetch trades
-      .addCase(fetchTrades.pending, (state) => {
+      .addCase(fetchTrades.pending, (state: any) => {
         state.isLoading = true
       })
-      .addCase(fetchTrades.fulfilled, (state, action) => {
+      .addCase(fetchTrades.fulfilled, (state: any, action: any) => {
         state.isLoading = false
         state.trades = action.payload
       })
-      .addCase(fetchTrades.rejected, (state, action) => {
+      .addCase(fetchTrades.rejected, (state: any, action: any) => {
         state.isLoading = false
         state.error = action.payload as string
       })
       
       // Fetch positions
-      .addCase(fetchPositions.pending, (state) => {
+      .addCase(fetchPositions.pending, (state: any) => {
         state.isLoading = true
       })
-      .addCase(fetchPositions.fulfilled, (state, action) => {
+      .addCase(fetchPositions.fulfilled, (state: any, action: any) => {
         state.isLoading = false
         state.positions = action.payload
       })
-      .addCase(fetchPositions.rejected, (state, action) => {
+      .addCase(fetchPositions.rejected, (state: any, action: any) => {
         state.isLoading = false
         state.error = action.payload as string
       })

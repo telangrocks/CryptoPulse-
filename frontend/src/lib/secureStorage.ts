@@ -44,7 +44,7 @@ export const setSecureItem = async (
     
     localStorage.setItem(key, storedData);
   } catch (error) {
-    logError('Failed to store secure item:', error);
+    logError('Failed to store secure item:', 'Storage', error);
     throw new Error('Failed to store data securely');
   }
 };
@@ -91,7 +91,7 @@ export const getSecureItem = async (
     
     return JSON.parse(decryptedData);
   } catch (error) {
-    logError('Failed to retrieve secure item:', error);
+    logError('Failed to retrieve secure item:', 'Storage', error);
     return null;
   }
 };

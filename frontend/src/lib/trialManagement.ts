@@ -145,11 +145,11 @@ class TrialManagementService {
             trialStartDate: new Date(parsed.trialStartDate),
             trialEndDate: new Date(parsed.trialEndDate)
           }
-          this.trialUsers.set(normalizedEmail, trialInfo)
+          this.trialUsers.set(normalizedEmail, trialInfo!)
         }
       }
       
-      return trialInfo
+      return trialInfo || null
     } catch (error) {
       logError('Failed to get trial info', 'TrialManagementService', error)
       return null

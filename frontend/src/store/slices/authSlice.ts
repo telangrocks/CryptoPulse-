@@ -34,7 +34,7 @@ const initialState: AuthState = {
 // Async thunks
 export const loginUser = createAsyncThunk(
   'auth/loginUser',
-  async (credentials: { username: string; password: string }, { rejectWithValue }) => {
+  async (credentials: { username: string; password: string }, { rejectWithValue }: any) => {
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000))
@@ -63,7 +63,7 @@ export const loginUser = createAsyncThunk(
 
 export const logoutUser = createAsyncThunk(
   'auth/logoutUser',
-  async (_, { rejectWithValue }) => {
+  async (_: any, { rejectWithValue }: any) => {
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 500))
@@ -76,7 +76,7 @@ export const logoutUser = createAsyncThunk(
 
 export const registerUser = createAsyncThunk(
   'auth/registerUser',
-  async (userData: { username: string; email: string; password: string }, { rejectWithValue }) => {
+  async (userData: { username: string; email: string; password: string }, { rejectWithValue }: any) => {
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000))
@@ -104,7 +104,7 @@ export const registerUser = createAsyncThunk(
 
 export const refreshToken = createAsyncThunk(
   'auth/refreshToken',
-  async (_, { rejectWithValue }) => {
+  async (_: any, { rejectWithValue }: any) => {
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 500))
@@ -119,77 +119,77 @@ const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    clearError: (state) => {
+    clearError: (state: any) => {
       state.error = null
     },
-    setSessionExpiry: (state, action: PayloadAction<number>) => {
+    setSessionExpiry: (state: any, action: PayloadAction<number>) => {
       state.sessionExpiry = action.payload
     },
-    updateUser: (state, action: PayloadAction<Partial<User>>) => {
+    updateUser: (state: any, action: PayloadAction<Partial<User>>) => {
       if (state.user) {
         state.user = { ...state.user, ...action.payload }
       }
     },
-    setLoading: (state, action: PayloadAction<boolean>) => {
+    setLoading: (state: any, action: PayloadAction<boolean>) => {
       state.isLoading = action.payload
     }
   },
-  extraReducers: (builder) => {
+  extraReducers: (builder: any) => {
     builder
       // Login
-      .addCase(loginUser.pending, (state) => {
+      .addCase(loginUser.pending, (state: any) => {
         state.isLoading = true
         state.error = null
       })
-      .addCase(loginUser.fulfilled, (state, action) => {
+      .addCase(loginUser.fulfilled, (state: any, action: any) => {
         state.isLoading = false
         state.user = action.payload
         state.isAuthenticated = true
         state.sessionExpiry = Date.now() + 30 * 60 * 1000 // 30 minutes
       })
-      .addCase(loginUser.rejected, (state, action) => {
+      .addCase(loginUser.rejected, (state: any, action: any) => {
         state.isLoading = false
         state.error = action.payload as string
         state.isAuthenticated = false
       })
       
       // Logout
-      .addCase(logoutUser.pending, (state) => {
+      .addCase(logoutUser.pending, (state: any) => {
         state.isLoading = true
       })
-      .addCase(logoutUser.fulfilled, (state) => {
+      .addCase(logoutUser.fulfilled, (state: any) => {
         state.isLoading = false
         state.user = null
         state.isAuthenticated = false
         state.sessionExpiry = null
       })
-      .addCase(logoutUser.rejected, (state, action) => {
+      .addCase(logoutUser.rejected, (state: any, action: any) => {
         state.isLoading = false
         state.error = action.payload as string
       })
       
       // Register
-      .addCase(registerUser.pending, (state) => {
+      .addCase(registerUser.pending, (state: any) => {
         state.isLoading = true
         state.error = null
       })
-      .addCase(registerUser.fulfilled, (state, action) => {
+      .addCase(registerUser.fulfilled, (state: any, action: any) => {
         state.isLoading = false
         state.user = action.payload
         state.isAuthenticated = true
         state.sessionExpiry = Date.now() + 30 * 60 * 1000 // 30 minutes
       })
-      .addCase(registerUser.rejected, (state, action) => {
+      .addCase(registerUser.rejected, (state: any, action: any) => {
         state.isLoading = false
         state.error = action.payload as string
         state.isAuthenticated = false
       })
       
       // Refresh token
-      .addCase(refreshToken.fulfilled, (state) => {
+      .addCase(refreshToken.fulfilled, (state: any) => {
         state.sessionExpiry = Date.now() + 30 * 60 * 1000 // 30 minutes
       })
-      .addCase(refreshToken.rejected, (state) => {
+      .addCase(refreshToken.rejected, (state: any) => {
         state.isAuthenticated = false
         state.user = null
         state.sessionExpiry = null

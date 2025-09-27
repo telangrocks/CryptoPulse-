@@ -14,19 +14,19 @@ async function makeRequest(url: string, options: RequestInit): Promise<any> {
     
     // Add CSRF protection to headers
     const headers = addCSRFTokenToHeaders(options.headers as Record<string, string>);
-    logInfo('Request headers:', headers);
+    logInfo('Request headers:', 'HTTP', headers);
     
     const response = await fetch(url, {
       ...options,
       headers
     });
     
-    logInfo('Response status:', response.status);
-    logInfo('Response headers:', Object.fromEntries(response.headers.entries()));
+    logInfo('Response status:', 'HTTP', response.status.toString());
+    logInfo('Response headers:', 'HTTP', Object.fromEntries(response.headers.entries()));
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      logError('Request failed:', {
+      logError('Request failed:', 'HTTP', {
         status: response.status,
         statusText: response.statusText,
         error: errorData
@@ -38,7 +38,7 @@ async function makeRequest(url: string, options: RequestInit): Promise<any> {
     logInfo('Request successful:', data);
     return data;
   } catch (error) {
-    logError('HTTP request error:', error);
+    logError('HTTP request error:', 'HTTP', error);
     throw error;
   }
 }
@@ -74,7 +74,7 @@ export class ParseUser {
 
       return this.currentUser;
     } catch (error) {
-      logError('Login error:', error);
+      logError('Login error:', 'Auth', error);
       throw error;
     }
   }
@@ -109,7 +109,7 @@ export class ParseUser {
 
       return this.currentUser;
     } catch (error) {
-      logError('Signup error:', error);
+      logError('Signup error:', 'Auth', error);
       throw error;
     }
   }
@@ -130,7 +130,7 @@ export class ParseUser {
         });
       }
     } catch (error) {
-      logError('Logout error:', error);
+      logError('Logout error:', 'Auth', error);
     } finally {
       this.currentUser = null;
       localStorage.removeItem('parse_user');
@@ -150,7 +150,7 @@ export class ParseUser {
         this.currentUser = JSON.parse(storedUser);
         return this.currentUser;
       } catch (error) {
-        logError('Failed to parse stored user:', error);
+        logError('Failed to parse stored user:', 'Auth', error);
         localStorage.removeItem('parse_user');
         localStorage.removeItem('parse_session');
       }
@@ -194,7 +194,7 @@ export class ParseCloud {
 
       return response.result || response;
     } catch (error) {
-      logError(`Parse Cloud function ${functionName} error:`, error);
+      logError(`Parse Cloud function ${functionName} error:`, 'API', error);
       throw error;
     }
   }
