@@ -55,7 +55,7 @@ global.testUtils = {
     user: null,
     ...overrides
   }),
-  
+
   createMockResponse: () => {
     const res = {};
     res.status = jest.fn().mockReturnValue(res);
@@ -65,7 +65,7 @@ global.testUtils = {
     res.clearCookie = jest.fn().mockReturnValue(res);
     return res;
   },
-  
+
   createMockNext: () => jest.fn()
 };
 
