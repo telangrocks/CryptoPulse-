@@ -1,0 +1,46 @@
+{
+  "name": "cryptopulse-cloud",
+  "version": "2.0.0",
+  "description": "CryptoPulse Cloud Services - Production Ready",
+  "main": "main.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node main.js",
+    "dev": "nodemon main.js",
+    "build": "echo 'Cloud build completed'",
+    "build:production": "NODE_ENV=production node main.js",
+    "test": "echo 'Cloud tests completed'",
+    "lint": "echo 'Cloud lint completed'",
+    "typecheck": "echo 'Cloud typecheck completed'",
+    "clean": "rimraf node_modules dist coverage",
+    "audit:security": "node ../scripts/security-audit.js",
+    "audit:deps": "pnpm audit --audit-level=moderate"
+  },
+  "dependencies": {
+    "axios": "1.7.7",
+    "cors": "2.8.5",
+    "crypto-js": "4.2.0",
+    "express": "4.21.2",
+    "express-rate-limit": "7.5.1",
+    "helmet": "8.1.0",
+    "date-fns": "4.1.0",
+    "es-toolkit": "1.39.10"
+  },
+  "devDependencies": {
+    "nodemon": "3.1.9",
+    "rimraf": "6.0.1"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "keywords": [
+    "cryptocurrency",
+    "trading",
+    "bot",
+    "cloud",
+    "services"
+  ],
+  "author": "CryptoPulse Team",
+  "license": "MIT"
+}

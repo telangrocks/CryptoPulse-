@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <!-- Security Headers -->
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <meta http-equiv="X-Frame-Options" content="DENY" />
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block" />
+    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
+    <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=()" />
+    
+    <!-- Content Security Policy - Production Hardened -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'nonce-{NONCE}'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https: blob:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://api.binance.com https://api.wazirx.com https://api.coindcx.com https://api.coingecko.com wss:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; media-src 'self'; worker-src 'self' blob:; child-src 'self' blob:;" />
+    
+    <!-- Primary Meta Tags -->
+    <title>CryptoPulse - AI-Powered Trading Bot | Professional Cryptocurrency Trading Platform</title>
+    <meta name="title" content="CryptoPulse - AI-Powered Trading Bot | Professional Cryptocurrency Trading Platform" />
+    <meta name="description" content="Advanced AI-powered cryptocurrency trading bot with real-time market analysis, automated trading strategies, and comprehensive risk management. Built with cutting-edge technology for professional traders." />
+    <meta name="keywords" content="cryptocurrency trading, AI trading bot, crypto bot, trading automation, bitcoin trading, ethereum trading, trading strategies, risk management, market analysis" />
+    <meta name="author" content="Shrikant Telang" />
+    <meta name="robots" content="index, follow" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://telangrocks.github.io/CryptoPulse-Trading-Bot/" />
+    <meta property="og:title" content="CryptoPulse - AI-Powered Trading Bot" />
+    <meta property="og:description" content="Advanced AI-powered cryptocurrency trading bot with real-time market analysis and automated trading strategies." />
+    <meta property="og:image" content="https://telangrocks.github.io/CryptoPulse-Trading-Bot/og-image.png" />
+    <meta property="og:site_name" content="CryptoPulse Trading Bot" />
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://telangrocks.github.io/CryptoPulse-Trading-Bot/" />
+    <meta property="twitter:title" content="CryptoPulse - AI-Powered Trading Bot" />
+    <meta property="twitter:description" content="Advanced AI-powered cryptocurrency trading bot with real-time market analysis and automated trading strategies." />
+    <meta property="twitter:image" content="https://telangrocks.github.io/CryptoPulse-Trading-Bot/og-image.png" />
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#3b82f6" />
+    <meta name="msapplication-TileColor" content="#3b82f6" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="CryptoPulse" />
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+    
+    <!-- Apple Touch Icons -->
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/icon-192.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icon-192.png" />
+    <link rel="apple-touch-icon" sizes="167x167" href="/icon-192.png" />
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon.ico" />
+    
+    <!-- Microsoft Tiles -->
+    <meta name="msapplication-TileImage" content="/icon-192.png" />
+    <meta name="msapplication-config" content="/browserconfig.xml" />
+    
+    <!-- Preconnect to external domains for performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    
+    <!-- Structured Data for SEO -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "CryptoPulse Trading Bot",
+      "description": "AI-powered cryptocurrency trading bot with advanced market analysis and automated trading strategies",
+      "url": "https://telangrocks.github.io/CryptoPulse-Trading-Bot/",
+      "applicationCategory": "FinanceApplication",
+      "operatingSystem": "Web Browser",
+      "author": {
+        "@type": "Person",
+        "name": "Shrikant Telang"
+      },
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "featureList": [
+        "AI-Powered Trading",
+        "Real-time Market Analysis",
+        "Automated Trading Strategies",
+        "Risk Management",
+        "Performance Analytics",
+        "Multi-Exchange Support"
+      ]
+    }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    
+    <!-- Service Worker Registration -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then((registration) => {
+              console.log('SW registered: ', registration);
+              
+              // Check for updates
+              registration.addEventListener('updatefound', () => {
+                const newWorker = registration.installing;
+                if (newWorker) {
+                  newWorker.addEventListener('statechange', () => {
+                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                      // New content is available, notify user
+                      if (confirm('New version available! Reload to update?')) {
+                        window.location.reload();
+                      }
+                    }
+                  });
+                }
+              });
+            })
+            .catch((registrationError) => {
+              console.log('SW registration failed: ', registrationError);
+            });
+        });
+      }
+    </script>
+  </body>
+</html>

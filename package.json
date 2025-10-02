@@ -1,0 +1,69 @@
+{
+  "name": "cryptopulse-monorepo",
+  "private": true,
+  "version": "2.0.0",
+  "description": "CryptoPulse Trading Bot - World-Class Monorepo with Zero-Pain Setup",
+  "author": "CryptoPulse Team",
+  "license": "MIT",
+  "packageManager": "pnpm@10.18.0",
+  "scripts": {
+    "setup": "node setup.js",
+    "setup:dev": "pnpm install",
+    "setup:clean": "node setup.js",
+    "build:all": "pnpm -r build",
+    "test:all": "pnpm -r test",
+    "lint:all": "pnpm -r lint",
+    "start:backend": "pnpm --filter backend start",
+    "start:frontend": "pnpm --filter frontend dev",
+    "start:cloud": "pnpm --filter cloud start",
+    "dev:backend": "pnpm --filter backend dev",
+    "dev:frontend": "pnpm --filter frontend dev",
+    "dev:all": "concurrently \"pnpm dev:backend\" \"pnpm dev:frontend\"",
+    "build:backend": "pnpm --filter backend build",
+    "build:frontend": "pnpm --filter frontend build",
+    "build:production": "pnpm -r --filter=\"!cloud\" build:production",
+    "test:backend": "pnpm --filter backend test",
+    "test:frontend": "pnpm --filter frontend test",
+    "lint:backend": "pnpm --filter backend lint",
+    "lint:frontend": "pnpm --filter frontend lint",
+    "typecheck:all": "pnpm -r typecheck",
+    "audit:security": "pnpm audit --audit-level moderate",
+    "audit:deps": "pnpm audit",
+    "audit:full": "pnpm audit && pnpm -r audit:security",
+    "clean": "pnpm -r clean && rimraf node_modules .pnpm-store",
+    "clean:install": "pnpm clean && pnpm install",
+    "update:deps": "pnpm update -r --latest",
+    "precommit": "pnpm lint:all && pnpm typecheck:all && pnpm test:all",
+    "production:check": "pnpm audit:full && pnpm test:all && pnpm build:production",
+    "deploy:all": "bash scripts/deploy-northflank.sh",
+    "deploy:backend": "bash scripts/deploy-northflank.sh backend",
+    "deploy:frontend": "bash scripts/deploy-northflank.sh frontend",
+    "migration:verify": "node migration-complete.js"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "concurrently": "^9.1.0",
+    "cross-env": "^7.0.3",
+    "eslint": "^9.17.0",
+    "pnpm": "^10.18.0",
+    "prettier": "^3.3.3",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/telangrocks/CryptoPulse-Trading-Bot.git"
+  },
+  "keywords": [
+    "cryptocurrency",
+    "trading",
+    "bot",
+    "ai",
+    "monorepo",
+    "production-ready"
+  ]
+}

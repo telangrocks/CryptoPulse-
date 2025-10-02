@@ -1,0 +1,32 @@
+packages:
+  - 'backend'
+  - 'frontend'
+  - 'cloud'
+
+# Shared configuration for all workspace packages
+shared-workspace-lockfile: true
+
+# Use the same node_modules structure across all packages
+hoist-pattern:
+  - '*'
+
+# Don't hoist these packages to avoid version conflicts
+public-hoist-pattern:
+  - '@types/*'
+  - 'eslint*'
+  - 'typescript'
+
+# Enable automatic peer dependency installation
+auto-install-peers: true
+
+# Prefer workspace packages over external ones
+prefer-workspace-packages: true
+
+# Enable strict peer dependencies
+strict-peer-dependencies: true
+
+# Save exact versions instead of ranges
+save-exact: false
+
+# Enable workspace protocol for internal dependencies
+enable-pre-post-scripts: true

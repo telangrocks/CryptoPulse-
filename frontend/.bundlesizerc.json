@@ -1,0 +1,19 @@
+{
+  "files": [
+    {
+      "path": "./dist/**/*.js",
+      "maxSize": "500 kB",
+      "compression": "gzip"
+    },
+    {
+      "path": "./dist/**/*.css",
+      "maxSize": "100 kB",
+      "compression": "gzip"
+    }
+  ],
+  "ci": {
+    "trackBranches": ["main", "master", "production"],
+    "repoBranchBase": "main"
+  }
+}
+
