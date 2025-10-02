@@ -320,6 +320,7 @@ trading-history/
 
 # pnpm
 .pnpm-store/
+.pnpm-cache/
 
 # =============================================================================
 # MISCELLANEOUS
