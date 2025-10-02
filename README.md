@@ -1,4 +1,5 @@
 # 🚀 CryptoPulse Trading Bot - Production Ready
+<!-- Triggering workflow for production readiness check -->
 
 <div align="center">
 
