@@ -32,7 +32,13 @@
     "audit:full": "pnpm audit && pnpm -r audit:security",
     "clean": "pnpm -r clean && rimraf node_modules .pnpm-store",
     "clean:install": "pnpm clean && pnpm install",
-    "update:deps": "pnpm update -r --latest",
+    "update:deps": "node scripts/update-dependencies.js",
+    "update:deps:safe": "pnpm update -r --latest",
+    "monitor:performance": "node scripts/performance-monitor.js",
+    "monitor:security": "node scripts/security-audit-enhanced.js",
+    "format:all": "prettier --write \"**/*.{js,ts,tsx,json,md,yml,yaml}\"",
+    "format:check": "prettier --check \"**/*.{js,ts,tsx,json,md,yml,yaml}\"",
+    "lint:fix": "eslint . --fix",
     "precommit": "pnpm lint:all && pnpm typecheck:all && pnpm test:all",
     "production:check": "pnpm audit:full && pnpm test:all && pnpm build:production",
     "deploy:all": "bash scripts/deploy-northflank.sh",
@@ -48,7 +54,7 @@
     "pnpm": "^10.18.0",
     "prettier": "^3.3.3",
     "rimraf": "^6.0.1",
-    "typescript": "^5.7.2"
+    "typescript": "^5.9.3"
   },
   "engines": {
     "node": ">=20.0.0",
