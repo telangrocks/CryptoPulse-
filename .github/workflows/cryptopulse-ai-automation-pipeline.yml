@@ -130,7 +130,12 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
       
       - name: INSTALL-PNPM
-        run: npm install -g pnpm@10.18.0
+        run: |
+          echo "📦 [SECURITY-GUARD] Installing pnpm..."
+          npm install -g pnpm@10.18.0
+          echo "🔍 [SECURITY-GUARD] Verifying pnpm installation..."
+          pnpm --version
+          echo "✅ pnpm installed successfully"
       
       - name: CONFIGURE-PNPM
         run: |
@@ -476,7 +481,12 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
       
       - name: INSTALL-PNPM
-        run: npm install -g pnpm@10.18.0
+        run: |
+          echo "📦 [AUTOFIX] Installing pnpm..."
+          npm install -g pnpm@10.18.0
+          echo "🔍 [AUTOFIX] Verifying pnpm installation..."
+          pnpm --version
+          echo "✅ pnpm installed successfully"
       
       # -------- BACKEND AUTO-FIX --------
       - name: CONFIGURE-PNPM
@@ -634,7 +644,12 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
       
       - name: INSTALL-PNPM
-        run: npm install -g pnpm@10.18.0
+        run: |
+          echo "📦 [BACKEND-TEST] Installing pnpm..."
+          npm install -g pnpm@10.18.0
+          echo "🔍 [BACKEND-TEST] Verifying pnpm installation..."
+          pnpm --version
+          echo "✅ pnpm installed successfully"
       
       - name: INSTALL-BACKEND
         run: |
@@ -693,7 +708,12 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
       
       - name: INSTALL-PNPM
-        run: npm install -g pnpm@10.18.0
+        run: |
+          echo "📦 [FRONTEND-TEST] Installing pnpm..."
+          npm install -g pnpm@10.18.0
+          echo "🔍 [FRONTEND-TEST] Verifying pnpm installation..."
+          pnpm --version
+          echo "✅ pnpm installed successfully"
       
       - name: INSTALL-FRONTEND
         run: |
@@ -767,7 +787,12 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
       
       - name: INSTALL-PNPM
-        run: npm install -g pnpm@10.18.0
+        run: |
+          echo "📦 [TRADING-VALIDATION] Installing pnpm..."
+          npm install -g pnpm@10.18.0
+          echo "🔍 [TRADING-VALIDATION] Verifying pnpm installation..."
+          pnpm --version
+          echo "✅ pnpm installed successfully"
       
       - name: INSTALL-DEPENDENCIES
         run: |
@@ -909,7 +934,12 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
       
       - name: INSTALL-PNPM
-        run: npm install -g pnpm@10.18.0
+        run: |
+          echo "📦 [BUILD] Installing pnpm..."
+          npm install -g pnpm@10.18.0
+          echo "🔍 [BUILD] Verifying pnpm installation..."
+          pnpm --version
+          echo "✅ pnpm installed successfully"
       
       - name: INSTALL-ALL-DEPENDENCIES
         run: |
