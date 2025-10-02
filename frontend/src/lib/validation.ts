@@ -33,7 +33,7 @@ export function validateTradingPair(pair: string): ValidationResult {
   const result: ValidationResult = {
     isValid: true,
     errors: [],
-    warnings: []
+    warnings: [],
   };
 
   if (!pair || typeof pair !== 'string') {
@@ -58,7 +58,7 @@ export function validatePrice(price: number, label = 'Price'): ValidationResult 
   const result: ValidationResult = {
     isValid: true,
     errors: [],
-    warnings: []
+    warnings: [],
   };
 
   if (typeof price !== 'number' || isNaN(price)) {

@@ -1,6 +1,7 @@
-import { cn } from '@/lib/utils';
-import React from 'react';
 import * as TabsPrimitive from '@radix-ui/react-tabs';
+import React from 'react';
+
+import { cn } from '@/lib/utils';
 
 const Tabs = TabsPrimitive.Root;
 
@@ -18,7 +19,7 @@ export interface TabsListProps
 
 /**
  * TabsList component for containing tab triggers
- * 
+ *
  * @example
  * ```tsx
  * <TabsList variant="pills" size="lg">
@@ -34,24 +35,24 @@ const TabsList = React.forwardRef<
   const sizeClasses = {
     sm: 'h-8 p-0.5',
     md: 'h-9 p-1',
-    lg: 'h-10 p-1.5'
+    lg: 'h-10 p-1.5',
   };
 
   const variantClasses = {
     default: 'rounded-lg bg-zinc-100 dark:bg-zinc-800',
     pills: 'rounded-full bg-zinc-100 dark:bg-zinc-800',
-    underline: 'rounded-none bg-transparent border-b border-zinc-200 dark:border-zinc-800'
+    underline: 'rounded-none bg-transparent border-b border-zinc-200 dark:border-zinc-800',
   };
 
   return (
     <TabsPrimitive.List
-      ref={ref}
       className={cn(
-        "inline-flex items-center justify-center text-zinc-500 dark:text-zinc-400",
+        'inline-flex items-center justify-center text-zinc-500 dark:text-zinc-400',
         sizeClasses[size],
         variantClasses[variant],
-        className
+        className,
       )}
+      ref={ref}
       {...props}
     />
   );
@@ -76,7 +77,7 @@ export interface TabsTriggerProps
 
 /**
  * TabsTrigger component for tab navigation
- * 
+ *
  * @example
  * ```tsx
  * <TabsTrigger value="tab1" leftIcon={<HomeIcon />}>Home</TabsTrigger>
@@ -88,11 +89,11 @@ const TabsTrigger = React.forwardRef<
   TabsTriggerProps
 >(({ className, leftIcon, rightIcon, badge, children, ...props }, ref) => (
   <TabsPrimitive.Trigger
-    ref={ref}
     className={cn(
-      "inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium ring-offset-white transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-white data-[state=active]:text-zinc-950 data-[state=active]:shadow dark:ring-offset-zinc-950 dark:focus-visible:ring-zinc-300 dark:data-[state=active]:bg-zinc-950 dark:data-[state=active]:text-zinc-50",
-      className
+      'inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium ring-offset-white transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-white data-[state=active]:text-zinc-950 data-[state=active]:shadow dark:ring-offset-zinc-950 dark:focus-visible:ring-zinc-300 dark:data-[state=active]:bg-zinc-950 dark:data-[state=active]:text-zinc-50',
+      className,
     )}
+    ref={ref}
     {...props}
   >
     {leftIcon && <span className="mr-2">{leftIcon}</span>}
@@ -121,7 +122,7 @@ export interface TabsContentProps
 
 /**
  * TabsContent component for tab panel content
- * 
+ *
  * @example
  * ```tsx
  * <TabsContent value="tab1" padded>
@@ -136,18 +137,18 @@ const TabsContent = React.forwardRef<
   const animationClasses = {
     fade: 'data-[state=inactive]:opacity-0 data-[state=active]:opacity-100 transition-opacity duration-200',
     slide: 'data-[state=inactive]:translate-x-4 data-[state=active]:translate-x-0 transition-transform duration-200',
-    none: ''
+    none: '',
   };
 
   return (
     <TabsPrimitive.Content
-      ref={ref}
       className={cn(
-        "mt-2 ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2 dark:ring-offset-zinc-950 dark:focus-visible:ring-zinc-300",
-        padded && "p-4",
+        'mt-2 ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2 dark:ring-offset-zinc-950 dark:focus-visible:ring-zinc-300',
+        padded && 'p-4',
         animationClasses[animation],
-        className
+        className,
       )}
+      ref={ref}
       {...props}
     />
   );

@@ -1,10 +1,10 @@
 import js from '@eslint/js';
-import react from 'eslint-plugin-react';
-import reactHooks from 'eslint-plugin-react-hooks';
-import jsxA11y from 'eslint-plugin-jsx-a11y';
-import importPlugin from 'eslint-plugin-import';
 import tseslint from '@typescript-eslint/eslint-plugin';
 import tsParser from '@typescript-eslint/parser';
+import importPlugin from 'eslint-plugin-import';
+import jsxA11y from 'eslint-plugin-jsx-a11y';
+import react from 'eslint-plugin-react';
+import reactHooks from 'eslint-plugin-react-hooks';
 
 export default [
   js.configs.recommended,
@@ -16,8 +16,8 @@ export default [
       sourceType: 'module',
       parserOptions: {
         ecmaFeatures: {
-          jsx: true
-        }
+          jsx: true,
+        },
       },
       globals: {
         // Browser globals
@@ -30,6 +30,37 @@ export default [
         fetch: 'readonly',
         WebSocket: 'readonly',
         crypto: 'readonly',
+        // Node.js/Browser globals
+        process: 'readonly',
+        global: 'readonly',
+        require: 'readonly',
+        __dirname: 'readonly',
+        __filename: 'readonly',
+        // Browser APIs
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearInterval: 'readonly',
+        performance: 'readonly',
+        URL: 'readonly',
+        Blob: 'readonly',
+        alert: 'readonly',
+        // HTML Element types (for TypeScript)
+        HTMLDivElement: 'readonly',
+        HTMLInputElement: 'readonly',
+        HTMLButtonElement: 'readonly',
+        HTMLHeadingElement: 'readonly',
+        HTMLParagraphElement: 'readonly',
+        // Web APIs
+        URLSearchParams: 'readonly',
+        RequestInit: 'readonly',
+        TextEncoder: 'readonly',
+        PerformanceObserver: 'readonly',
+        requestAnimationFrame: 'readonly',
+        Event: 'readonly',
+        CloseEvent: 'readonly',
+        // Node.js types
+        NodeJS: 'readonly',
         // React globals
         React: 'readonly',
         // Testing globals
@@ -44,30 +75,30 @@ export default [
         test: 'readonly',
         // Vite globals
         import: 'readonly',
-        importMeta: 'readonly'
-      }
+        importMeta: 'readonly',
+      },
     },
     plugins: {
       react,
       'react-hooks': reactHooks,
       'jsx-a11y': jsxA11y,
       import: importPlugin,
-      '@typescript-eslint': tseslint
+      '@typescript-eslint': tseslint,
     },
     settings: {
       react: {
-        version: 'detect'
+        version: 'detect',
       },
       'import/resolver': {
         typescript: {
           alwaysTryTypes: true,
-          project: './tsconfig.json'
+          project: './tsconfig.json',
         },
         node: {
           extensions: ['.js', '.jsx', '.ts', '.tsx'],
-          moduleDirectory: ['node_modules', 'src/']
-        }
-      }
+          moduleDirectory: ['node_modules', 'src/'],
+        },
+      },
     },
     rules: {
       // General rules
@@ -93,7 +124,7 @@ export default [
       'array-bracket-spacing': ['error', 'never'],
       'indent': ['error', 2, { SwitchCase: 1 }],
       'max-len': ['warn', { code: 100, ignoreUrls: true }],
-      
+
       // React rules
       'react/jsx-uses-react': 'off',
       'react/react-in-jsx-scope': 'off',
@@ -119,11 +150,11 @@ export default [
       'react/jsx-pascal-case': 'error',
       'react/jsx-sort-props': ['error', { ignoreCase: true }],
       'react/jsx-tag-spacing': ['error', { closingSlash: 'never', beforeSelfClosing: 'always', afterOpening: 'never', beforeClosing: 'never' }],
-      
+
       // React Hooks rules
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
-      
+
       // Accessibility rules
       'jsx-a11y/alt-text': 'error',
       'jsx-a11y/anchor-has-content': 'error',
@@ -140,34 +171,34 @@ export default [
       'jsx-a11y/role-supports-aria-props': 'error',
       'jsx-a11y/scope': 'error',
       'jsx-a11y/tabindex-no-positive': 'error',
-      
+
       // Prevent usage of deprecated packages
       'no-restricted-imports': ['error', {
         paths: [
           {
             name: 'moment',
-            message: 'Use date-fns instead of moment for better performance and tree-shaking'
+            message: 'Use date-fns instead of moment for better performance and tree-shaking',
           },
           {
             name: 'lodash',
-            message: 'Use es-toolkit instead of lodash for better performance'
+            message: 'Use es-toolkit instead of lodash for better performance',
           },
           {
             name: 'uuid',
-            message: 'Use crypto.randomUUID() instead of uuid when possible'
+            message: 'Use crypto.randomUUID() instead of uuid when possible',
           },
           {
             name: 'bcryptjs',
-            message: 'bcryptjs should not be used in frontend - password hashing belongs on the server'
-          }
-        ]
+            message: 'bcryptjs should not be used in frontend - password hashing belongs on the server',
+          },
+        ],
       }],
 
       // Import rules
       'import/order': ['error', {
         groups: ['builtin', 'external', 'internal', 'parent', 'sibling', 'index'],
         'newlines-between': 'always',
-        alphabetize: { order: 'asc', caseInsensitive: true }
+        alphabetize: { order: 'asc', caseInsensitive: true },
       }],
       'import/no-unresolved': 'error',
       'import/no-cycle': 'error',
@@ -178,14 +209,14 @@ export default [
       'import/newline-after-import': 'error',
       'import/no-absolute-path': 'error',
       'import/no-dynamic-require': 'error',
-      'import/no-webpack-loader-syntax': 'error'
-    }
+      'import/no-webpack-loader-syntax': 'error',
+    },
   },
   {
     files: ['**/*.test.{js,jsx,ts,tsx}', '**/*.spec.{js,jsx,ts,tsx}'],
     rules: {
       'no-console': 'off',
-      '@typescript-eslint/no-explicit-any': 'off'
-    }
-  }
+      '@typescript-eslint/no-explicit-any': 'off',
+    },
+  },
 ];

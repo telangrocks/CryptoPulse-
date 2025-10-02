@@ -1,31 +1,32 @@
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
 import path from 'path';
+
+import react from '@vitejs/plugin-react';
+import { defineConfig } from 'vite';
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  
+
   // Logging
   logLevel: 'warn',
-  
+
   // Path resolution
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
   },
-  
+
   // Environment variable security
   define: {
     __DEV__: process.env['NODE_ENV'] === 'development',
     __PROD__: process.env['NODE_ENV'] === 'production',
     global: 'globalThis',
   },
-  
+
   // Environment variables configuration
   envPrefix: 'VITE_',
-  
+
   // Build configuration
   build: {
     // ULTRA-OPTIMIZED build configuration
@@ -33,20 +34,20 @@ export default defineConfig({
     sourcemap: false,
     chunkSizeWarningLimit: 500,
     target: ['es2018', 'chrome70', 'firefox65', 'safari12', 'edge79'],
-    
+
     // ESBuild configuration for better compatibility
     esbuild: {
       target: 'es2018',
       supported: {
         'destructuring': true,
-        'dynamic-import': true
+        'dynamic-import': true,
       },
       // Production-ready optimizations
       minifyIdentifiers: process.env['NODE_ENV'] === 'production',
       minifySyntax: process.env['NODE_ENV'] === 'production',
-      minifyWhitespace: process.env['NODE_ENV'] === 'production'
+      minifyWhitespace: process.env['NODE_ENV'] === 'production',
     },
-    
+
     // Optimize chunks for faster loading
     rollupOptions: {
       onwarn(warning: any, warn: any) {
@@ -75,11 +76,11 @@ export default defineConfig({
             return 'lib-utils';
           }
           return undefined;
-        }
-      }
-    }
+        },
+      },
+    },
   },
-  
+
   // Optimize dependencies
   optimizeDeps: {
     include: [
@@ -94,38 +95,38 @@ export default defineConfig({
       'tailwind-merge',
     ],
     esbuildOptions: {
-      target: 'es2018'
+      target: 'es2018',
     },
     // Add performance monitoring
-    force: process.env['NODE_ENV'] === 'development'
+    force: process.env['NODE_ENV'] === 'development',
   },
-  
+
   // Application configuration
   base: '/',
-  
+
   // Development server configuration
   server: {
     port: 3000,
     host: true,
     strictPort: true,
-    
+
     // Enable HTTPS in development for testing CDN features
     https: process.env['NODE_ENV'] === 'development' && process.env['VITE_HTTPS'] === 'true',
-    
+
     // CORS configuration for development
     cors: {
       origin: [process.env['VITE_BACKEND_URL'] || 'http://localhost:1337'],
-      credentials: true
+      credentials: true,
     },
-    
+
     // Security headers in development
     headers: {
       'X-Content-Type-Options': 'nosniff',
       'X-Frame-Options': 'DENY',
       'X-XSS-Protection': '1; mode=block',
-      'Referrer-Policy': 'strict-origin-when-cross-origin'
+      'Referrer-Policy': 'strict-origin-when-cross-origin',
     },
-    
+
     // Proxy configuration for API calls with enhanced error handling
     proxy: {
       '/api': {
@@ -159,22 +160,22 @@ export default defineConfig({
             }
           });
         },
-      }
-    }
+      },
+    },
   },
-  
+
   // Preview server configuration
   preview: {
     port: 4173,
     host: true,
     strictPort: true,
-    
+
     // Security headers for preview
     headers: {
       'X-Content-Type-Options': 'nosniff',
       'X-Frame-Options': 'DENY',
       'X-XSS-Protection': '1; mode=block',
-      'Referrer-Policy': 'strict-origin-when-cross-origin'
-    }
-  }
+      'Referrer-Policy': 'strict-origin-when-cross-origin',
+    },
+  },
 });

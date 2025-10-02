@@ -46,11 +46,11 @@ export class RealTimeSignalService {
 
   public subscribe(filter: SignalFilter, callback: (signal: TradeSignal) => void): string {
     const subscriptionId = crypto.randomUUID();
-    
+
     this.subscribers.set(subscriptionId, {
       id: subscriptionId,
       filter,
-      callback
+      callback,
     });
 
     return subscriptionId;

@@ -737,24 +737,24 @@ export type Selector<T, R> = (state: T) => R;
 export const createApiError = (
   code: string,
   message: string,
-  details?: Record<string, any>
+  details?: Record<string, any>,
 ): ApiError => ({
   code,
   message,
   details: details || {},
-  timestamp: Date.now()
+  timestamp: Date.now(),
 });
 
 /**
  * Create network error object
  */
-export const createNetworkError = (message = 'Network error occurred'): ApiError => 
+export const createNetworkError = (message = 'Network error occurred'): ApiError =>
   createApiError('NETWORK_ERROR', message);
 
 /**
  * Create authentication error object
  */
-export const createAuthError = (message = 'Authentication failed'): ApiError => 
+export const createAuthError = (message = 'Authentication failed'): ApiError =>
   createApiError('AUTH_ERROR', message);
 
 /**

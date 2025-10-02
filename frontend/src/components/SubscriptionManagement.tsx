@@ -1,16 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  CreditCard, 
-  Calendar, 
-  CheckCircle, 
-  XCircle, 
+import {
+  CreditCard,
+  Calendar,
+  CheckCircle,
+  XCircle,
   AlertTriangle,
   Crown,
-  DollarSign
+  DollarSign,
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
+import React, { useState, useEffect } from 'react';
+
 import { Badge } from './ui/badge';
+import { Button } from './ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 
 interface SubscriptionData {
   id: string;
@@ -43,14 +44,14 @@ export default function SubscriptionManagement() {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('cryptopulse-session') || ''}`
-        }
+          'Authorization': `Bearer ${localStorage.getItem('cryptopulse-session') || ''}`,
+        },
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch subscription status');
       }
-      
+
       const result = await response.json();
       if (result.success) {
         if (result.hasSubscription) {
@@ -77,14 +78,14 @@ export default function SubscriptionManagement() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('cryptopulse-session') || ''}`
-        }
+          'Authorization': `Bearer ${localStorage.getItem('cryptopulse-session') || ''}`,
+        },
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to cancel subscription');
       }
-      
+
       const result = await response.json();
       if (result.success) {
         await fetchSubscriptionStatus(); // Refresh status
@@ -125,7 +126,7 @@ export default function SubscriptionManagement() {
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
         <Card className="w-full max-w-2xl bg-slate-800/90 border-slate-700 text-white">
           <CardContent className="text-center p-8">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4" />
             <p className="text-white">Loading subscription details...</p>
           </CardContent>
         </Card>
@@ -154,9 +155,9 @@ export default function SubscriptionManagement() {
               <p className="text-slate-300 mb-6">
                 You don't have an active subscription. Subscribe to unlock all features.
               </p>
-              <Button 
-                onClick={() => window.location.href = '/payment'}
+              <Button
                 className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                onClick={() => window.location.href = '/payment'}
               >
                 <CreditCard className="h-4 w-4 mr-2" />
                 Subscribe Now
@@ -173,9 +174,9 @@ export default function SubscriptionManagement() {
                     <Crown className="h-5 w-5 mr-2 text-purple-400" />
                     Subscription Details
                   </span>
-                  <Badge 
-                    variant="outline" 
+                  <Badge
                     className={`${getStatusColor(subscription.status)} border-current`}
+                    variant="outline"
                   >
                     {subscription.status.toUpperCase()}
                   </Badge>
@@ -192,7 +193,7 @@ export default function SubscriptionManagement() {
                       </p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center space-x-3">
                     <DollarSign className="h-5 w-5 text-green-400" />
                     <div>
@@ -202,7 +203,7 @@ export default function SubscriptionManagement() {
                       </p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center space-x-3">
                     <Calendar className="h-5 w-5 text-blue-400" />
                     <div>
@@ -212,7 +213,7 @@ export default function SubscriptionManagement() {
                       </p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center space-x-3">
                     <Calendar className="h-5 w-5 text-purple-400" />
                     <div>
@@ -232,18 +233,18 @@ export default function SubscriptionManagement() {
 
                 {subscription.status === 'active' && (
                   <div className="flex space-x-4">
-                    <Button 
-                      onClick={handleCancelSubscription}
-                      disabled={isCancelling}
-                      variant="outline"
+                    <Button
                       className="border-red-500 text-red-400 hover:bg-red-500/10"
+                      disabled={isCancelling}
+                      onClick={handleCancelSubscription}
+                      variant="outline"
                     >
                       {isCancelling ? 'Cancelling...' : 'Cancel Subscription'}
                     </Button>
-                    
-                    <Button 
-                      onClick={() => window.location.href = '/payment'}
+
+                    <Button
                       className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                      onClick={() => window.location.href = '/payment'}
                     >
                       <CreditCard className="h-4 w-4 mr-2" />
                       Update Payment
@@ -256,9 +257,9 @@ export default function SubscriptionManagement() {
                     <p className="text-yellow-400 text-sm">
                       Your subscription has been cancelled. You can resubscribe anytime to regain access to all features.
                     </p>
-                    <Button 
-                      onClick={() => window.location.href = '/payment'}
+                    <Button
                       className="mt-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                      onClick={() => window.location.href = '/payment'}
                     >
                       <CreditCard className="h-4 w-4 mr-2" />
                       Resubscribe
@@ -283,9 +284,9 @@ export default function SubscriptionManagement() {
                     'Advanced backtesting tools',
                     'Priority customer support',
                     'Balance-based trading logic',
-                    'Real-time market data'
+                    'Real-time market data',
                   ].map((feature, index) => (
-                    <div key={index} className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-2" key={index}>
                       <CheckCircle className="h-4 w-4 text-green-400 flex-shrink-0" />
                       <span className="text-sm text-slate-300">{feature}</span>
                     </div>

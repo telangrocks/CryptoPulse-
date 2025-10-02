@@ -4,6 +4,7 @@
  */
 
 import { logError } from '../logger';
+
 import { Exchange, ExchangeConfig, Ticker, Balance, OrderRequest, OrderResponse, ExchangeInfo } from './index';
 
 export class CoinbaseExchange implements Exchange {
@@ -30,7 +31,7 @@ export class CoinbaseExchange implements Exchange {
     try {
       const formattedSymbol = this.formatSymbol(symbol);
       const response = await this.makeRequest('GET', `/products/${formattedSymbol}/ticker`);
-      
+
       return {
         symbol: response.product_id,
         price: response.price,
@@ -45,7 +46,7 @@ export class CoinbaseExchange implements Exchange {
         priceChange: '0',
         priceChangePercent: '0',
         count: 0,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
     } catch (error) {
       logError('Failed to get Coinbase Pro ticker', 'CoinbaseExchange', error);
@@ -68,9 +69,9 @@ export class CoinbaseExchange implements Exchange {
       const formattedSymbol = this.formatSymbol(symbol);
       const response = await this.makeRequest('GET', `/products/${formattedSymbol}/candles`, {
         granularity: this.mapInterval(interval),
-        limit
+        limit,
       });
-      
+
       return response.map((kline: any) => [
         kline[0], // Time
         kline[3], // Low
@@ -83,7 +84,7 @@ export class CoinbaseExchange implements Exchange {
         0,        // Number of trades
         kline[5], // Taker buy base asset volume
         kline[5], // Taker buy quote asset volume
-        0         // Ignore
+        0,         // Ignore
       ]);
     } catch (error) {
       logError('Failed to get Coinbase Pro klines', 'CoinbaseExchange', error);
@@ -107,7 +108,7 @@ export class CoinbaseExchange implements Exchange {
         asset: account.currency,
         free: account.available,
         locked: account.hold,
-        total: account.balance
+        total: account.balance,
       }));
     } catch (error) {
       logError('Failed to get Coinbase Pro balances', 'CoinbaseExchange', error);
@@ -124,7 +125,7 @@ export class CoinbaseExchange implements Exchange {
           asset,
           free: '0',
           locked: '0',
-          total: '0'
+          total: '0',
         };
       }
       return balance;
@@ -145,11 +146,11 @@ export class CoinbaseExchange implements Exchange {
         ...(order.price && { price: order.price.toString() }),
         ...(order.stopPrice && { stop: order.stopPrice.toString() }),
         ...(order.timeInForce && { time: order.timeInForce }),
-        post: order.type === 'LIMIT'
+        post: order.type === 'LIMIT',
       };
 
       const response = await this.makeRequest('POST', '/orders', orderData);
-      
+
       return {
         orderId: response.id,
         symbol: response.product_id,
@@ -161,7 +162,7 @@ export class CoinbaseExchange implements Exchange {
         executedQty: parseFloat(response['filled-size'] || '0'),
         cummulativeQuoteQty: parseFloat(response['filled-size'] || '0') * parseFloat(response.price || '0'),
         timestamp: Date.now(),
-        clientOrderId: response['client-oid']
+        clientOrderId: response['client-oid'],
       };
     } catch (error) {
       logError('Failed to create Coinbase Pro order', 'CoinbaseExchange', error);
@@ -194,7 +195,7 @@ export class CoinbaseExchange implements Exchange {
         executedQty: parseFloat(response['filled-size'] || '0'),
         cummulativeQuoteQty: parseFloat(response['filled-size'] || '0') * parseFloat(response.price || '0'),
         timestamp: Date.now(),
-        clientOrderId: response['client-oid']
+        clientOrderId: response['client-oid'],
       };
     } catch (error) {
       logError('Failed to get Coinbase Pro order', 'CoinbaseExchange', error);
@@ -210,7 +211,7 @@ export class CoinbaseExchange implements Exchange {
       }
 
       const response = await this.makeRequest('GET', '/orders', params);
-      
+
       return response.map((order: any) => ({
         orderId: order.id,
         symbol: order.product_id,
@@ -222,7 +223,7 @@ export class CoinbaseExchange implements Exchange {
         executedQty: parseFloat(order['filled-size'] || '0'),
         cummulativeQuoteQty: parseFloat(order['filled-size'] || '0') * parseFloat(order.price || '0'),
         timestamp: Date.now(),
-        clientOrderId: order['client-oid']
+        clientOrderId: order['client-oid'],
       }));
     } catch (error) {
       logError('Failed to get Coinbase Pro open orders', 'CoinbaseExchange', error);
@@ -238,7 +239,7 @@ export class CoinbaseExchange implements Exchange {
       }
 
       const response = await this.makeRequest('GET', '/orders', params);
-      
+
       return response.map((order: any) => ({
         orderId: order.id,
         symbol: order.product_id,
@@ -250,7 +251,7 @@ export class CoinbaseExchange implements Exchange {
         executedQty: parseFloat(order['filled-size'] || '0'),
         cummulativeQuoteQty: parseFloat(order['filled-size'] || '0') * parseFloat(order.price || '0'),
         timestamp: Date.now(),
-        clientOrderId: order['client-oid']
+        clientOrderId: order['client-oid'],
       }));
     } catch (error) {
       logError('Failed to get Coinbase Pro order history', 'CoinbaseExchange', error);
@@ -265,30 +266,30 @@ export class CoinbaseExchange implements Exchange {
       isIndiaApproved: false,
       supportedPairs: [
         'BTC-USD', 'ETH-USD', 'LTC-USD', 'BCH-USD', 'XRP-USD',
-        'ADA-USD', 'DOT-USD', 'LINK-USD', 'UNI-USD', 'AAVE-USD'
+        'ADA-USD', 'DOT-USD', 'LINK-USD', 'UNI-USD', 'AAVE-USD',
       ],
       tradingFees: {
         maker: 0.5,
-        taker: 0.5
+        taker: 0.5,
       },
       withdrawalFees: {
         'BTC': 0.5,
         'ETH': 0.1,
-        'USD': 0
+        'USD': 0,
       },
       minOrderSize: {
         'BTC-USD': 0.1,
-        'ETH-USD': 0.1
+        'ETH-USD': 0.1,
       },
       maxOrderSize: {
         'BTC-USD': 100,
-        'ETH-USD': 1000
+        'ETH-USD': 1000,
       },
       supportedOrderTypes: ['MARKET', 'LIMIT', 'STOP-LOSS'],
       apiLimits: {
         requestsPerMinute: 1000,
-        ordersPerSecond: 5
-      }
+        ordersPerSecond: 5,
+      },
     };
   }
 
@@ -309,7 +310,7 @@ export class CoinbaseExchange implements Exchange {
       '15m': 900,
       '1h': 3600,
       '6h': 21600,
-      '1d': 86400
+      '1d': 86400,
     };
     return intervalMap[interval] || 3600;
   }
@@ -323,14 +324,14 @@ export class CoinbaseExchange implements Exchange {
       'filled': 'FILLED',
       'cancelled': 'CANCELED',
       'rejected': 'REJECTED',
-      'expired': 'EXPIRED'
+      'expired': 'EXPIRED',
     };
     return statusMap[status.toLowerCase()] || 'NEW';
   }
 
   private async makeRequest(method: string, endpoint: string, params: any = {}): Promise<any> {
     const url = new URL(this.baseUrl + endpoint);
-    
+
     // Add query parameters for GET requests
     if (method === 'GET') {
       Object.keys(params).forEach(key => {
@@ -340,7 +341,7 @@ export class CoinbaseExchange implements Exchange {
 
     const headers: any = {
       'CB-ACCESS-KEY': this.config.apiKey,
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
     };
 
     // Add signature for authenticated requests
@@ -353,7 +354,7 @@ export class CoinbaseExchange implements Exchange {
 
     const requestOptions: RequestInit = {
       method,
-      headers
+      headers,
     };
 
     if (method === 'POST' && Object.keys(params).length > 0) {
@@ -361,7 +362,7 @@ export class CoinbaseExchange implements Exchange {
     }
 
     const response = await fetch(url.toString(), requestOptions);
-    
+
     if (!response.ok) {
       const errorData = await response.json();
       throw new Error(`Coinbase Pro API Error: ${errorData.message || response.statusText}`);
@@ -375,15 +376,15 @@ export class CoinbaseExchange implements Exchange {
     const encoder = new TextEncoder();
     const keyData = encoder.encode(this.config.apiSecret);
     const messageData = encoder.encode(queryString);
-    
+
     const key = await crypto.subtle.importKey(
       'raw',
       keyData,
       { name: 'HMAC', hash: 'SHA-256' },
       false,
-      ['sign']
+      ['sign'],
     );
-    
+
     const signature = await crypto.subtle.sign('HMAC', key, messageData);
     const hashArray = Array.from(new Uint8Array(signature));
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');

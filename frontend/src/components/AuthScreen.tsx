@@ -1,15 +1,17 @@
+import { TrendingUp, Mail, Lock, Phone, Eye, EyeOff, ArrowLeft, Shield, AlertTriangle, CheckCircle } from 'lucide-react';
 import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+
 import { useAuth } from '../contexts/AuthContext';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { Label } from './ui/label';
-import { Alert, AlertDescription } from './ui/alert';
-import { TrendingUp, Mail, Lock, Phone, Eye, EyeOff, ArrowLeft, Shield, AlertTriangle, CheckCircle } from 'lucide-react';
 import { errorMonitoring, handleAuthError, handleValidationError } from '../lib/errorMonitoring';
 import { debounce, throttle } from '../lib/performanceOptimization';
+
+import { Alert, AlertDescription } from './ui/alert';
+import { Button } from './ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 
 export default function AuthScreen() {
   const [isLogin, setIsLogin] = useState(true);
@@ -41,7 +43,7 @@ export default function AuthScreen() {
   // Enhanced password strength calculation
   const calculatePasswordStrength = useCallback((password: string): number => {
     let strength = 0;
-    
+
     if (password.length >= 8) strength += 20;
     if (password.length >= 12) strength += 10;
     if (/[a-z]/.test(password)) strength += 10;
@@ -51,17 +53,17 @@ export default function AuthScreen() {
     if (password.length >= 16) strength += 10;
     if (password.length >= 20) strength += 10;
     if (!/(.)\1{2,}/.test(password)) strength += 10; // No repeated characters
-    
+
     return Math.min(strength, 100);
   }, []);
 
   // Enhanced validation with security checks
   const validateField = useCallback((field: string, value: string) => {
     let result: { isValid: boolean; sanitizedValue: string; error?: string };
-    
+
     // Sanitize input
     const sanitizedValue = value.trim().replace(/[<>]/g, '');
-    
+
     switch (field) {
       case 'email':
         const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
@@ -69,10 +71,10 @@ export default function AuthScreen() {
         result = {
           isValid: isValidEmail,
           sanitizedValue,
-          error: !isValidEmail ? 'Please enter a valid email address' : undefined
+          error: !isValidEmail ? 'Please enter a valid email address' : undefined,
         };
         break;
-        
+
       case 'password':
         const passwordErrors = [];
         if (sanitizedValue.length < 8) passwordErrors.push('at least 8 characters');
@@ -80,41 +82,41 @@ export default function AuthScreen() {
         if (!/[A-Z]/.test(sanitizedValue)) passwordErrors.push('one uppercase letter');
         if (!/[0-9]/.test(sanitizedValue)) passwordErrors.push('one number');
         if (!/[^A-Za-z0-9]/.test(sanitizedValue)) passwordErrors.push('one special character');
-        
+
         const isValidPassword = passwordErrors.length === 0;
         result = {
           isValid: isValidPassword,
           sanitizedValue,
-          error: !isValidPassword ? `Password must contain ${passwordErrors.join(', ')}` : undefined
+          error: !isValidPassword ? `Password must contain ${passwordErrors.join(', ')}` : undefined,
         };
-        
+
         // Update password strength
         setPasswordStrength(calculatePasswordStrength(sanitizedValue));
         break;
-        
+
       case 'mobile':
         const mobileRegex = /^[\+]?[1-9][\d]{9,14}$/;
         const isValidMobile = mobileRegex.test(sanitizedValue);
         result = {
           isValid: isValidMobile,
           sanitizedValue,
-          error: !isValidMobile ? 'Please enter a valid mobile number' : undefined
+          error: !isValidMobile ? 'Please enter a valid mobile number' : undefined,
         };
         break;
-        
+
       case 'confirmPassword':
         const passwordsMatch = sanitizedValue === password;
         result = {
           isValid: passwordsMatch,
           sanitizedValue,
-          error: !passwordsMatch ? 'Passwords do not match' : undefined
+          error: !passwordsMatch ? 'Passwords do not match' : undefined,
         };
         break;
-        
+
       default:
         result = { isValid: true, sanitizedValue };
     }
-    
+
     // Update validation errors
     if (!result.isValid && result.error) {
       setValidationErrors(prev => ({ ...prev, [field]: result.error! }));
@@ -125,7 +127,7 @@ export default function AuthScreen() {
         return newErrors;
       });
     }
-    
+
     return result;
   }, [password, calculatePasswordStrength]);
 
@@ -134,7 +136,7 @@ export default function AuthScreen() {
     debounce((field: string, value: string) => {
       validateField(field, value);
     }, 300),
-    [validateField]
+    [validateField],
   );
 
   // Rate limiting check
@@ -142,7 +144,7 @@ export default function AuthScreen() {
     const now = Date.now();
     const lastAttempt = localStorage.getItem('lastAuthAttempt');
     const attemptCount = parseInt(localStorage.getItem('authAttemptCount') || '0');
-    
+
     if (lastAttempt) {
       const timeSinceLastAttempt = now - parseInt(lastAttempt);
       if (timeSinceLastAttempt < RATE_LIMIT_DURATION) {
@@ -156,7 +158,7 @@ export default function AuthScreen() {
         localStorage.setItem('authAttemptCount', '0');
       }
     }
-    
+
     return true;
   }, [RATE_LIMIT_DURATION, MAX_ATTEMPTS]);
 
@@ -186,12 +188,12 @@ export default function AuthScreen() {
       // Validate all fields
       const emailValidation = validateField('email', email);
       const passwordValidation = validateField('password', password);
-      
+
       if (!isLogin) {
         const mobileValidation = validateField('mobile', mobile);
         const confirmPasswordValidation = validateField('confirmPassword', confirmPassword);
-        
-        if (!emailValidation.isValid || !passwordValidation.isValid || 
+
+        if (!emailValidation.isValid || !passwordValidation.isValid ||
             !mobileValidation.isValid || !confirmPasswordValidation.isValid) {
           setError('Please fix all validation errors before submitting.');
           return;
@@ -205,7 +207,7 @@ export default function AuthScreen() {
 
       // CSRF protection - add token to request
       const csrfToken = localStorage.getItem('csrf-token') || '';
-      
+
       if (isLogin) {
         await login(emailValidation.sanitizedValue, passwordValidation.sanitizedValue, csrfToken);
         // Reset attempt count on successful login
@@ -213,10 +215,10 @@ export default function AuthScreen() {
         navigate('/disclaimer');
       } else {
         await register(
-          emailValidation.sanitizedValue, 
-          passwordValidation.sanitizedValue, 
+          emailValidation.sanitizedValue,
+          passwordValidation.sanitizedValue,
           mobileValidation.sanitizedValue,
-          csrfToken
+          csrfToken,
         );
         setSuccessMessage('Account created successfully! Please check your email to verify your account.');
         // Reset attempt count on successful registration
@@ -225,17 +227,17 @@ export default function AuthScreen() {
       }
     } catch (err: unknown) {
       const error = err instanceof Error ? err : new Error('An error occurred');
-      
+
       // Update attempt count on failure
       updateAttemptCount();
-      
+
       // Report error to monitoring system
       await errorMonitoring.reportError(error, {
         component: 'AuthScreen',
         action: isLogin ? 'login' : 'register',
-        props: { email, isLogin }
+        props: { email, isLogin },
       });
-      
+
       // Handle specific error types
       if (error.message.includes('rate limit') || error.message.includes('too many')) {
         setIsRateLimited(true);
@@ -325,62 +327,62 @@ export default function AuthScreen() {
           </CardTitle>
           <p className="text-slate-400">AI-Powered Crypto Trading</p>
         </CardHeader>
-        
+
         <CardContent>
-          <Tabs value={isLogin ? 'login' : 'register'} onValueChange={(value) => setIsLogin(value === 'login')}>
+          <Tabs onValueChange={(value) => setIsLogin(value === 'login')} value={isLogin ? 'login' : 'register'}>
             <TabsList className="grid w-full grid-cols-2 bg-slate-700">
-              <TabsTrigger value="login" className="data-[state=active]:bg-slate-600">
+              <TabsTrigger className="data-[state=active]:bg-slate-600" value="login">
                 Sign In
               </TabsTrigger>
-              <TabsTrigger value="register" className="data-[state=active]:bg-slate-600">
+              <TabsTrigger className="data-[state=active]:bg-slate-600" value="register">
                 Register
               </TabsTrigger>
             </TabsList>
-            
-            <form onSubmit={handleSubmit} className="space-y-4 mt-6">
-              <TabsContent value="login" className="space-y-4 mt-0">
+
+            <form className="space-y-4 mt-6" onSubmit={handleSubmit}>
+              <TabsContent className="space-y-4 mt-0" value="login">
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-slate-300">Email</Label>
+                  <Label className="text-slate-300" htmlFor="email">Email</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                    <Input 
+                    <Input
+                      className="pl-10 bg-slate-700 border-slate-600 text-white"
                       id="email"
-                      type="email"
-                      value={email}
                       onChange={(e) => {
                         setEmail(e.target.value);
                         debouncedValidateField('email', e.target.value);
                       }}
                       placeholder="Enter your email"
-                      className="pl-10 bg-slate-700 border-slate-600 text-white"
                       required
+                      type="email"
+                      value={email}
                     />
                     {validationErrors.email && (
                       <p className="text-red-400 text-sm mt-1">{validationErrors.email}</p>
                     )}
                   </div>
                 </div>
-                
+
                 <div className="space-y-2">
-                  <Label htmlFor="password" className="text-slate-300">Password</Label>
+                  <Label className="text-slate-300" htmlFor="password">Password</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                    <Input 
+                    <Input
+                      className="pl-10 pr-10 bg-slate-700 border-slate-600 text-white"
                       id="password"
-                      type={showPassword ? 'text' : 'password'}
-                      value={password}
                       onChange={(e) => {
                         setPassword(e.target.value);
                         debouncedValidateField('password', e.target.value);
                       }}
                       placeholder="Enter your password"
-                      className="pl-10 pr-10 bg-slate-700 border-slate-600 text-white"
                       required
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
                     />
                     <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-3 top-3 text-slate-400 hover:text-slate-300"
+                      onClick={() => setShowPassword(!showPassword)}
+                      type="button"
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
@@ -388,23 +390,25 @@ export default function AuthScreen() {
                       <div className="mt-2">
                         <div className="flex items-center space-x-2">
                           <div className="flex-1 bg-slate-700 rounded-full h-2">
-                            <div 
+                            <div
                               className={`h-2 rounded-full transition-all duration-300 ${
                                 passwordStrength < 30 ? 'bg-red-500' :
-                                passwordStrength < 60 ? 'bg-yellow-500' :
-                                passwordStrength < 80 ? 'bg-blue-500' : 'bg-green-500'
+                                  passwordStrength < 60 ? 'bg-yellow-500' :
+                                    passwordStrength < 80 ? 'bg-blue-500' : 'bg-green-500'
                               }`}
                               style={{ width: `${passwordStrength}%` }}
                             />
                           </div>
-                          <span className={`text-xs ${
-                            passwordStrength < 30 ? 'text-red-400' :
-                            passwordStrength < 60 ? 'text-yellow-400' :
-                            passwordStrength < 80 ? 'text-blue-400' : 'text-green-400'
-                          }`}>
+                          <span
+                            className={`text-xs ${
+                              passwordStrength < 30 ? 'text-red-400' :
+                                passwordStrength < 60 ? 'text-yellow-400' :
+                                  passwordStrength < 80 ? 'text-blue-400' : 'text-green-400'
+                            }`}
+                          >
                             {passwordStrength < 30 ? 'Weak' :
-                             passwordStrength < 60 ? 'Fair' :
-                             passwordStrength < 80 ? 'Good' : 'Strong'}
+                              passwordStrength < 60 ? 'Fair' :
+                                passwordStrength < 80 ? 'Good' : 'Strong'}
                           </span>
                         </div>
                       </div>
@@ -418,83 +422,83 @@ export default function AuthScreen() {
                   </div>
                 </div>
               </TabsContent>
-              
-              <TabsContent value="register" className="space-y-4 mt-0">
+
+              <TabsContent className="space-y-4 mt-0" value="register">
                 <div className="space-y-2">
-                  <Label htmlFor="reg-email" className="text-slate-300">Email</Label>
+                  <Label className="text-slate-300" htmlFor="reg-email">Email</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                    <Input 
+                    <Input
+                      className="pl-10 bg-slate-700 border-slate-600 text-white"
                       id="reg-email"
-                      type="email"
-                      value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="Enter your email"
-                      className="pl-10 bg-slate-700 border-slate-600 text-white"
                       required
+                      type="email"
+                      value={email}
                     />
                   </div>
                 </div>
-                
+
                 <div className="space-y-2">
-                  <Label htmlFor="reg-password" className="text-slate-300">Password</Label>
+                  <Label className="text-slate-300" htmlFor="reg-password">Password</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                    <Input 
+                    <Input
+                      className="pl-10 pr-10 bg-slate-700 border-slate-600 text-white"
                       id="reg-password"
-                      type={showPassword ? 'text' : 'password'}
-                      value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Create a password"
-                      className="pl-10 pr-10 bg-slate-700 border-slate-600 text-white"
                       required
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
                     />
                     <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-3 top-3 text-slate-400 hover:text-slate-300"
+                      onClick={() => setShowPassword(!showPassword)}
+                      type="button"
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
                 </div>
-                
+
                 <div className="space-y-2">
-                  <Label htmlFor="mobile" className="text-slate-300">Mobile (Optional)</Label>
+                  <Label className="text-slate-300" htmlFor="mobile">Mobile (Optional)</Label>
                   <div className="relative">
                     <Phone className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                    <Input 
+                    <Input
+                      className="pl-10 bg-slate-700 border-slate-600 text-white"
                       id="mobile"
-                      type="tel"
-                      value={mobile}
                       onChange={(e) => setMobile(e.target.value)}
                       placeholder="Enter your mobile number"
-                      className="pl-10 bg-slate-700 border-slate-600 text-white"
+                      type="tel"
+                      value={mobile}
                     />
                   </div>
                 </div>
-                
+
                 <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3">
                   <p className="text-sm text-green-400 font-medium">🎉 5-Day Free Trial</p>
                   <p className="text-xs text-green-300 mt-1">
-                    Start trading immediately with full access to all features. 
+                    Start trading immediately with full access to all features.
                     Subscription (₹999/month) starts after trial period.
                   </p>
                 </div>
-                
+
                 {isLogin && (
                   <div className="text-right">
                     <button
-                      type="button"
-                      onClick={() => setShowForgotPassword(true)}
                       className="text-sm text-purple-400 hover:text-purple-300 underline"
+                      onClick={() => setShowForgotPassword(true)}
+                      type="button"
                     >
                       Forgot Password?
                     </button>
                   </div>
                 )}
               </TabsContent>
-              
+
               {error && (
                 <Alert className="bg-red-500/10 border-red-500/20">
                   <AlertDescription className="text-red-400">
@@ -502,7 +506,7 @@ export default function AuthScreen() {
                   </AlertDescription>
                 </Alert>
               )}
-              
+
               {successMessage && (
                 <Alert className="bg-green-500/10 border-green-500/20">
                   <AlertDescription className="text-green-400">
@@ -510,7 +514,7 @@ export default function AuthScreen() {
                   </AlertDescription>
                 </Alert>
               )}
-              
+
               <div className="space-y-3">
                 {/* Rate limiting warning */}
                 {isRateLimited && (
@@ -534,10 +538,10 @@ export default function AuthScreen() {
                   </div>
                 </div>
 
-                <Button 
-                  type="submit" 
+                <Button
                   className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
                   disabled={isLoading || isValidating || isRateLimited || Object.keys(validationErrors).length > 0}
+                  type="submit"
                 >
                   {isValidating ? (
                     <>
@@ -566,7 +570,7 @@ export default function AuthScreen() {
               </div>
             </form>
           </Tabs>
-          
+
           <div className="mt-6 text-center">
             <p className="text-xs text-slate-400">
               By continuing, you agree to our Terms of Service and Privacy Policy
@@ -582,8 +586,8 @@ export default function AuthScreen() {
             <CardHeader>
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => setShowForgotPassword(false)}
                   className="p-1 hover:bg-slate-700 rounded"
+                  onClick={() => setShowForgotPassword(false)}
                 >
                   <ArrowLeft className="h-5 w-5" />
                 </button>
@@ -591,27 +595,27 @@ export default function AuthScreen() {
               </div>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleForgotPassword} className="space-y-4">
+              <form className="space-y-4" onSubmit={handleForgotPassword}>
                 <div className="space-y-2">
-                  <Label htmlFor="forgot-email" className="text-slate-300">Email</Label>
+                  <Label className="text-slate-300" htmlFor="forgot-email">Email</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                    <Input 
+                    <Input
+                      className="pl-10 bg-slate-700 border-slate-600 text-white"
                       id="forgot-email"
-                      type="email"
-                      value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="Enter your email"
-                      className="pl-10 bg-slate-700 border-slate-600 text-white"
                       required
+                      type="email"
+                      value={email}
                     />
                   </div>
                 </div>
-                
-                <Button 
-                  type="submit" 
+
+                <Button
                   className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
                   disabled={isLoading}
+                  type="submit"
                 >
                   {isLoading ? 'Sending...' : 'Send Reset Link'}
                 </Button>
@@ -628,6 +632,7 @@ export default function AuthScreen() {
             <CardHeader>
               <div className="flex items-center gap-3">
                 <button
+                  className="p-1 hover:bg-slate-700 rounded"
                   onClick={() => {
                     setShowResetPassword(false);
                     setShowForgotPassword(false);
@@ -635,7 +640,6 @@ export default function AuthScreen() {
                     setNewPassword('');
                     setConfirmPassword('');
                   }}
-                  className="p-1 hover:bg-slate-700 rounded"
                 >
                   <ArrowLeft className="h-5 w-5" />
                 </button>
@@ -643,50 +647,50 @@ export default function AuthScreen() {
               </div>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleResetPassword} className="space-y-4">
+              <form className="space-y-4" onSubmit={handleResetPassword}>
                 <div className="space-y-2">
-                  <Label htmlFor="new-password" className="text-slate-300">New Password</Label>
+                  <Label className="text-slate-300" htmlFor="new-password">New Password</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                    <Input 
+                    <Input
+                      className="pl-10 pr-10 bg-slate-700 border-slate-600 text-white"
                       id="new-password"
-                      type={showPassword ? 'text' : 'password'}
-                      value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                       placeholder="Enter new password"
-                      className="pl-10 pr-10 bg-slate-700 border-slate-600 text-white"
                       required
+                      type={showPassword ? 'text' : 'password'}
+                      value={newPassword}
                     />
                     <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-3 top-3 text-slate-400 hover:text-slate-300"
+                      onClick={() => setShowPassword(!showPassword)}
+                      type="button"
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
                 </div>
-                
+
                 <div className="space-y-2">
-                  <Label htmlFor="confirm-password" className="text-slate-300">Confirm Password</Label>
+                  <Label className="text-slate-300" htmlFor="confirm-password">Confirm Password</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                    <Input 
+                    <Input
+                      className="pl-10 bg-slate-700 border-slate-600 text-white"
                       id="confirm-password"
-                      type={showPassword ? 'text' : 'password'}
-                      value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="Confirm new password"
-                      className="pl-10 bg-slate-700 border-slate-600 text-white"
                       required
+                      type={showPassword ? 'text' : 'password'}
+                      value={confirmPassword}
                     />
                   </div>
                 </div>
-                
-                <Button 
-                  type="submit" 
+
+                <Button
                   className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
                   disabled={isLoading}
+                  type="submit"
                 >
                   {isLoading ? 'Resetting...' : 'Reset Password'}
                 </Button>

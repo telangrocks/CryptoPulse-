@@ -4,6 +4,7 @@
  */
 
 import { logError, logInfo, logWarn } from '../logger';
+
 import { Exchange, ExchangeConfig, Ticker, Balance, OrderRequest, OrderResponse, ExchangeInfo } from './index';
 
 export class DeltaExchange implements Exchange {
@@ -33,7 +34,7 @@ export class DeltaExchange implements Exchange {
     try {
       const formattedSymbol = this.formatSymbol(symbol);
       const response = await this.makeRequest('GET', '/v2/tickers', { symbols: formattedSymbol });
-      
+
       if (!response.result || response.result.length === 0) {
         throw new Error('Symbol not found');
       }
@@ -53,7 +54,7 @@ export class DeltaExchange implements Exchange {
         priceChange: ticker.change,
         priceChangePercent: ticker.change_percent,
         count: 0,
-        timestamp: ticker.timestamp
+        timestamp: ticker.timestamp,
       };
     } catch (error) {
       logError('Failed to get Delta Exchange ticker', 'DeltaExchange', error);
@@ -77,9 +78,9 @@ export class DeltaExchange implements Exchange {
       const response = await this.makeRequest('GET', '/v2/history/candles', {
         symbol: formattedSymbol,
         resolution: interval,
-        size: limit
+        size: limit,
       });
-      
+
       return response.result.map((kline: any) => [
         kline.start, // Open time
         kline.open,  // Open
@@ -92,7 +93,7 @@ export class DeltaExchange implements Exchange {
         0,           // Number of trades
         kline.volume, // Taker buy base asset volume
         kline.volume, // Taker buy quote asset volume
-        0            // Ignore
+        0,            // Ignore
       ]);
     } catch (error) {
       logError('Failed to get Delta Exchange klines', 'DeltaExchange', error);
@@ -116,7 +117,7 @@ export class DeltaExchange implements Exchange {
         asset: balance.asset.symbol,
         free: balance.available_balance,
         locked: balance.reserved_balance,
-        total: balance.total_balance
+        total: balance.total_balance,
       }));
     } catch (error) {
       logError('Failed to get Delta Exchange balances', 'DeltaExchange', error);
@@ -133,7 +134,7 @@ export class DeltaExchange implements Exchange {
           asset,
           free: '0',
           locked: '0',
-          total: '0'
+          total: '0',
         };
       }
       return balance;
@@ -154,11 +155,11 @@ export class DeltaExchange implements Exchange {
         ...(order.price && { limit_price: order.price.toString() }),
         ...(order.stopPrice && { stop: order.stopPrice.toString() }),
         ...(order.timeInForce && { time_in_force: order.timeInForce }),
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       const response = await this.makeRequest('POST', '/v2/orders', orderData);
-      
+
       return {
         orderId: response.result.id.toString(),
         symbol: response.result.product_id,
@@ -170,7 +171,7 @@ export class DeltaExchange implements Exchange {
         executedQty: parseFloat(response.result.filled_size || '0'),
         cummulativeQuoteQty: parseFloat(response.result.filled_size || '0') * parseFloat(response.result.limit_price || '0'),
         timestamp: response.result.created_at,
-        clientOrderId: response.result.client_order_id
+        clientOrderId: response.result.client_order_id,
       };
     } catch (error) {
       logError('Failed to create Delta Exchange order', 'DeltaExchange', error);
@@ -183,7 +184,7 @@ export class DeltaExchange implements Exchange {
       const formattedSymbol = this.formatSymbol(symbol);
       await this.makeRequest('DELETE', '/v2/orders', {
         product_id: formattedSymbol,
-        order_id: orderId
+        order_id: orderId,
       });
       return true;
     } catch (error) {
@@ -197,7 +198,7 @@ export class DeltaExchange implements Exchange {
       const formattedSymbol = this.formatSymbol(symbol);
       const response = await this.makeRequest('GET', '/v2/orders', {
         product_id: formattedSymbol,
-        order_id: orderId
+        order_id: orderId,
       });
 
       const order = response.result[0];
@@ -212,7 +213,7 @@ export class DeltaExchange implements Exchange {
         executedQty: parseFloat(order.filled_size || '0'),
         cummulativeQuoteQty: parseFloat(order.filled_size || '0') * parseFloat(order.limit_price || '0'),
         timestamp: order.created_at,
-        clientOrderId: order.client_order_id
+        clientOrderId: order.client_order_id,
       };
     } catch (error) {
       logError('Failed to get Delta Exchange order', 'DeltaExchange', error);
@@ -228,7 +229,7 @@ export class DeltaExchange implements Exchange {
       }
 
       const response = await this.makeRequest('GET', '/v2/orders', params);
-      
+
       return response.result.map((order: any) => ({
         orderId: order.id.toString(),
         symbol: order.product_id,
@@ -240,7 +241,7 @@ export class DeltaExchange implements Exchange {
         executedQty: parseFloat(order.filled_size || '0'),
         cummulativeQuoteQty: parseFloat(order.filled_size || '0') * parseFloat(order.limit_price || '0'),
         timestamp: order.created_at,
-        clientOrderId: order.client_order_id
+        clientOrderId: order.client_order_id,
       }));
     } catch (error) {
       logError('Failed to get Delta Exchange open orders', 'DeltaExchange', error);
@@ -256,7 +257,7 @@ export class DeltaExchange implements Exchange {
       }
 
       const response = await this.makeRequest('GET', '/v2/orders', params);
-      
+
       return response.result.map((order: any) => ({
         orderId: order.id.toString(),
         symbol: order.product_id,
@@ -268,7 +269,7 @@ export class DeltaExchange implements Exchange {
         executedQty: parseFloat(order.filled_size || '0'),
         cummulativeQuoteQty: parseFloat(order.filled_size || '0') * parseFloat(order.limit_price || '0'),
         timestamp: order.created_at,
-        clientOrderId: order.client_order_id
+        clientOrderId: order.client_order_id,
       }));
     } catch (error) {
       logError('Failed to get Delta Exchange order history', 'DeltaExchange', error);
@@ -283,30 +284,30 @@ export class DeltaExchange implements Exchange {
       isIndiaApproved: true,
       supportedPairs: [
         'BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'ADAUSDT', 'SOLUSDT',
-        'XRPUSDT', 'DOTUSDT', 'DOGEUSDT', 'AVAXUSDT', 'MATICUSDT'
+        'XRPUSDT', 'DOTUSDT', 'DOGEUSDT', 'AVAXUSDT', 'MATICUSDT',
       ],
       tradingFees: {
         maker: 0.5,
-        taker: 0.5
+        taker: 0.5,
       },
       withdrawalFees: {
         'BTC': 0.5,
         'ETH': 0.1,
-        'USDT': 1.0
+        'USDT': 1.0,
       },
       minOrderSize: {
         'BTCUSDT': 0.1,
-        'ETHUSDT': 0.1
+        'ETHUSDT': 0.1,
       },
       maxOrderSize: {
         'BTCUSDT': 100,
-        'ETHUSDT': 1000
+        'ETHUSDT': 1000,
       },
       supportedOrderTypes: ['MARKET', 'LIMIT', 'STOP-LOSS', 'STOP_LOSS-LIMIT'],
       apiLimits: {
         requestsPerMinute: 1000,
-        ordersPerSecond: 10
-      }
+        ordersPerSecond: 10,
+      },
     };
   }
 
@@ -327,7 +328,7 @@ export class DeltaExchange implements Exchange {
       'filled': 'FILLED',
       'cancelled': 'CANCELED',
       'rejected': 'REJECTED',
-      'expired': 'EXPIRED'
+      'expired': 'EXPIRED',
     };
     return statusMap[status.toLowerCase()] || 'NEW';
   }
@@ -337,7 +338,7 @@ export class DeltaExchange implements Exchange {
     await this.checkRateLimit();
 
     const url = new URL(this.baseUrl + endpoint);
-    
+
     // Add query parameters for GET requests
     if (method === 'GET') {
       Object.keys(params).forEach(key => {
@@ -347,7 +348,7 @@ export class DeltaExchange implements Exchange {
 
     const headers: any = {
       'api-key': this.config.apiKey,
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
     };
 
     // Add signature for authenticated requests
@@ -359,7 +360,7 @@ export class DeltaExchange implements Exchange {
 
     const requestOptions: RequestInit = {
       method,
-      headers
+      headers,
     };
 
     if (method === 'POST' && Object.keys(params).length > 0) {
@@ -368,7 +369,7 @@ export class DeltaExchange implements Exchange {
 
     try {
       const response = await fetch(url.toString(), requestOptions);
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(`Delta Exchange API Error: ${errorData.message || response.statusText}`);
@@ -386,15 +387,15 @@ export class DeltaExchange implements Exchange {
     const encoder = new TextEncoder();
     const keyData = encoder.encode(this.config.apiSecret);
     const messageData = encoder.encode(queryString);
-    
+
     const key = await crypto.subtle.importKey(
       'raw',
       keyData,
       { name: 'HMAC', hash: 'SHA-256' },
       false,
-      ['sign']
+      ['sign'],
     );
-    
+
     const signature = await crypto.subtle.sign('HMAC', key, messageData);
     const hashArray = Array.from(new Uint8Array(signature));
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
@@ -403,25 +404,25 @@ export class DeltaExchange implements Exchange {
   private async checkRateLimit(): Promise<void> {
     const now = Date.now();
     const windowStart = now - this.RATE_LIMIT_WINDOW;
-    
+
     // Clean old entries
     for (const [timestamp] of this.rateLimiter) {
       if (timestamp < windowStart) {
         this.rateLimiter.delete(timestamp);
       }
     }
-    
+
     // Check if we're within limits
     if (this.rateLimiter.size >= this.MAX_REQUESTS_PER_MINUTE) {
       const oldestRequest = Math.min(...this.rateLimiter.keys());
       const waitTime = this.RATE_LIMIT_WINDOW - (now - oldestRequest);
-      
+
       if (waitTime > 0) {
         logWarn(`Rate limit reached, waiting ${waitTime}ms`, 'DeltaExchange');
         await new Promise(resolve => setTimeout(resolve, waitTime));
       }
     }
-    
+
     this.rateLimiter.set(now, 1);
   }
 }

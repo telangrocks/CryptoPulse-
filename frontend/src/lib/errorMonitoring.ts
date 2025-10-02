@@ -16,7 +16,7 @@ export function handleAuthError(error: Error, context?: ErrorContext): void {
     message: error.message,
     stack: error.stack,
     context,
-    timestamp: Date.now()
+    timestamp: Date.now(),
   });
 
   // In production, you would send this to your error monitoring service
@@ -30,7 +30,7 @@ export function handleValidationError(error: Error, context?: ErrorContext): voi
     message: error.message,
     stack: error.stack,
     context,
-    timestamp: Date.now()
+    timestamp: Date.now(),
   });
 
   // In production, you would send this to your error monitoring service
@@ -44,7 +44,7 @@ export function handleNetworkError(error: Error, context?: ErrorContext): void {
     message: error.message,
     stack: error.stack,
     context,
-    timestamp: Date.now()
+    timestamp: Date.now(),
   });
 }
 
@@ -53,7 +53,7 @@ export function handleUnexpectedError(error: Error, context?: ErrorContext): voi
     message: error.message,
     stack: error.stack,
     context,
-    timestamp: Date.now()
+    timestamp: Date.now(),
   });
 }
 
@@ -62,7 +62,7 @@ if (typeof window !== 'undefined') {
   window.addEventListener('unhandledrejection', (event) => {
     handleUnexpectedError(
       event.reason instanceof Error ? event.reason : new Error(String(event.reason)),
-      { component: 'global', action: 'unhandledRejection' }
+      { component: 'global', action: 'unhandledRejection' },
     );
   });
 }

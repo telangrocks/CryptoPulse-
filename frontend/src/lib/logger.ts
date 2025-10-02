@@ -25,7 +25,7 @@ class Logger {
       debug: 0,
       info: 1,
       warn: 2,
-      error: 3
+      error: 3,
     };
     return levels[level] >= levels[this.level];
   }
@@ -37,7 +37,7 @@ class Logger {
       level,
       message,
       timestamp: new Date(),
-      data
+      data,
     };
 
     this.logs.push(entry);

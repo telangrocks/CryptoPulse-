@@ -1,11 +1,12 @@
+import { Target, Search, CheckCircle, TrendingUp } from 'lucide-react';
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+
+import { Alert, AlertDescription } from './ui/alert';
 import { Button } from './ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Checkbox } from './ui/checkbox';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { Checkbox } from './ui/checkbox';
-import { Alert, AlertDescription } from './ui/alert';
-import { Target, Search, CheckCircle, TrendingUp } from 'lucide-react';
 
 export default function CryptoPairSelection() {
   const [selectedPairs, setSelectedPairs] = useState<string[]>([]);
@@ -17,18 +18,18 @@ export default function CryptoPairSelection() {
   const availablePairs = [
     'BTC/USDT', 'ETH/USDT', 'BNB/USDT', 'ADA/USDT', 'SOL/USDT',
     'XRP/USDT', 'DOT/USDT', 'DOGE/USDT', 'AVAX/USDT', 'MATIC/USDT',
-    'LINK/USDT', 'UNI/USDT', 'LTC/USDT', 'BCH/USDT', 'ATOM/USDT'
+    'LINK/USDT', 'UNI/USDT', 'LTC/USDT', 'BCH/USDT', 'ATOM/USDT',
   ];
 
   const filteredPairs = availablePairs.filter(pair =>
-    pair.toLowerCase().includes(searchTerm.toLowerCase())
+    pair.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   const handlePairToggle = (pair: string) => {
     setSelectedPairs(prev =>
       prev.includes(pair)
         ? prev.filter(p => p !== pair)
-        : [...prev, pair]
+        : [...prev, pair],
     );
   };
 
@@ -71,29 +72,29 @@ export default function CryptoPairSelection() {
               Choose which cryptocurrency pairs you want to trade
             </p>
           </CardHeader>
-          
+
           <CardContent className="space-y-6">
             <Alert className="bg-blue-500/10 border-blue-500/20">
               <TrendingUp className="h-4 w-4" />
               <AlertDescription className="text-blue-400">
-                <strong>Tip:</strong> Start with 2-3 pairs to focus your trading strategy. 
+                <strong>Tip:</strong> Start with 2-3 pairs to focus your trading strategy.
                 You can always add more later.
               </AlertDescription>
             </Alert>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form className="space-y-6" onSubmit={handleSubmit}>
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="search" className="text-slate-300">Search Pairs</Label>
+                  <Label className="text-slate-300" htmlFor="search">Search Pairs</Label>
                   <div className="relative">
                     <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                     <Input
+                      className="pl-10 bg-slate-700 border-slate-600 text-white"
                       id="search"
-                      type="text"
-                      value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       placeholder="Search for trading pairs..."
-                      className="pl-10 bg-slate-700 border-slate-600 text-white"
+                      type="text"
+                      value={searchTerm}
                     />
                   </div>
                 </div>
@@ -104,15 +105,15 @@ export default function CryptoPairSelection() {
                   </Label>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-64 overflow-y-auto">
                     {filteredPairs.map((pair) => (
-                      <div key={pair} className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-2" key={pair}>
                         <Checkbox
-                          id={pair}
                           checked={selectedPairs.includes(pair)}
+                          id={pair}
                           onCheckedChange={() => handlePairToggle(pair)}
                         />
                         <Label
-                          htmlFor={pair}
                           className="text-sm font-medium text-slate-300 cursor-pointer"
+                          htmlFor={pair}
                         >
                           {pair}
                         </Label>
@@ -129,8 +130,8 @@ export default function CryptoPairSelection() {
                     <div className="flex flex-wrap gap-2">
                       {selectedPairs.map((pair) => (
                         <span
-                          key={pair}
                           className="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-sm"
+                          key={pair}
                         >
                           {pair}
                         </span>
@@ -158,9 +159,9 @@ export default function CryptoPairSelection() {
               )}
 
               <Button
-                type="submit"
                 className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700"
                 disabled={isLoading || selectedPairs.length === 0}
+                type="submit"
               >
                 {isLoading ? 'Saving...' : `Save ${selectedPairs.length} Trading Pairs`}
               </Button>

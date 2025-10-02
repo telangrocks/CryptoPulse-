@@ -26,17 +26,17 @@ class PerformanceMonitor {
 
   private initialize(): void {
     if (typeof window === 'undefined' || this.isInitialized) return;
-    
+
     try {
       // Monitor Core Web Vitals
       this.observeWebVitals();
-      
+
       // Monitor resource loading
       this.observeResourceTiming();
-      
+
       // Monitor user interactions
       this.observeUserTiming();
-      
+
       this.isInitialized = true;
       logInfo('Performance monitoring initialized');
     } catch (error) {
@@ -56,7 +56,7 @@ class PerformanceMonitor {
           name: 'LCP',
           value: lastEntry.startTime,
           timestamp: Date.now(),
-          type: 'paint'
+          type: 'paint',
         });
       });
       lcpObserver.observe({ entryTypes: ['largest-contentful-paint'] });
@@ -70,7 +70,7 @@ class PerformanceMonitor {
             name: 'FID',
             value: entry.processingStart - entry.startTime,
             timestamp: Date.now(),
-            type: 'custom'
+            type: 'custom',
           });
         });
       });
@@ -90,7 +90,7 @@ class PerformanceMonitor {
           name: 'CLS',
           value: clsValue,
           timestamp: Date.now(),
-          type: 'custom'
+          type: 'custom',
         });
       });
       clsObserver.observe({ entryTypes: ['layout-shift'] });
@@ -115,8 +115,8 @@ class PerformanceMonitor {
             metadata: {
               initiatorType: entry.initiatorType,
               transferSize: entry.transferSize,
-              decodedBodySize: entry.decodedBodySize
-            }
+              decodedBodySize: entry.decodedBodySize,
+            },
           });
         });
       });
@@ -138,7 +138,7 @@ class PerformanceMonitor {
             name: entry.name,
             value: entry.duration || entry.startTime,
             timestamp: Date.now(),
-            type: 'measure'
+            type: 'measure',
           });
         });
       });
@@ -151,7 +151,7 @@ class PerformanceMonitor {
 
   public recordMetric(metric: PerformanceMetric): void {
     this.metrics.push(metric);
-    
+
     // Keep only last 1000 metrics to prevent memory leaks
     if (this.metrics.length > 1000) {
       this.metrics = this.metrics.slice(-1000);
@@ -169,7 +169,7 @@ class PerformanceMonitor {
   public getAverageMetric(name: string): number {
     const matchingMetrics = this.metrics.filter(metric => metric.name === name);
     if (matchingMetrics.length === 0) return 0;
-    
+
     const sum = matchingMetrics.reduce((acc, metric) => acc + metric.value, 0);
     return sum / matchingMetrics.length;
   }
@@ -204,19 +204,19 @@ export function getPerformanceMonitor(): PerformanceMonitor {
  */
 export function measureExecutionTime<T>(
   name: string,
-  fn: () => T
+  fn: () => T,
 ): T {
   const start = performance.now();
   const result = fn();
   const end = performance.now();
-  
+
   getPerformanceMonitor().recordMetric({
     name: `Function: ${name}`,
     value: end - start,
     timestamp: Date.now(),
-    type: 'custom'
+    type: 'custom',
   });
-  
+
   return result;
 }
 
@@ -225,19 +225,19 @@ export function measureExecutionTime<T>(
  */
 export async function measureAsyncExecutionTime<T>(
   name: string,
-  fn: () => Promise<T>
+  fn: () => Promise<T>,
 ): Promise<T> {
   const start = performance.now();
   const result = await fn();
   const end = performance.now();
-  
+
   getPerformanceMonitor().recordMetric({
     name: `Async Function: ${name}`,
     value: end - start,
     timestamp: Date.now(),
-    type: 'custom'
+    type: 'custom',
   });
-  
+
   return result;
 }
 

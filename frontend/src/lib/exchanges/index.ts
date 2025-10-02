@@ -87,27 +87,27 @@ export interface ExchangeInfo {
 export interface Exchange {
   name: string;
   config: ExchangeConfig;
-  
+
   // Authentication
   authenticate(): Promise<boolean>;
-  
+
   // Market Data
   getTicker(symbol: string): Promise<Ticker>;
   getOrderBook(symbol: string, limit?: number): Promise<any>;
   getKlines(symbol: string, interval: string, limit?: number): Promise<any[]>;
-  
+
   // Account
   getAccountInfo(): Promise<any>;
   getBalances(): Promise<Balance[]>;
   getBalance(asset: string): Promise<Balance>;
-  
+
   // Trading
   createOrder(order: OrderRequest): Promise<OrderResponse>;
   cancelOrder(symbol: string, orderId: string): Promise<boolean>;
   getOrder(symbol: string, orderId: string): Promise<OrderResponse>;
   getOpenOrders(symbol?: string): Promise<OrderResponse[]>;
   getOrderHistory(symbol?: string, limit?: number): Promise<OrderResponse[]>;
-  
+
   // Utility
   getExchangeInfo(): ExchangeInfo;
   validateSymbol(symbol: string): boolean;

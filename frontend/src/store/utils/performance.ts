@@ -5,6 +5,7 @@
  */
 
 import { createSelector, createSelectorCreator, defaultMemoize } from '@reduxjs/toolkit';
+
 import { RootState } from '../types';
 
 // ============================================================================
@@ -21,10 +22,10 @@ const deepEqual = (a: any, b: any): boolean => {
   if (a === b) return true;
   if (a == null || b == null) return false;
   if (typeof a !== typeof b) return false;
-  
+
   if (typeof a === 'object') {
     if (Array.isArray(a) !== Array.isArray(b)) return false;
-    
+
     if (Array.isArray(a)) {
       if (a.length !== b.length) return false;
       for (let i = 0; i < a.length; i++) {
@@ -32,20 +33,20 @@ const deepEqual = (a: any, b: any): boolean => {
       }
       return true;
     }
-    
+
     const keysA = Object.keys(a);
     const keysB = Object.keys(b);
-    
+
     if (keysA.length !== keysB.length) return false;
-    
+
     for (const key of keysA) {
       if (!keysB.includes(key)) return false;
       if (!deepEqual(a[key], b[key])) return false;
     }
-    
+
     return true;
   }
-  
+
   return false;
 };
 
@@ -54,7 +55,7 @@ const deepEqual = (a: any, b: any): boolean => {
  */
 export const createDeepEqualSelector = createSelectorCreator(
   defaultMemoize,
-  deepEqual
+  deepEqual,
 );
 
 /**
@@ -62,7 +63,7 @@ export const createDeepEqualSelector = createSelectorCreator(
  */
 export const createShallowEqualSelector = createSelectorCreator(
   defaultMemoize,
-  (a: any, b: any) => a === b
+  (a: any, b: any) => a === b,
 );
 
 // ============================================================================
@@ -99,7 +100,7 @@ export const selectAuthError = (state: RootState) => state.auth.error;
  */
 export const selectUserSubscription = createSelector(
   [selectCurrentUser],
-  (user) => user?.subscription
+  (user) => user?.subscription,
 );
 
 /**
@@ -107,7 +108,7 @@ export const selectUserSubscription = createSelector(
  */
 export const selectIsTrialUser = createSelector(
   [selectUserSubscription],
-  (subscription) => subscription?.trialActive ?? false
+  (subscription) => subscription?.trialActive ?? false,
 );
 
 /**
@@ -115,7 +116,7 @@ export const selectIsTrialUser = createSelector(
  */
 export const selectTrialDaysRemaining = createSelector(
   [selectUserSubscription],
-  (subscription) => subscription?.daysRemaining ?? 0
+  (subscription) => subscription?.daysRemaining ?? 0,
 );
 
 /**
@@ -123,7 +124,7 @@ export const selectTrialDaysRemaining = createSelector(
  */
 export const selectUserPreferences = createSelector(
   [selectCurrentUser],
-  (user) => user?.preferences
+  (user) => user?.preferences,
 );
 
 /**
@@ -131,7 +132,7 @@ export const selectUserPreferences = createSelector(
  */
 export const selectTradingPreferences = createSelector(
   [selectUserPreferences],
-  (preferences) => preferences?.trading
+  (preferences) => preferences?.trading,
 );
 
 // ============================================================================
@@ -188,7 +189,7 @@ export const selectTradingError = (state: RootState) => state.trading.error;
  */
 export const selectTradesBySymbol = createSelector(
   [selectTrades, selectSelectedSymbol],
-  (trades, symbol) => trades.filter(trade => trade.symbol === symbol)
+  (trades, symbol) => trades.filter(trade => trade.symbol === symbol),
 );
 
 /**
@@ -199,7 +200,7 @@ export const selectRecentTrades = createSelector(
   (trades) => {
     const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
     return trades.filter(trade => new Date(trade.timestamp).getTime() > oneDayAgo);
-  }
+  },
 );
 
 /**
@@ -207,7 +208,7 @@ export const selectRecentTrades = createSelector(
  */
 export const selectWinningTrades = createSelector(
   [selectTrades],
-  (trades) => trades.filter(trade => (trade.profit ?? 0) > 0)
+  (trades) => trades.filter(trade => (trade.profit ?? 0) > 0),
 );
 
 /**
@@ -215,7 +216,7 @@ export const selectWinningTrades = createSelector(
  */
 export const selectLosingTrades = createSelector(
   [selectTrades],
-  (trades) => trades.filter(trade => (trade.profit ?? 0) < 0)
+  (trades) => trades.filter(trade => (trade.profit ?? 0) < 0),
 );
 
 /**
@@ -223,7 +224,7 @@ export const selectLosingTrades = createSelector(
  */
 export const selectTotalPnL = createSelector(
   [selectTrades],
-  (trades) => trades.reduce((total, trade) => total + (trade.profit ?? 0), 0)
+  (trades) => trades.reduce((total, trade) => total + (trade.profit ?? 0), 0),
 );
 
 /**
@@ -231,8 +232,8 @@ export const selectTotalPnL = createSelector(
  */
 export const selectWinRate = createSelector(
   [selectWinningTrades, selectTrades],
-  (winningTrades, allTrades) => 
-    allTrades.length > 0 ? (winningTrades.length / allTrades.length) * 100 : 0
+  (winningTrades, allTrades) =>
+    allTrades.length > 0 ? (winningTrades.length / allTrades.length) * 100 : 0,
 );
 
 /**
@@ -240,7 +241,7 @@ export const selectWinRate = createSelector(
  */
 export const selectPositionsBySymbol = createSelector(
   [selectPositions, selectSelectedSymbol],
-  (positions, symbol) => positions.filter(position => position.symbol === symbol)
+  (positions, symbol) => positions.filter(position => position.symbol === symbol),
 );
 
 /**
@@ -248,7 +249,7 @@ export const selectPositionsBySymbol = createSelector(
  */
 export const selectTotalUnrealizedPnL = createSelector(
   [selectPositions],
-  (positions) => positions.reduce((total, position) => total + position.unrealizedPnl, 0)
+  (positions) => positions.reduce((total, position) => total + position.unrealizedPnl, 0),
 );
 
 // ============================================================================
@@ -285,7 +286,7 @@ export const selectMarketDataError = (state: RootState) => state.marketData.erro
  */
 export const selectSelectedMarketData = createSelector(
   [selectMarketData, selectSelectedMarketSymbol],
-  (data, symbol) => data.find(item => item.symbol === symbol)
+  (data, symbol) => data.find(item => item.symbol === symbol),
 );
 
 /**
@@ -295,7 +296,7 @@ export const selectTopGainers = createSelector(
   [selectMarketData],
   (data) => [...data]
     .sort((a, b) => b.changePercent - a.changePercent)
-    .slice(0, 10)
+    .slice(0, 10),
 );
 
 /**
@@ -305,7 +306,7 @@ export const selectTopLosers = createSelector(
   [selectMarketData],
   (data) => [...data]
     .sort((a, b) => a.changePercent - b.changePercent)
-    .slice(0, 10)
+    .slice(0, 10),
 );
 
 /**
@@ -315,7 +316,7 @@ export const selectHighestVolume = createSelector(
   [selectMarketData],
   (data) => [...data]
     .sort((a, b) => b.volume - a.volume)
-    .slice(0, 10)
+    .slice(0, 10),
 );
 
 // ============================================================================
@@ -357,7 +358,7 @@ export const selectBotError = (state: RootState) => state.bot.error;
  */
 export const selectBotById = createSelector(
   [selectBots, (state: RootState, botId: string) => botId],
-  (bots, botId) => bots.find(bot => bot.id === botId)
+  (bots, botId) => bots.find(bot => bot.id === botId),
 );
 
 /**
@@ -365,7 +366,7 @@ export const selectBotById = createSelector(
  */
 export const selectActiveBotConfigs = createSelector(
   [selectBots, selectActiveBots],
-  (bots, activeBotIds) => bots.filter(bot => activeBotIds.includes(bot.id))
+  (bots, activeBotIds) => bots.filter(bot => activeBotIds.includes(bot.id)),
 );
 
 /**
@@ -373,7 +374,7 @@ export const selectActiveBotConfigs = createSelector(
  */
 export const selectBotsByStrategy = createSelector(
   [selectBots, (state: RootState, strategy: string) => strategy],
-  (bots, strategy) => bots.filter(bot => bot.strategy === strategy)
+  (bots, strategy) => bots.filter(bot => bot.strategy === strategy),
 );
 
 /**
@@ -385,17 +386,17 @@ export const selectBotPerformanceSummary = createSelector(
     const totalBots = bots.length;
     const activeBots = bots.filter(bot => bot.isActive).length;
     const totalPnL = bots.reduce((sum, bot) => sum + (bot.performance?.totalPnL ?? 0), 0);
-    const averageWinRate = bots.length > 0 
-      ? bots.reduce((sum, bot) => sum + (bot.performance?.winRate ?? 0), 0) / bots.length 
+    const averageWinRate = bots.length > 0
+      ? bots.reduce((sum, bot) => sum + (bot.performance?.winRate ?? 0), 0) / bots.length
       : 0;
-    
+
     return {
       totalBots,
       activeBots,
       totalPnL,
-      averageWinRate
+      averageWinRate,
     };
-  }
+  },
 );
 
 // ============================================================================
@@ -432,7 +433,7 @@ export const selectUINotifications = (state: RootState) => state.ui.notification
  */
 export const selectUnreadNotificationCount = createSelector(
   [selectUINotifications],
-  (notifications) => notifications.filter(n => !n.read).length
+  (notifications) => notifications.filter(n => !n.read).length,
 );
 
 // ============================================================================
@@ -459,7 +460,7 @@ export const selectUnreadCount = (state: RootState) => state.notification.unread
  */
 export const selectUnreadNotifications = createSelector(
   [selectNotifications],
-  (notifications) => notifications.filter(n => !n.read)
+  (notifications) => notifications.filter(n => !n.read),
 );
 
 /**
@@ -467,7 +468,7 @@ export const selectUnreadNotifications = createSelector(
  */
 export const selectNotificationsByType = createSelector(
   [selectNotifications, (state: RootState, type: string) => type],
-  (notifications, type) => notifications.filter(n => n.type === type)
+  (notifications, type) => notifications.filter(n => n.type === type),
 );
 
 /**
@@ -478,7 +479,7 @@ export const selectRecentNotifications = createSelector(
   (notifications) => {
     const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
     return notifications.filter(n => n.timestamp > oneDayAgo);
-  }
+  },
 );
 
 // ============================================================================
@@ -501,15 +502,15 @@ class PerformanceMonitor {
     if (!this.metrics.has(name)) {
       this.metrics.set(name, []);
     }
-    
+
     const values = this.metrics.get(name)!;
     values.push(value);
-    
+
     // Keep only last 100 values
     if (values.length > 100) {
       values.shift();
     }
-    
+
     this.notifyObservers();
   }
 
@@ -580,15 +581,15 @@ export const performanceMonitor = new PerformanceMonitor();
  */
 export const withPerformanceMonitoring = <T extends (...args: any[]) => any>(
   selector: T,
-  name: string
+  name: string,
 ): T => {
   return ((...args: any[]) => {
     const start = performance.now();
     const result = selector(...args);
     const end = performance.now();
-    
+
     performanceMonitor.recordMetric(`selector_${name}`, end - start);
-    
+
     return result;
   }) as T;
 };
@@ -603,7 +604,7 @@ export const withPerformanceMonitoring = <T extends (...args: any[]) => any>(
 export const createMonitoredSelector = <T, R>(
   selectors: ((state: RootState) => any)[],
   resultFunc: (...args: any[]) => R,
-  name: string
+  name: string,
 ) => {
   const selector = createSelector(selectors, resultFunc);
   return withPerformanceMonitoring(selector, name);

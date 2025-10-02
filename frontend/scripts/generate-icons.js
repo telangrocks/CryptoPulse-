@@ -2,7 +2,7 @@
 
 /**
  * Icon Generation Script for CryptoPulse PWA
- * 
+ *
  * This script generates all required icon sizes from the source SVG
  * Requires: sharp package (npm install sharp)
  */
@@ -49,21 +49,21 @@ async function generateIcons() {
   for (const size of sizes) {
     try {
       const outputFile = path.join(outputDir, `icon-${size}.png`);
-      
+
       await sharp(inputSvg)
         .resize(size, size, {
           fit: 'contain',
-          background: { r: 15, g: 23, b: 42, alpha: 1 } // #0f172a
+          background: { r: 15, g: 23, b: 42, alpha: 1 }, // #0f172a
         })
         .png({
           quality: 100,
-          compressionLevel: 9
+          compressionLevel: 9,
         })
         .toFile(outputFile);
-      
+
       const stats = fs.statSync(outputFile);
       const sizeKB = (stats.size / 1024).toFixed(2);
-      
+
       console.log(`✅ icon-${size}.png (${sizeKB} KB)`);
       successCount++;
     } catch (error) {
@@ -75,20 +75,20 @@ async function generateIcons() {
   // Generate favicon.ico (using 32x32 PNG)
   try {
     const faviconFile = path.join(outputDir, 'favicon.ico');
-    
+
     await sharp(inputSvg)
       .resize(32, 32, {
         fit: 'contain',
-        background: { r: 15, g: 23, b: 42, alpha: 1 }
+        background: { r: 15, g: 23, b: 42, alpha: 1 },
       })
       .png({
-        quality: 100
+        quality: 100,
       })
       .toFile(faviconFile);
-    
+
     const stats = fs.statSync(faviconFile);
     const sizeKB = (stats.size / 1024).toFixed(2);
-    
+
     console.log(`✅ favicon.ico (${sizeKB} KB)`);
     successCount++;
   } catch (error) {
@@ -99,20 +99,20 @@ async function generateIcons() {
   // Generate apple-touch-icon
   try {
     const appleIconFile = path.join(outputDir, 'apple-touch-icon.png');
-    
+
     await sharp(inputSvg)
       .resize(180, 180, {
         fit: 'contain',
-        background: { r: 15, g: 23, b: 42, alpha: 1 }
+        background: { r: 15, g: 23, b: 42, alpha: 1 },
       })
       .png({
-        quality: 100
+        quality: 100,
       })
       .toFile(appleIconFile);
-    
+
     const stats = fs.statSync(appleIconFile);
     const sizeKB = (stats.size / 1024).toFixed(2);
-    
+
     console.log(`✅ apple-touch-icon.png (${sizeKB} KB)`);
     successCount++;
   } catch (error) {

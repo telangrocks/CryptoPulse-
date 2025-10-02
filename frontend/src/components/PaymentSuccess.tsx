@@ -1,8 +1,9 @@
+import { CheckCircle, AlertCircle, ArrowRight } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Card, CardContent } from './ui/card';
+
 import { Button } from './ui/button';
-import { CheckCircle, AlertCircle, ArrowRight } from 'lucide-react';
+import { Card, CardContent } from './ui/card';
 
 interface OrderDetails {
   orderId: string;
@@ -24,15 +25,15 @@ export default function PaymentSuccess() {
         // Get order details from URL params or localStorage
         const orderId = searchParams.get('order-id') || searchParams.get('orderId');
         const paymentStatus = searchParams.get('payment-status');
-        
+
         if (orderId) {
           // Verify payment with backend
           const result = await fetch('/api/verify-payment', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ orderId })
+            body: JSON.stringify({ orderId }),
           });
-          
+
           const data = await result.json();
           if (data.success && data.hasSubscription) {
             setPaymentStatus('success');
@@ -40,7 +41,7 @@ export default function PaymentSuccess() {
               orderId: orderId,
               amount: data.subscription.amount,
               currency: data.subscription.currency,
-              status: data.subscription.status
+              status: data.subscription.status,
             });
           } else {
             setPaymentStatus('failed');
@@ -87,7 +88,7 @@ export default function PaymentSuccess() {
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
         <Card className="w-full max-w-md bg-slate-800/90 border-slate-700 text-white">
           <CardContent className="text-center p-8">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4" />
             <h1 className="text-xl font-bold text-white mb-2">Verifying Payment...</h1>
             <p className="text-slate-400">Please wait while we confirm your subscription.</p>
           </CardContent>
@@ -106,20 +107,20 @@ export default function PaymentSuccess() {
             <p className="text-slate-300 mb-6">
               We couldn't verify your payment. Please try again or contact support.
             </p>
-            
+
             <div className="space-y-4">
-              <Button 
-                onClick={() => navigate('/payment')}
+              <Button
                 className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                onClick={() => navigate('/payment')}
               >
                 Try Again
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
-              
-              <Button 
+
+              <Button
+                className="w-full"
                 onClick={() => navigate('/dashboard')}
                 variant="outline"
-                className="w-full"
               >
                 Back to Dashboard
               </Button>
@@ -139,7 +140,7 @@ export default function PaymentSuccess() {
           <p className="text-slate-300 mb-6">
             Your CryptoPulse subscription is now active. Welcome to unlimited AI-powered trading!
           </p>
-          
+
           {orderDetails && (
             <div className="bg-slate-700/50 rounded-lg p-4 mb-6">
               <p className="text-sm text-slate-400 mb-1">Order ID</p>
@@ -149,14 +150,14 @@ export default function PaymentSuccess() {
           )}
 
           <div className="space-y-4">
-            <Button 
-              onClick={() => navigate('/dashboard')}
+            <Button
               className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+              onClick={() => navigate('/dashboard')}
             >
               Go to Dashboard
               <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
-            
+
             <p className="text-sm text-slate-400">
               Redirecting automatically in {countdown} seconds...
             </p>

@@ -1,7 +1,8 @@
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
 import { BarChart3, Play, Settings } from 'lucide-react';
+import React from 'react';
+
+import { Button } from './ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 
 export default function Backtesting() {
   return (
@@ -21,7 +22,7 @@ export default function Backtesting() {
               Test your trading strategies with historical data
             </p>
           </CardHeader>
-          
+
           <CardContent className="space-y-6">
             <div className="text-center py-12">
               <BarChart3 className="h-16 w-16 text-slate-600 mx-auto mb-4" />
@@ -34,7 +35,7 @@ export default function Backtesting() {
                   <Play className="h-4 w-4 mr-2" />
                   Run Backtest
                 </Button>
-                <Button variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700">
+                <Button className="border-slate-600 text-slate-300 hover:bg-slate-700" variant="outline">
                   <Settings className="h-4 w-4 mr-2" />
                   Configure Strategy
                 </Button>

@@ -20,7 +20,7 @@ export class InputValidator {
 
   static validateEmail(email: string): ValidationResult {
     const sanitized = this.sanitizeInput(email);
-    
+
     if (!sanitized) {
       return { isValid: false, error: 'Email is required' };
     }
@@ -42,9 +42,9 @@ export class InputValidator {
     }
 
     if (!this.PASSWORD_PATTERN.test(password)) {
-      return { 
-        isValid: false, 
-        error: 'Password must contain uppercase, lowercase, number, and special character' 
+      return {
+        isValid: false,
+        error: 'Password must contain uppercase, lowercase, number, and special character',
       };
     }
 
@@ -53,7 +53,7 @@ export class InputValidator {
 
   static validateApiKey(apiKey: string): ValidationResult {
     const sanitized = this.sanitizeInput(apiKey);
-    
+
     if (!sanitized) {
       return { isValid: false, error: 'API key is required' };
     }
@@ -67,7 +67,7 @@ export class InputValidator {
 
   static validateTradingPair(pair: string): ValidationResult {
     const sanitized = this.sanitizeInput(pair).toUpperCase();
-    
+
     if (!sanitized) {
       return { isValid: false, error: 'Trading pair is required' };
     }
@@ -82,7 +82,7 @@ export class InputValidator {
 
   static validateNumericInput(value: string, min?: number, max?: number): ValidationResult {
     const sanitized = this.sanitizeInput(value);
-    
+
     if (!sanitized) {
       return { isValid: false, error: 'Value is required' };
     }

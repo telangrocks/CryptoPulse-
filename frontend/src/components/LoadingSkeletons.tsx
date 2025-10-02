@@ -1,5 +1,5 @@
-import { Skeleton } from './ui/skeleton';
 import { Card, CardContent, CardHeader } from './ui/card';
+import { Skeleton } from './ui/skeleton';
 
 export function DashboardSkeleton() {
   return (
@@ -56,7 +56,7 @@ export function TableSkeleton({ rows = 5 }: { rows?: number }) {
   return (
     <div className="space-y-3">
       {Array.from({ length: rows }).map((_, i) => (
-        <div key={i} className="flex items-center space-x-4">
+        <div className="flex items-center space-x-4" key={i}>
           <Skeleton className="h-4 w-4" />
           <Skeleton className="h-4 w-24" />
           <Skeleton className="h-4 w-16" />

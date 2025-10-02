@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+
 import { useAuth } from '../contexts/AuthContext';
 
 /**
@@ -9,8 +10,8 @@ export function useAuthenticatedAPI() {
   const { user } = useAuth();
 
   const authenticatedCall = useCallback(async (
-    functionName: string, 
-    params: Record<string, unknown> = {}
+    functionName: string,
+    params: Record<string, unknown> = {},
   ) => {
     if (!user?.sessionToken) {
       throw new Error('User not authenticated. Please log in to access this feature.');
@@ -21,21 +22,21 @@ export function useAuthenticatedAPI() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${user.sessionToken}`
+        'Authorization': `Bearer ${user.sessionToken}`,
       },
       body: JSON.stringify(params),
     });
-    
+
     if (!response.ok) {
       throw new Error(`API call failed: ${response.statusText}`);
     }
-    
+
     return await response.json();
   }, [user?.sessionToken]);
 
   const publicCall = useCallback(async (
-    functionName: string, 
-    params: Record<string, unknown> = {}
+    functionName: string,
+    params: Record<string, unknown> = {},
   ) => {
     // For public calls, use standard fetch without authentication
     const response = await fetch(`/api/public/${functionName}`, {
@@ -45,11 +46,11 @@ export function useAuthenticatedAPI() {
       },
       body: JSON.stringify(params),
     });
-    
+
     if (!response.ok) {
       throw new Error(`Public API call failed: ${response.statusText}`);
     }
-    
+
     return await response.json();
   }, []);
 

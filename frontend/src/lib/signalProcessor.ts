@@ -43,7 +43,7 @@ export class SignalProcessor {
       maxSignalsPerMinute: 5,
       cooldownPeriod: 60000,
       priorityThreshold: 85,
-      ...config
+      ...config,
     };
   }
 
@@ -65,7 +65,7 @@ export class SignalProcessor {
       priority: this.calculatePriority(rawSignal),
       timestamp: new Date(),
       processedAt: new Date(),
-      status: 'pending'
+      status: 'pending',
     };
 
     // Add to queue if meets minimum confidence
@@ -97,11 +97,11 @@ export class SignalProcessor {
   }
 
   private checkRateLimit(pair: string): boolean {
-      const now = Date.now();
+    const now = Date.now();
     const minute = Math.floor(now / 60000);
     const key = `${pair}_${minute}`;
     const count = this.signalCounts.get(key) || 0;
-    
+
     return count < this.config.maxSignalsPerMinute;
   }
 
@@ -119,7 +119,7 @@ export class SignalProcessor {
   private cleanupOldCounts(): void {
     const now = Date.now();
     const currentMinute = Math.floor(now / 60000);
-    
+
     for (const [key] of this.signalCounts) {
       const keyMinute = parseInt(key.split('_').pop() || '0');
       if (currentMinute - keyMinute > 5) {
@@ -130,23 +130,23 @@ export class SignalProcessor {
 
   private calculatePriority(signal: RawSignal): number {
     let priority = signal.confidence;
-    
+
     // Boost priority for high confidence signals
     if (signal.confidence >= this.config.priorityThreshold) {
       priority += 10;
     }
-    
+
     // Adjust based on risk-reward ratio
     const risk = Math.abs(signal.entry - signal.stopLoss);
     const reward = Math.abs(signal.takeProfit - signal.entry);
     const riskRewardRatio = reward / risk;
-    
+
     if (riskRewardRatio >= 2) {
       priority += 5;
     } else if (riskRewardRatio < 1) {
       priority -= 10;
     }
-    
+
     return Math.min(100, Math.max(0, priority));
   }
 

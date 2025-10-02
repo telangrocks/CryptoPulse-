@@ -1,30 +1,31 @@
-import { cva, type VariantProps } from 'class-variance-authority';
-import { cn } from '@/lib/utils';
-import React from 'react';
 import * as LabelPrimitive from '@radix-ui/react-label';
+import { cva, type VariantProps } from 'class-variance-authority';
+import React from 'react';
+
+import { cn } from '@/lib/utils';
 
 const labelVariants = cva(
-  "text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70",
+  'text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70',
   {
     variants: {
       variant: {
-        default: "text-zinc-950 dark:text-zinc-50",
-        muted: "text-zinc-500 dark:text-zinc-400",
-        error: "text-red-500 dark:text-red-400",
-        success: "text-green-600 dark:text-green-400",
-        warning: "text-yellow-600 dark:text-yellow-400",
+        default: 'text-zinc-950 dark:text-zinc-50',
+        muted: 'text-zinc-500 dark:text-zinc-400',
+        error: 'text-red-500 dark:text-red-400',
+        success: 'text-green-600 dark:text-green-400',
+        warning: 'text-yellow-600 dark:text-yellow-400',
       },
       size: {
-        sm: "text-xs",
-        md: "text-sm",
-        lg: "text-base",
+        sm: 'text-xs',
+        md: 'text-sm',
+        lg: 'text-base',
       },
     },
     defaultVariants: {
-      variant: "default",
-      size: "md",
+      variant: 'default',
+      size: 'md',
     },
-  }
+  },
 );
 
 export interface LabelProps
@@ -46,7 +47,7 @@ export interface LabelProps
 
 /**
  * Label component for form inputs with enhanced accessibility
- * 
+ *
  * @example
  * ```tsx
  * <Label htmlFor="email" required>Email Address</Label>
@@ -65,9 +66,9 @@ const Label = React.forwardRef<
   return (
     <div className="space-y-1">
       <LabelPrimitive.Root
-        ref={ref}
-        id={labelId}
         className={cn(labelVariants({ variant, size }), className)}
+        id={labelId}
+        ref={ref}
         {...props}
       >
         {children}
@@ -75,16 +76,16 @@ const Label = React.forwardRef<
       </LabelPrimitive.Root>
       {description && !error && (
         <p
-          id={descriptionId}
           className="text-xs text-zinc-500 dark:text-zinc-400"
+          id={descriptionId}
         >
           {description}
         </p>
       )}
       {error && (
         <p
-          id={errorId}
           className="text-xs text-red-500"
+          id={errorId}
           role="alert"
         >
           {error}

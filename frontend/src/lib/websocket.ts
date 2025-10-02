@@ -38,7 +38,7 @@ export class WebSocketManager {
       reconnectInterval: 5000,
       maxReconnectAttempts: 10,
       heartbeatInterval: 30000,
-      ...config
+      ...config,
     };
   }
 
@@ -53,7 +53,7 @@ export class WebSocketManager {
     return new Promise((resolve, reject) => {
       try {
         this.ws = new WebSocket(this.config.url);
-        
+
         this.ws.onopen = (event) => {
           this.isConnecting = false;
           this.reconnectAttempts = 0;
@@ -66,7 +66,7 @@ export class WebSocketManager {
           this.isConnecting = false;
           this.stopHeartbeat();
           this.handlers.onClose?.(event);
-          
+
           if (this.shouldReconnect && this.reconnectAttempts < this.config.maxReconnectAttempts) {
             this.scheduleReconnect();
           }
@@ -97,7 +97,7 @@ export class WebSocketManager {
     this.shouldReconnect = false;
     this.clearReconnectTimer();
     this.stopHeartbeat();
-    
+
     if (this.ws) {
       this.ws.close();
       this.ws = null;
@@ -134,7 +134,7 @@ export class WebSocketManager {
     this.reconnectAttempts++;
     const delay = Math.min(
       this.config.reconnectInterval * Math.pow(2, this.reconnectAttempts - 1),
-      30000
+      30000,
     );
 
     this.reconnectTimer = setTimeout(() => {
@@ -154,13 +154,13 @@ export class WebSocketManager {
 
   private startHeartbeat(): void {
     this.stopHeartbeat();
-    
+
     this.heartbeatTimer = setInterval(() => {
       if (this.isConnected()) {
         this.send({
           type: 'ping',
           data: {},
-          timestamp: Date.now()
+          timestamp: Date.now(),
         });
       }
     }, this.config.heartbeatInterval);

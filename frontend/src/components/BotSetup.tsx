@@ -1,10 +1,11 @@
+import { Bot, CheckCircle } from 'lucide-react';
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+
+import { Alert, AlertDescription } from './ui/alert';
 import { Button } from './ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { Alert, AlertDescription } from './ui/alert';
-import { Bot, CheckCircle } from 'lucide-react';
 
 export default function BotSetup() {
   const [botName, setBotName] = useState('');
@@ -49,20 +50,20 @@ export default function BotSetup() {
               Set up your AI-powered trading bot parameters
             </p>
           </CardHeader>
-          
+
           <CardContent className="space-y-6">
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form className="space-y-6" onSubmit={handleSubmit}>
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="bot-name" className="text-slate-300">Bot Name</Label>
+                  <Label className="text-slate-300" htmlFor="bot-name">Bot Name</Label>
                   <Input
+                    className="bg-slate-700 border-slate-600 text-white"
                     id="bot-name"
-                    type="text"
-                    value={botName}
                     onChange={(e) => setBotName(e.target.value)}
                     placeholder="My Trading Bot"
-                    className="bg-slate-700 border-slate-600 text-white"
                     required
+                    type="text"
+                    value={botName}
                   />
                 </div>
               </div>
@@ -85,9 +86,9 @@ export default function BotSetup() {
               )}
 
               <Button
-                type="submit"
                 className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
                 disabled={isLoading}
+                type="submit"
               >
                 {isLoading ? 'Configuring...' : 'Configure Bot'}
               </Button>

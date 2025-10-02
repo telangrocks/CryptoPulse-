@@ -1,6 +1,7 @@
-import { cn } from '@/lib/utils';
-import React from 'react';
 import * as ProgressPrimitive from '@radix-ui/react-progress';
+import React from 'react';
+
+import { cn } from '@/lib/utils';
 
 export interface ProgressProps
   extends React.ComponentPropsWithoutRef<typeof ProgressPrimitive.Root> {
@@ -24,7 +25,7 @@ export interface ProgressProps
 
 /**
  * Progress component for displaying progress indicators
- * 
+ *
  * @example
  * ```tsx
  * <Progress value={75} label="Upload progress" showValue />
@@ -38,14 +39,14 @@ const Progress = React.forwardRef<
   const sizeClasses = {
     sm: 'h-2',
     md: 'h-4',
-    lg: 'h-6'
+    lg: 'h-6',
   };
 
   const variantClasses = {
     default: 'bg-gradient-to-r from-purple-500 to-blue-500',
     success: 'bg-gradient-to-r from-green-500 to-emerald-500',
     warning: 'bg-gradient-to-r from-yellow-500 to-orange-500',
-    destructive: 'bg-gradient-to-r from-red-500 to-pink-500'
+    destructive: 'bg-gradient-to-r from-red-500 to-pink-500',
   };
 
   return (
@@ -65,19 +66,19 @@ const Progress = React.forwardRef<
         </div>
       )}
       <ProgressPrimitive.Root
-        ref={ref}
         className={cn(
-          "relative w-full overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800",
+          'relative w-full overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800',
           sizeClasses[size],
-          className
+          className,
         )}
+        ref={ref}
         value={value}
         {...props}
       >
         <ProgressPrimitive.Indicator
           className={cn(
-            "h-full w-full flex-1 transition-all duration-300 ease-in-out",
-            variantClasses[variant]
+            'h-full w-full flex-1 transition-all duration-300 ease-in-out',
+            variantClasses[variant],
           )}
           style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
         />

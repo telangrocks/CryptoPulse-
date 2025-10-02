@@ -28,7 +28,7 @@ export function useDocumentHead(options: DocumentHeadOptions) {
       twitterCard = 'summary_large-image',
       canonical,
       robots = 'index, follow',
-      themeColor = '#8b5cf6'
+      themeColor = '#8b5cf6',
     } = options;
 
     // Update document title
@@ -104,7 +104,7 @@ function updateMetaTag(name: string, content: string, attribute: string = 'name'
     meta.setAttribute(attribute, name);
     document.head.appendChild(meta);
   }
-  
+
   meta.setAttribute('content', content);
 }
 
@@ -115,6 +115,6 @@ function updateLinkTag(rel: string, href: string) {
     link.setAttribute('rel', rel);
     document.head.appendChild(link);
   }
-  
+
   link.setAttribute('href', href);
 }

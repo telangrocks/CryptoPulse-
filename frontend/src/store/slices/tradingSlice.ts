@@ -1,15 +1,16 @@
 /**
  * Trading Slice for CryptoPulse
- * 
+ *
  * Handles trading operations, order management, and position tracking.
  * Includes comprehensive error handling, validation, and real-time updates.
- * 
+ *
  * @fileoverview Production-ready trading state management
  * @version 1.0.0
  * @author CryptoPulse Team
  */
 
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+
 import { RootState } from '../index';
 
 // ============================================================================
@@ -394,7 +395,7 @@ const initialState: TradingState = {
   selectedTimeframe: '1m',
   supportedSymbols: [
     'BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'ADAUSDT', 'XRPUSDT',
-    'SOLUSDT', 'DOTUSDT', 'DOGEUSDT', 'AVAXUSDT', 'MATICUSDT'
+    'SOLUSDT', 'DOTUSDT', 'DOGEUSDT', 'AVAXUSDT', 'MATICUSDT',
   ],
   supportedTimeframes: ['1m', '3m', '5m', '15m', '30m', '1h', '2h', '4h', '6h', '8h', '12h', '1d', '3d', '1w', '1M'],
   marketData: {},
@@ -409,38 +410,38 @@ const initialState: TradingState = {
  */
 const validateOrderRequest = (order: OrderRequest): { valid: boolean; errors: string[] } => {
   const errors: string[] = [];
-  
+
   if (!order.symbol || typeof order.symbol !== 'string') {
     errors.push('Symbol is required and must be a string');
   }
-  
+
   if (!order.side || !['BUY', 'SELL'].includes(order.side)) {
     errors.push('Valid side (BUY/SELL) is required');
   }
-  
+
   if (!order.type || !['MARKET', 'LIMIT', 'STOP_LOSS', 'STOP_LOSS_LIMIT', 'TAKE_PROFIT', 'TAKE_PROFIT_LIMIT'].includes(order.type)) {
     errors.push('Valid order type is required');
   }
-  
+
   if (!order.quantity || order.quantity <= 0) {
     errors.push('Quantity must be greater than 0');
   }
-  
+
   if (order.type !== 'MARKET' && (!order.price || order.price <= 0)) {
     errors.push('Price is required for non-market orders');
   }
-  
+
   if (['STOP_LOSS', 'STOP_LOSS_LIMIT', 'TAKE_PROFIT', 'TAKE_PROFIT_LIMIT'].includes(order.type) && (!order.stopPrice || order.stopPrice <= 0)) {
     errors.push('Stop price is required for stop orders');
   }
-  
+
   if (!order.exchange || typeof order.exchange !== 'string') {
     errors.push('Exchange is required and must be a string');
   }
-  
+
   return {
     valid: errors.length === 0,
-    errors
+    errors,
   };
 };
 
@@ -449,20 +450,20 @@ const validateOrderRequest = (order: OrderRequest): { valid: boolean; errors: st
  */
 const calculateSharpeRatio = (trades: Trade[], riskFreeRate: number = 0.02): number => {
   if (trades.length < 2) return 0;
-  
+
   const returns = trades.map(trade => trade.profit || 0);
   const meanReturn = returns.reduce((sum, ret) => sum + ret, 0) / returns.length;
-  
+
   // Calculate standard deviation
   const variance = returns.reduce((sum, ret) => sum + Math.pow(ret - meanReturn, 2), 0) / (returns.length - 1);
   const stdDev = Math.sqrt(variance);
-  
+
   if (stdDev === 0) return 0;
-  
+
   // Annualized Sharpe ratio
   const annualizedReturn = meanReturn * 365; // Assuming daily trades
   const annualizedStdDev = stdDev * Math.sqrt(365);
-  
+
   return (annualizedReturn - riskFreeRate) / annualizedStdDev;
 };
 
@@ -471,23 +472,23 @@ const calculateSharpeRatio = (trades: Trade[], riskFreeRate: number = 0.02): num
  */
 const calculateMaxDrawdown = (trades: Trade[]): number => {
   if (trades.length === 0) return 0;
-  
+
   let peak = 0;
   let maxDrawdown = 0;
   let runningBalance = 0;
-  
+
   trades.forEach(trade => {
     runningBalance += trade.profit || 0;
     if (runningBalance > peak) {
       peak = runningBalance;
     }
-    
+
     const drawdown = peak - runningBalance;
     if (drawdown > maxDrawdown) {
       maxDrawdown = drawdown;
     }
   });
-  
+
   return maxDrawdown;
 };
 
@@ -499,28 +500,28 @@ const calculateTradingStatistics = (trades: Trade[]): TradingStatistics => {
   const winningTrades = trades.filter(trade => (trade.profit || 0) > 0).length;
   const losingTrades = trades.filter(trade => (trade.profit || 0) < 0).length;
   const winRate = totalTrades > 0 ? (winningTrades / totalTrades) * 100 : 0;
-  
+
   const totalProfit = trades.reduce((sum, trade) => sum + (trade.profit || 0), 0);
   const totalLoss = trades.reduce((sum, trade) => sum + Math.abs(Math.min(trade.profit || 0, 0)), 0);
   const netProfit = totalProfit - totalLoss;
   const profitFactor = totalLoss > 0 ? totalProfit / totalLoss : 0;
-  
+
   const profits = trades.map(trade => trade.profit || 0);
   const averageWin = winningTrades > 0 ? profits.filter(p => p > 0).reduce((sum, p) => sum + p, 0) / winningTrades : 0;
   const averageLoss = losingTrades > 0 ? profits.filter(p => p < 0).reduce((sum, p) => sum + Math.abs(p), 0) / losingTrades : 0;
-  
+
   const largestWin = Math.max(...profits, 0);
   const largestLoss = Math.min(...profits, 0);
-  
+
   const totalVolume = trades.reduce((sum, trade) => sum + trade.executedQty, 0);
   const averageVolume = totalTrades > 0 ? totalVolume / totalTrades : 0;
-  
+
   // Calculate consecutive wins/losses
   let consecutiveWins = 0;
   let consecutiveLosses = 0;
   let currentStreak = 0;
   let isWinning = false;
-  
+
   for (const profit of profits) {
     if (profit > 0) {
       if (isWinning) {
@@ -540,7 +541,7 @@ const calculateTradingStatistics = (trades: Trade[]): TradingStatistics => {
       consecutiveLosses = Math.max(consecutiveLosses, currentStreak);
     }
   }
-  
+
   return {
     totalTrades,
     winningTrades,
@@ -572,46 +573,46 @@ const filterTrades = (trades: Trade[], filters: TradingFilters): Trade[] => {
     if (filters.symbols && !filters.symbols.includes(trade.symbol)) {
       return false;
     }
-    
+
     if (filters.sides && !filters.sides.includes(trade.side)) {
       return false;
     }
-    
+
     if (filters.types && !filters.types.includes(trade.type)) {
       return false;
     }
-    
+
     if (filters.statuses && !filters.statuses.includes(trade.status)) {
       return false;
     }
-    
+
     if (filters.dateRange) {
       const tradeTime = new Date(trade.timestamp).getTime();
       if (tradeTime < filters.dateRange.start || tradeTime > filters.dateRange.end) {
         return false;
       }
     }
-    
+
     if (filters.minProfit !== undefined && (trade.profit || 0) < filters.minProfit) {
       return false;
     }
-    
+
     if (filters.maxProfit !== undefined && (trade.profit || 0) > filters.maxProfit) {
       return false;
     }
-    
+
     if (filters.minVolume !== undefined && trade.executedQty < filters.minVolume) {
       return false;
     }
-    
+
     if (filters.maxVolume !== undefined && trade.executedQty > filters.maxVolume) {
       return false;
     }
-    
+
     if (filters.exchanges && !filters.exchanges.includes(trade.exchange)) {
       return false;
     }
-    
+
     return true;
   });
 };
@@ -623,7 +624,7 @@ const sortTrades = (trades: Trade[], sortBy: string, sortOrder: 'asc' | 'desc'):
   return [...trades].sort((a, b) => {
     let aValue: string | number;
     let bValue: string | number;
-    
+
     switch (sortBy) {
       case 'timestamp':
         aValue = new Date(a.timestamp).getTime();
@@ -644,7 +645,7 @@ const sortTrades = (trades: Trade[], sortBy: string, sortOrder: 'asc' | 'desc'):
       default:
         return 0;
     }
-    
+
     if (sortOrder === 'asc') {
       return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
     } else {
@@ -668,14 +669,14 @@ export const executeTrade = createAsyncThunk(
         ...tradeData,
         id: Date.now().toString(),
         timestamp: new Date().toISOString(),
-        status: 'FILLED'
+        status: 'FILLED',
       };
-      
+
       return trade;
     } catch (error) {
       return rejectWithValue('Trade execution failed');
     }
-  }
+  },
 );
 
 export const cancelOrder = createAsyncThunk(
@@ -688,7 +689,7 @@ export const cancelOrder = createAsyncThunk(
     } catch (error) {
       return rejectWithValue('Order cancellation failed');
     }
-  }
+  },
 );
 
 export const fetchTrades = createAsyncThunk(
@@ -722,13 +723,13 @@ export const fetchTrades = createAsyncThunk(
           timestamp: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
           profit: -20,
           profitPercent: -0.67,
-        }
+        },
       ];
       return trades;
     } catch (error) {
       return rejectWithValue('Failed to fetch trades');
     }
-  }
+  },
 );
 
 export const fetchPositions = createAsyncThunk(
@@ -749,13 +750,13 @@ export const fetchPositions = createAsyncThunk(
           unrealizedPnlPercent: 0.22,
           margin: 45,
           leverage: 1,
-        }
+        },
       ];
       return positions;
     } catch (error) {
       return rejectWithValue('Failed to fetch positions');
     }
-  }
+  },
 );
 
 const tradingSlice = createSlice({
@@ -800,7 +801,7 @@ const tradingSlice = createSlice({
       if (index !== -1) {
         state.positions[index] = { ...state.positions[index], ...action.payload.updates };
       }
-    }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -848,7 +849,7 @@ const tradingSlice = createSlice({
         state.isLoading = false;
         state.error = action.payload as string;
       });
-  }
+  },
 });
 
 export const {
@@ -862,7 +863,7 @@ export const {
   addTrade,
   updateTrade,
   removeTrade,
-  updatePosition
+  updatePosition,
 } = tradingSlice.actions;
 
 export default tradingSlice.reducer;

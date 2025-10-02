@@ -1,6 +1,7 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import path from 'path'
+import path from 'path';
+
+import react from '@vitejs/plugin-react';
+import { defineConfig } from 'vite';
 
 // Production-optimized Vite configuration
 export default defineConfig({
@@ -8,7 +9,7 @@ export default defineConfig({
   logLevel: 'warn',
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      '@': path.resolve(__dirname, './src'),
     },
   },
   build: {
@@ -17,16 +18,16 @@ export default defineConfig({
     sourcemap: false,
     chunkSizeWarningLimit: 1000,
     target: ['es2018', 'chrome70', 'firefox65', 'safari12', 'edge79'],
-    
+
     // ESBuild configuration for better compatibility
     esbuild: {
       target: 'es2018',
       supported: {
         'destructuring': true,
-        'dynamic-import': true
-      }
+        'dynamic-import': true,
+      },
     },
-    
+
     // Optimize chunks for faster loading
     rollupOptions: {
       onwarn(warning, warn) {
@@ -58,14 +59,14 @@ export default defineConfig({
         // Optimize file names for caching
         chunkFileNames: 'assets/[name]-[hash].js',
         entryFileNames: 'assets/[name]-[hash].js',
-        assetFileNames: 'assets/[name]-[hash].[ext]'
-      }
-    }
+        assetFileNames: 'assets/[name]-[hash].[ext]',
+      },
+    },
   },
-  
+
   // Application configuration
   base: '/',
-  
+
   // Optimize dependencies
   optimizeDeps: {
     include: [
@@ -80,26 +81,26 @@ export default defineConfig({
       'tailwind-merge',
     ],
     esbuildOptions: {
-      target: 'es2018'
-    }
+      target: 'es2018',
+    },
   },
-  
+
   // Browser compatibility
   define: {
     global: 'globalThis',
-    'process.env.NODE_ENV': '"production"'
+    'process.env.NODE_ENV': '"production"',
   },
-  
+
   // Environment variables configuration
   envPrefix: 'VITE_',
-  
+
   // Production server configuration
   server: {
     port: 3000,
     host: true,
-    https: false
+    https: false,
   },
-  
+
   // Preview server configuration
   preview: {
     port: 4173,
@@ -111,7 +112,7 @@ export default defineConfig({
       'X-XSS-Protection': '1; mode=block',
       'Referrer-Policy': 'strict-origin-when-cross-origin',
       'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
-      'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:;"
-    }
-  }
-})
+      'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:;",
+    },
+  },
+});

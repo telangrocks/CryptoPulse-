@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+
 import { Alert, AlertDescription } from './ui/alert';
 import { Badge } from './ui/badge';
+import { Button } from './ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 
 interface ExchangeCredentials {
   binance?: {
@@ -41,20 +42,20 @@ const EXCHANGE_INFO: Record<string, ExchangeInfo> = {
     name: 'Binance',
     isIndiaApproved: false,
     fees: { maker: 0.1, taker: 0.1 },
-    supportedPairs: ['BTC/USDT', 'ETH/USDT', 'BNB/USDT']
+    supportedPairs: ['BTC/USDT', 'ETH/USDT', 'BNB/USDT'],
   },
   wazirx: {
     name: 'WazirX',
     isIndiaApproved: true,
     fees: { maker: 0.2, taker: 0.2 },
-    supportedPairs: ['BTC/INR', 'ETH/INR', 'USDT/INR']
+    supportedPairs: ['BTC/INR', 'ETH/INR', 'USDT/INR'],
   },
   coindcx: {
     name: 'CoinDCX',
     isIndiaApproved: true,
     fees: { maker: 0.1, taker: 0.1 },
-    supportedPairs: ['BTC/INR', 'ETH/INR', 'USDT/INR']
-  }
+    supportedPairs: ['BTC/INR', 'ETH/INR', 'USDT/INR'],
+  },
 };
 
 export default function ExchangeIntegration() {
@@ -68,8 +69,8 @@ export default function ExchangeIntegration() {
       ...prev,
       [exchange]: {
         ...prev[exchange as keyof ExchangeCredentials],
-        [field]: value
-      }
+        [field]: value,
+      },
     }));
   };
 
@@ -94,12 +95,12 @@ export default function ExchangeIntegration() {
       setBalances({
         binance: {
           BTC: { total: '0.5', available: '0.4', locked: '0.1' },
-          USDT: { total: '1000', available: '900', locked: '100' }
+          USDT: { total: '1000', available: '900', locked: '100' },
         },
         wazirx: {
           BTC: { total: '0.3', available: '0.3', locked: '0' },
-          INR: { total: '50000', available: '45000', locked: '5000' }
-        }
+          INR: { total: '50000', available: '45000', locked: '5000' },
+        },
       });
     } catch (error) {
       console.error('Failed to fetch balances:', error);
@@ -137,7 +138,7 @@ export default function ExchangeIntegration() {
     const creds = credentials[exchangeKey as keyof ExchangeCredentials];
 
     return (
-      <Card key={exchangeKey} className="mb-6">
+      <Card className="mb-6" key={exchangeKey}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             {info.name}
@@ -152,20 +153,20 @@ export default function ExchangeIntegration() {
               <Label htmlFor={`${exchangeKey}-api-key`}>API Key</Label>
               <Input
                 id={`${exchangeKey}-api-key`}
-                type="password"
-                value={creds?.apiKey || ''}
                 onChange={(e) => handleCredentialChange(exchangeKey, 'apiKey', e.target.value)}
                 placeholder="Enter API Key"
+                type="password"
+                value={creds?.apiKey || ''}
               />
             </div>
             <div>
               <Label htmlFor={`${exchangeKey}-api-secret`}>API Secret</Label>
               <Input
                 id={`${exchangeKey}-api-secret`}
-                type="password"
-                value={creds?.apiSecret || ''}
                 onChange={(e) => handleCredentialChange(exchangeKey, 'apiSecret', e.target.value)}
                 placeholder="Enter API Secret"
+                type="password"
+                value={creds?.apiSecret || ''}
               />
             </div>
           </div>
@@ -192,7 +193,7 @@ export default function ExchangeIntegration() {
                   {Object.entries(exchangeBalances)
                     .filter(([, balance]: [string, any]) => parseFloat(balance.total) > 0)
                     .map(([asset, balance]: [string, any]) => (
-                      <div key={asset} className="p-3 border rounded-lg">
+                      <div className="p-3 border rounded-lg" key={asset}>
                         <h4 className="font-semibold">{asset}</h4>
                         <div className="text-sm text-gray-600">
                           <div>Total: {parseFloat(balance.total).toFixed(6)}</div>
@@ -225,17 +226,17 @@ export default function ExchangeIntegration() {
         </p>
       </div>
 
-      <Tabs defaultValue="credentials" className="space-y-6">
+      <Tabs className="space-y-6" defaultValue="credentials">
         <TabsList>
           <TabsTrigger value="credentials">API Credentials</TabsTrigger>
           <TabsTrigger value="balances">Account Balances</TabsTrigger>
           <TabsTrigger value="trading">Live Trading</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="credentials" className="space-y-6">
+        <TabsContent className="space-y-6" value="credentials">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold">Configure Exchange APIs</h2>
-            <Button onClick={saveCredentials} disabled={loading}>
+            <Button disabled={loading} onClick={saveCredentials}>
               {loading ? 'Saving...' : 'Save Credentials'}
             </Button>
           </div>
@@ -243,10 +244,10 @@ export default function ExchangeIntegration() {
           {Object.keys(EXCHANGE_INFO).map(renderExchangeForm)}
         </TabsContent>
 
-        <TabsContent value="balances" className="space-y-6">
+        <TabsContent className="space-y-6" value="balances">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold">Account Balances</h2>
-            <Button onClick={fetchBalances} disabled={loading}>
+            <Button disabled={loading} onClick={fetchBalances}>
               {loading ? 'Refreshing...' : 'Refresh Balances'}
             </Button>
           </div>
@@ -254,9 +255,9 @@ export default function ExchangeIntegration() {
           {renderBalances()}
         </TabsContent>
 
-        <TabsContent value="trading" className="space-y-6">
+        <TabsContent className="space-y-6" value="trading">
           <h2 className="text-xl font-semibold">Live Trading</h2>
-          
+
           <Card>
             <CardHeader>
               <CardTitle>Quick Trade</CardTitle>
@@ -265,7 +266,7 @@ export default function ExchangeIntegration() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>Exchange</Label>
-                  <Select value={selectedExchange} onValueChange={setSelectedExchange}>
+                  <Select onValueChange={setSelectedExchange} value={selectedExchange}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select Exchange" />
                     </SelectTrigger>
@@ -281,33 +282,33 @@ export default function ExchangeIntegration() {
                 <div>
                   <Label>Trading Pair</Label>
                   <Input
-                    placeholder="BTC/USDT"
                     defaultValue="BTC/USDT"
+                    placeholder="BTC/USDT"
                   />
                 </div>
                 <div>
                   <Label>Amount</Label>
                   <Input
-                    type="number"
                     placeholder="0.001"
                     step="0.001"
+                    type="number"
                   />
                 </div>
               </div>
 
               <div className="flex gap-2">
-                <Button 
-                  onClick={() => executeRealTrade('BUY', 'BTC/USDT', 0.1)}
-                  disabled={loading}
+                <Button
                   className="flex-1"
+                  disabled={loading}
+                  onClick={() => executeRealTrade('BUY', 'BTC/USDT', 0.1)}
                 >
                   {loading ? 'Processing...' : 'Buy'}
                 </Button>
-                <Button 
-                  onClick={() => executeRealTrade('SELL', 'BTC/USDT', 0.1)}
-                  disabled={loading}
-                  variant="destructive"
+                <Button
                   className="flex-1"
+                  disabled={loading}
+                  onClick={() => executeRealTrade('SELL', 'BTC/USDT', 0.1)}
+                  variant="destructive"
                 >
                   {loading ? 'Processing...' : 'Sell'}
                 </Button>

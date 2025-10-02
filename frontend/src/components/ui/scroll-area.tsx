@@ -1,6 +1,7 @@
-import { cn } from '@/lib/utils';
-import React from 'react';
 import * as ScrollAreaPrimitive from '@radix-ui/react-scroll-area';
+import React from 'react';
+
+import { cn } from '@/lib/utils';
 
 export interface ScrollAreaProps
   extends React.ComponentPropsWithoutRef<typeof ScrollAreaPrimitive.Root> {
@@ -20,7 +21,7 @@ export interface ScrollAreaProps
 
 /**
  * ScrollArea component for creating scrollable content areas
- * 
+ *
  * @example
  * ```tsx
  * <ScrollArea className="h-72 w-48">
@@ -36,8 +37,8 @@ const ScrollArea = React.forwardRef<
   ScrollAreaProps
 >(({ className, children, showScrollbar = true, orientation = 'vertical', scrollbarVariant = 'default', ...props }, ref) => (
   <ScrollAreaPrimitive.Root
+    className={cn('relative overflow-hidden', className)}
     ref={ref}
-    className={cn("relative overflow-hidden", className)}
     {...props}
   >
     <ScrollAreaPrimitive.Viewport className="h-full w-full rounded-[inherit]">
@@ -71,27 +72,27 @@ export interface ScrollBarProps
 const ScrollBar = React.forwardRef<
   React.ElementRef<typeof ScrollAreaPrimitive.ScrollAreaScrollbar>,
   ScrollBarProps
->(({ className, orientation = "vertical", variant = 'default', ...props }, ref) => {
+>(({ className, orientation = 'vertical', variant = 'default', ...props }, ref) => {
   const variantClasses = {
-    default: "w-2.5 h-2.5",
-    thin: "w-1 h-1",
-    none: "w-0 h-0"
+    default: 'w-2.5 h-2.5',
+    thin: 'w-1 h-1',
+    none: 'w-0 h-0',
   };
 
   if (variant === 'none') return null;
 
   return (
     <ScrollAreaPrimitive.ScrollAreaScrollbar
-      ref={ref}
-      orientation={orientation}
       className={cn(
-        "flex touch-none select-none transition-colors",
-        orientation === "vertical" &&
+        'flex touch-none select-none transition-colors',
+        orientation === 'vertical' &&
           `h-full border-l border-l-transparent p-[1px] ${variantClasses[variant]}`,
-        orientation === "horizontal" &&
+        orientation === 'horizontal' &&
           `flex-col border-t border-t-transparent p-[1px] ${variantClasses[variant]}`,
-        className
+        className,
       )}
+      orientation={orientation}
+      ref={ref}
       {...props}
     >
       <ScrollAreaPrimitive.ScrollAreaThumb className="relative flex-1 rounded-full bg-zinc-200 dark:bg-zinc-800" />

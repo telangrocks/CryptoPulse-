@@ -1,18 +1,19 @@
-const crypto = require('crypto');
-
 /**
  * Bot Management Slice for CryptoPulse
- * 
+ *
  * Handles trading bot configuration, execution, and monitoring.
  * Includes comprehensive error handling, validation, and real-time updates.
- * 
+ *
  * @fileoverview Production-ready bot management state
  * @version 1.0.0
  * @author CryptoPulse Team
  */
 
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+
 import { RootState } from '../index';
+
+const crypto = require('crypto');
 
 // ============================================================================
 // TYPES AND INTERFACES
@@ -21,7 +22,7 @@ import { RootState } from '../index';
 /**
  * Trading strategy types
  */
-export type TradingStrategy = 
+export type TradingStrategy =
   | 'SCALPING'
   | 'DAY_TRADING'
   | 'SWING_TRADING'
@@ -247,46 +248,46 @@ const initialState: BotState = {
  */
 const validateBotConfig = (config: CreateBotData): { valid: boolean; errors: string[] } => {
   const errors: string[] = [];
-  
+
   if (!config.name || config.name.trim().length < 3) {
     errors.push('Bot name must be at least 3 characters long');
   }
-  
+
   if (!config.symbol || config.symbol.trim().length < 3) {
     errors.push('Symbol must be at least 3 characters long');
   }
-  
+
   if (config.maxPositions < 1 || config.maxPositions > 100) {
     errors.push('Max positions must be between 1 and 100');
   }
-  
+
   if (config.stopLoss < 0 || config.stopLoss > 100) {
     errors.push('Stop loss must be between 0 and 100 percent');
   }
-  
+
   if (config.takeProfit < 0 || config.takeProfit > 1000) {
     errors.push('Take profit must be between 0 and 1000 percent');
   }
-  
+
   if (config.entryConditions.length === 0) {
     errors.push('At least one entry condition is required');
   }
-  
+
   if (config.exitConditions.length === 0) {
     errors.push('At least one exit condition is required');
   }
-  
+
   if (config.timeframes.length === 0) {
     errors.push('At least one timeframe is required');
   }
-  
+
   if (config.exchanges.length === 0) {
     errors.push('At least one exchange is required');
   }
-  
+
   return {
     valid: errors.length === 0,
-    errors
+    errors,
   };
 };
 
@@ -341,7 +342,7 @@ export const createBot = createAsyncThunk<
 
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       // Create bot configuration
       const bot: BotConfig = {
         id: `bot_${Date.now()}_${(crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff).toString(36).substr(2, 9)}`,
@@ -367,7 +368,7 @@ export const createBot = createAsyncThunk<
         version: '1.0.0',
         tags: botData.tags,
       };
-      
+
       return bot;
     } catch (error) {
       return rejectWithValue({
@@ -378,7 +379,7 @@ export const createBot = createAsyncThunk<
         retryable: true,
       });
     }
-  }
+  },
 );
 
 /**
@@ -394,7 +395,7 @@ export const updateBot = createAsyncThunk<
     try {
       const state = getState() as RootState;
       const existingBot = state.bot.bots.find(bot => bot.id === updateData.id);
-      
+
       if (!existingBot) {
         return rejectWithValue({
           code: 'BOT_NOT_FOUND',
@@ -406,7 +407,7 @@ export const updateBot = createAsyncThunk<
 
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 500));
-      
+
       // Update bot configuration
       const updatedBot: BotConfig = {
         ...existingBot,
@@ -416,7 +417,7 @@ export const updateBot = createAsyncThunk<
         updatedAt: Date.now(),
         version: existingBot.version, // Preserve version for now
       };
-      
+
       return updatedBot;
     } catch (error) {
       return rejectWithValue({
@@ -427,7 +428,7 @@ export const updateBot = createAsyncThunk<
         retryable: true,
       });
     }
-  }
+  },
 );
 
 /**
@@ -443,7 +444,7 @@ export const deleteBot = createAsyncThunk<
     try {
       const state = getState() as RootState;
       const existingBot = state.bot.bots.find(bot => bot.id === botId);
-      
+
       if (!existingBot) {
         return rejectWithValue({
           code: 'BOT_NOT_FOUND',
@@ -464,7 +465,7 @@ export const deleteBot = createAsyncThunk<
 
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 500));
-      
+
       return botId;
     } catch (error) {
       return rejectWithValue({
@@ -475,7 +476,7 @@ export const deleteBot = createAsyncThunk<
         retryable: true,
       });
     }
-  }
+  },
 );
 
 /**
@@ -491,7 +492,7 @@ export const executeBotCommand = createAsyncThunk<
     try {
       const state = getState() as RootState;
       const existingBot = state.bot.bots.find(bot => bot.id === command.botId);
-      
+
       if (!existingBot) {
         return rejectWithValue({
           code: 'BOT_NOT_FOUND',
@@ -503,7 +504,7 @@ export const executeBotCommand = createAsyncThunk<
 
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       // Determine new status based on command
       let newStatus: BotStatus = existingBot.status;
       switch (command.command) {
@@ -526,7 +527,7 @@ export const executeBotCommand = createAsyncThunk<
           newStatus = 'STOPPED';
           break;
       }
-      
+
       return {
         botId: command.botId,
         status: newStatus,
@@ -540,7 +541,7 @@ export const executeBotCommand = createAsyncThunk<
         retryable: true,
       });
     }
-  }
+  },
 );
 
 /**
@@ -556,7 +557,7 @@ export const fetchBotPerformance = createAsyncThunk<
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 800));
-      
+
       // Mock performance data
       const performance: BotPerformance = {
         totalTrades: Math.floor((crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 100) + 10,
@@ -577,7 +578,7 @@ export const fetchBotPerformance = createAsyncThunk<
         consecutiveLosses: Math.floor((crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 5),
         lastUpdated: Date.now(),
       };
-      
+
       return { botId, performance };
     } catch (error) {
       return rejectWithValue({
@@ -588,7 +589,7 @@ export const fetchBotPerformance = createAsyncThunk<
         retryable: true,
       });
     }
-  }
+  },
 );
 
 /**
@@ -604,7 +605,7 @@ export const fetchBotLogs = createAsyncThunk<
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 500));
-      
+
       // Mock log entries
       const logs: BotLogEntry[] = Array.from({ length: limit }, (_, index) => ({
         id: `log_${Date.now()}_${index}`,
@@ -615,7 +616,7 @@ export const fetchBotLogs = createAsyncThunk<
         data: { index, timestamp: Date.now() - (index * 1000) },
         tradeId: (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) > 0.5 ? `trade_${(crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff).toString(36).substr(2, 9)}` : undefined,
       }));
-      
+
       return logs;
     } catch (error) {
       return rejectWithValue({
@@ -626,7 +627,7 @@ export const fetchBotLogs = createAsyncThunk<
         retryable: true,
       });
     }
-  }
+  },
 );
 
 // ============================================================================
@@ -793,7 +794,7 @@ const botSlice = createSlice({
           retryable: true,
         };
       })
-      
+
       // Update bot
       .addCase(updateBot.pending, (state) => {
         state.isLoading = true;
@@ -816,7 +817,7 @@ const botSlice = createSlice({
           retryable: true,
         };
       })
-      
+
       // Delete bot
       .addCase(deleteBot.pending, (state) => {
         state.isLoading = true;
@@ -841,7 +842,7 @@ const botSlice = createSlice({
           retryable: true,
         };
       })
-      
+
       // Execute bot command
       .addCase(executeBotCommand.pending, (state) => {
         state.isLoading = true;
@@ -874,7 +875,7 @@ const botSlice = createSlice({
           retryable: true,
         };
       })
-      
+
       // Fetch bot performance
       .addCase(fetchBotPerformance.pending, (state) => {
         state.isRefreshing = true;
@@ -894,7 +895,7 @@ const botSlice = createSlice({
           retryable: true,
         };
       })
-      
+
       // Fetch bot logs
       .addCase(fetchBotLogs.pending, (state) => {
         state.isLoading = true;
@@ -914,7 +915,7 @@ const botSlice = createSlice({
           retryable: true,
         };
       });
-  }
+  },
 });
 
 // ============================================================================
@@ -944,19 +945,19 @@ export const selectSelectedBot = (state: RootState) => state.bot.selectedBot;
 /**
  * Select bot by ID
  */
-export const selectBotById = (botId: string) => (state: RootState) => 
+export const selectBotById = (botId: string) => (state: RootState) =>
   state.bot.bots.find(bot => bot.id === botId);
 
 /**
  * Select bot performance
  */
-export const selectBotPerformance = (botId: string) => (state: RootState) => 
+export const selectBotPerformance = (botId: string) => (state: RootState) =>
   state.bot.performance[botId];
 
 /**
  * Select bot logs
  */
-export const selectBotLogs = (botId?: string) => (state: RootState) => 
+export const selectBotLogs = (botId?: string) => (state: RootState) =>
   botId ? state.bot.logs.filter(log => log.botId === botId) : state.bot.logs;
 
 /**
@@ -967,16 +968,16 @@ export const selectBotStatistics = (state: RootState): BotStatistics => {
   const activeBots = bots.filter(bot => bot.isActive).length;
   const stoppedBots = bots.filter(bot => !bot.isActive).length;
   const errorBots = bots.filter(bot => bot.status === 'ERROR').length;
-  
+
   const totalTrades = Object.values(performance).reduce((sum, perf) => sum + perf.totalTrades, 0);
   const totalProfit = Object.values(performance).reduce((sum, perf) => sum + perf.netProfit, 0);
   const averageWinRate = Object.values(performance).reduce((sum, perf) => sum + perf.winRate, 0) / Object.keys(performance).length || 0;
-  
+
   const bestPerformingBot = Object.entries(performance)
     .sort(([, a], [, b]) => b.netProfit - a.netProfit)[0]?.[0] || null;
   const worstPerformingBot = Object.entries(performance)
     .sort(([, a], [, b]) => a.netProfit - b.netProfit)[0]?.[0] || null;
-  
+
   return {
     totalBots: bots.length,
     activeBots,
@@ -996,14 +997,14 @@ export const selectBotStatistics = (state: RootState): BotStatistics => {
 // ============================================================================
 
 export const {
-  addBot, 
+  addBot,
   updateBotLocal,
-  removeBot, 
-  activateBot, 
-  deactivateBot, 
-  setSelectedBot, 
-  setLoading, 
-  setError, 
+  removeBot,
+  activateBot,
+  deactivateBot,
+  setSelectedBot,
+  setLoading,
+  setError,
   clearError,
   addLogEntry,
   clearLogs,

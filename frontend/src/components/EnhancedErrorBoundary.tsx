@@ -1,4 +1,5 @@
 import React, { ReactNode, Component, ErrorInfo } from 'react';
+
 import { logError, logInfo } from '../lib/logger';
 
 interface Props {
@@ -21,7 +22,7 @@ const DefaultFallback: React.FC<{ error: Error; resetError: () => void }> = ({ e
     <div className="max-w-md w-full bg-white shadow-lg rounded-lg p-6">
       <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full mb-4">
         <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+          <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} />
         </svg>
       </div>
       <h1 className="text-xl font-semibold text-gray-900 text-center mb-2">Something went wrong</h1>
@@ -30,14 +31,14 @@ const DefaultFallback: React.FC<{ error: Error; resetError: () => void }> = ({ e
       </p>
       <div className="flex gap-3">
         <button
-          onClick={resetError}
           className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+          onClick={resetError}
         >
           Try Again
         </button>
         <button
-          onClick={() => window.location.reload()}
           className="flex-1 bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 transition-colors"
+          onClick={() => window.location.reload()}
         >
           Refresh Page
         </button>
@@ -65,7 +66,7 @@ export class EnhancedErrorBoundary extends Component<Props, State> {
     this.state = {
       hasError: false,
       error: null,
-      errorInfo: null
+      errorInfo: null,
     };
   }
 
@@ -73,14 +74,14 @@ export class EnhancedErrorBoundary extends Component<Props, State> {
     return {
       hasError: true,
       error,
-      errorInfo: null
+      errorInfo: null,
     };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     this.setState({
       error,
-      errorInfo
+      errorInfo,
     });
 
     // Log the error
@@ -116,7 +117,7 @@ export class EnhancedErrorBoundary extends Component<Props, State> {
     this.setState({
       hasError: false,
       error: null,
-      errorInfo: null
+      errorInfo: null,
     });
     logInfo('Error boundary reset');
   };
@@ -125,8 +126,8 @@ export class EnhancedErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       const FallbackComponent = this.props.fallback || DefaultFallback;
       return (
-        <FallbackComponent 
-          error={this.state.error!} 
+        <FallbackComponent
+          error={this.state.error!}
           resetError={this.resetError}
         />
       );

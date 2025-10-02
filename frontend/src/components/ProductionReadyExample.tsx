@@ -3,60 +3,62 @@
  * Demonstrates all security, performance, accessibility, and error handling optimizations
  */
 
-import React, { useState, useCallback, useMemo, useEffect, memo, lazy, Suspense } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Alert, AlertDescription } from './ui/alert';
-import { Badge } from './ui/badge';
-import { 
-  Shield, 
-  AlertTriangle, 
-  CheckCircle, 
-  Loader2, 
-  Eye, 
+import {
+  Shield,
+  AlertTriangle,
+  CheckCircle,
+  Loader2,
+  Eye,
   EyeOff,
   Activity,
-  Zap
+  Zap,
 } from 'lucide-react';
+import React, { useState, useCallback, useMemo, useEffect, memo, lazy, Suspense } from 'react';
+
+import {
+  useAccessibility,
+  useModalAccessibility,
+  useFormAccessibility,
+  useLoadingAccessibility,
+  useErrorAccessibility,
+  SkipLink,
+} from '../lib/accessibilityEnhancements';
+import { errorMonitoring, handleNetworkError, handleValidationError } from '../lib/errorMonitoring';
+import {
+  usePerformanceOptimization,
+  createMemoizedCallback,
+  createMemoizedValue,
+  debounce,
+  throttle,
+} from '../lib/performanceOptimization';
+import { secureStorage, validateAPIKey, apiRateLimiter } from '../lib/secureStorage';
+
+import { Alert, AlertDescription } from './ui/alert';
+import { Badge } from './ui/badge';
+import { Button } from './ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+
+// Import all our optimization utilities
 
 // Lazy load heavy components
 const HeavyChart = lazy(() => import('./OptimizedAdvancedCharts'));
 const DataTable = lazy(() => import('./DataTable'));
-
-// Import all our optimization utilities
-import { errorMonitoring, handleNetworkError, handleValidationError } from '../lib/errorMonitoring';
-import { 
-  usePerformanceOptimization, 
-  createMemoizedCallback, 
-  createMemoizedValue,
-  debounce,
-  throttle
-} from '../lib/performanceOptimization';
-import { 
-  useAccessibility, 
-  useModalAccessibility, 
-  useFormAccessibility,
-  useLoadingAccessibility,
-  useErrorAccessibility,
-  SkipLink
-} from '../lib/accessibilityEnhancements';
-import { secureStorage, validateAPIKey, apiRateLimiter } from '../lib/secureStorage';
 
 interface ProductionReadyExampleProps {
   className?: string;
 }
 
 // Memoized sub-components for performance
-const MemoizedCard = memo(function MemoizedCard({ 
-  title, 
-  children, 
-  className 
-}: { 
-  title: string; 
-  children: React.ReactNode; 
-  className?: string; 
+const MemoizedCard = memo(function MemoizedCard({
+  title,
+  children,
+  className,
+}: {
+  title: string;
+  children: React.ReactNode;
+  className?: string;
 }) {
   return (
     <Card className={className}>
@@ -73,12 +75,12 @@ const MemoizedCard = memo(function MemoizedCard({
   );
 });
 
-const MemoizedButton = memo(function MemoizedButton({ 
-  onClick, 
-  children, 
+const MemoizedButton = memo(function MemoizedButton({
+  onClick,
+  children,
   disabled,
   loading,
-  ...props 
+  ...props
 }: {
   onClick: () => void;
   children: React.ReactNode;
@@ -87,9 +89,9 @@ const MemoizedButton = memo(function MemoizedButton({
   [key: string]: any;
 }) {
   return (
-    <Button 
-      onClick={onClick} 
+    <Button
       disabled={disabled || loading}
+      onClick={onClick}
       {...props}
     >
       {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
@@ -98,8 +100,8 @@ const MemoizedButton = memo(function MemoizedButton({
   );
 });
 
-const ProductionReadyExample = memo(function ProductionReadyExample({ 
-  className 
+const ProductionReadyExample = memo(function ProductionReadyExample({
+  className,
 }: ProductionReadyExampleProps) {
   // State management
   const [data, setData] = useState<any[]>([]);
@@ -110,7 +112,7 @@ const ProductionReadyExample = memo(function ProductionReadyExample({
     name: '',
     email: '',
     apiKey: '',
-    password: ''
+    password: '',
   });
   const [showPassword, setShowPassword] = useState(false);
 
@@ -118,11 +120,11 @@ const ProductionReadyExample = memo(function ProductionReadyExample({
   const { renderCount, optimizeRender } = usePerformanceOptimization();
 
   // Accessibility features
-  const { 
-    isHighContrast, 
-    prefersReducedMotion, 
+  const {
+    isHighContrast,
+    prefersReducedMotion,
     announce,
-    createAriaAttributes 
+    createAriaAttributes,
   } = useAccessibility();
 
   // Form accessibility
@@ -131,7 +133,7 @@ const ProductionReadyExample = memo(function ProductionReadyExample({
     setFieldError,
     clearFieldError,
     markFieldTouched,
-    getFieldAriaAttributes
+    getFieldAriaAttributes,
   } = useFormAccessibility('example-form');
 
   // Modal accessibility
@@ -148,7 +150,7 @@ const ProductionReadyExample = memo(function ProductionReadyExample({
     return data.map(item => ({
       ...item,
       id: item.id || (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff).toString(36).substr(2, 9),
-      processedAt: Date.now()
+      processedAt: Date.now(),
     }));
   }, [data]);
 
@@ -198,7 +200,7 @@ const ProductionReadyExample = memo(function ProductionReadyExample({
     debounce(() => {
       validateForm();
     }, 300),
-    [validateForm]
+    [validateForm],
   );
 
   // Memoized data fetching with error handling
@@ -219,8 +221,8 @@ const ProductionReadyExample = memo(function ProductionReadyExample({
             method: 'GET',
             headers: {
               'Authorization': `Bearer ${localStorage.getItem('cryptopulse-session') || ''}`,
-              'Content-Type': 'application/json'
-            }
+              'Content-Type': 'application/json',
+            },
           });
 
           if (!res.ok) {
@@ -229,18 +231,18 @@ const ProductionReadyExample = memo(function ProductionReadyExample({
 
           return res.json();
         },
-        { component: 'ProductionReadyExample', action: 'fetchData' }
+        { component: 'ProductionReadyExample', action: 'fetchData' },
       );
 
       setData(response.data || []);
       announce('Data loaded successfully', 'polite');
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Failed to fetch data');
-      
+
       // Report error to monitoring
       await errorMonitoring.reportError(error, {
         component: 'ProductionReadyExample',
-        action: 'fetchData'
+        action: 'fetchData',
       });
 
       setError(error.message);
@@ -253,7 +255,7 @@ const ProductionReadyExample = memo(function ProductionReadyExample({
   // Memoized form submission
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       announce('Please fix form errors', 'assertive');
       return;
@@ -266,7 +268,7 @@ const ProductionReadyExample = memo(function ProductionReadyExample({
       // Secure data storage
       await secureStorage.set('form-data', {
         ...formData,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
 
       // Simulate API submission
@@ -276,9 +278,9 @@ const ProductionReadyExample = memo(function ProductionReadyExample({
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${localStorage.getItem('cryptopulse-session') || ''}`,
-              'Content-Type': 'application/json'
+              'Content-Type': 'application/json',
             },
-            body: JSON.stringify(formData)
+            body: JSON.stringify(formData),
           });
 
           if (!response.ok) {
@@ -287,17 +289,17 @@ const ProductionReadyExample = memo(function ProductionReadyExample({
 
           return response.json();
         },
-        { component: 'ProductionReadyExample', action: 'submitForm' }
+        { component: 'ProductionReadyExample', action: 'submitForm' },
       );
 
       announce('Form submitted successfully', 'polite');
       setFormData({ name: '', email: '', apiKey: '', password: '' });
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Form submission failed');
-      
+
       await errorMonitoring.reportError(error, {
         component: 'ProductionReadyExample',
-        action: 'submitForm'
+        action: 'submitForm',
       });
 
       setError(error.message);
@@ -343,11 +345,11 @@ const ProductionReadyExample = memo(function ProductionReadyExample({
     ...(isHighContrast && {
       border: '2px solid #000',
       backgroundColor: '#fff',
-      color: '#000'
+      color: '#000',
     }),
     ...(prefersReducedMotion && {
-      transition: 'none'
-    })
+      transition: 'none',
+    }),
   }), [isHighContrast, prefersReducedMotion]);
 
   return (
@@ -363,7 +365,7 @@ const ProductionReadyExample = memo(function ProductionReadyExample({
           <p className="text-slate-400">Demonstrating all optimizations</p>
         </div>
         <div className="flex items-center space-x-2">
-          <Badge variant="outline" className="border-slate-600 text-slate-300">
+          <Badge className="border-slate-600 text-slate-300" variant="outline">
             Render #{renderCount}
           </Badge>
           {isHighContrast && (
@@ -390,103 +392,103 @@ const ProductionReadyExample = memo(function ProductionReadyExample({
       )}
 
       {/* Main Content */}
-      <main id="main-content" className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <main className="grid grid-cols-1 lg:grid-cols-2 gap-6" id="main-content">
         {/* Form Section */}
         <section id="form-section">
-          <MemoizedCard title="Secure Form" className="h-fit">
-            <form onSubmit={handleSubmit} className="space-y-4">
+          <MemoizedCard className="h-fit" title="Secure Form">
+            <form className="space-y-4" onSubmit={handleSubmit}>
               <div className="space-y-2">
-                <Label htmlFor="name" className="text-slate-300">
+                <Label className="text-slate-300" htmlFor="name">
                   Name *
                 </Label>
                 <Input
+                  className="bg-slate-700 border-slate-600 text-white"
                   id="name"
+                  onChange={(e) => handleInputChange('name', e.target.value)}
                   type="text"
                   value={formData.name}
-                  onChange={(e) => handleInputChange('name', e.target.value)}
-                  className="bg-slate-700 border-slate-600 text-white"
                   {...getFieldAriaAttributes('name')}
                 />
                 {errors.name && (
-                  <p id="name-error" className="text-red-400 text-sm">
+                  <p className="text-red-400 text-sm" id="name-error">
                     {errors.name}
                   </p>
                 )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-slate-300">
+                <Label className="text-slate-300" htmlFor="email">
                   Email *
                 </Label>
                 <Input
+                  className="bg-slate-700 border-slate-600 text-white"
                   id="email"
+                  onChange={(e) => handleInputChange('email', e.target.value)}
                   type="email"
                   value={formData.email}
-                  onChange={(e) => handleInputChange('email', e.target.value)}
-                  className="bg-slate-700 border-slate-600 text-white"
                   {...getFieldAriaAttributes('email')}
                 />
                 {errors.email && (
-                  <p id="email-error" className="text-red-400 text-sm">
+                  <p className="text-red-400 text-sm" id="email-error">
                     {errors.email}
                   </p>
                 )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="apiKey" className="text-slate-300">
+                <Label className="text-slate-300" htmlFor="apiKey">
                   API Key
                 </Label>
                 <Input
+                  className="bg-slate-700 border-slate-600 text-white"
                   id="apiKey"
+                  onChange={(e) => handleInputChange('apiKey', e.target.value)}
                   type="text"
                   value={formData.apiKey}
-                  onChange={(e) => handleInputChange('apiKey', e.target.value)}
-                  className="bg-slate-700 border-slate-600 text-white"
                   {...getFieldAriaAttributes('apiKey')}
                 />
                 {errors.apiKey && (
-                  <p id="apiKey-error" className="text-red-400 text-sm">
+                  <p className="text-red-400 text-sm" id="apiKey-error">
                     {errors.apiKey}
                   </p>
                 )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-slate-300">
+                <Label className="text-slate-300" htmlFor="password">
                   Password *
                 </Label>
                 <div className="relative">
                   <Input
+                    className="bg-slate-700 border-slate-600 text-white pr-10"
                     id="password"
+                    onChange={(e) => handleInputChange('password', e.target.value)}
                     type={showPassword ? 'text' : 'password'}
                     value={formData.password}
-                    onChange={(e) => handleInputChange('password', e.target.value)}
-                    className="bg-slate-700 border-slate-600 text-white pr-10"
                     {...getFieldAriaAttributes('password')}
                   />
                   <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-3 text-slate-400 hover:text-slate-300"
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    className="absolute right-3 top-3 text-slate-400 hover:text-slate-300"
+                    onClick={() => setShowPassword(!showPassword)}
+                    type="button"
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
                 {errors.password && (
-                  <p id="password-error" className="text-red-400 text-sm">
+                  <p className="text-red-400 text-sm" id="password-error">
                     {errors.password}
                   </p>
                 )}
               </div>
 
               <MemoizedButton
-                type="submit"
-                onClick={() => {}}
-                loading={isLoading}
-                disabled={Object.keys(errors).length > 0}
                 className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                disabled={Object.keys(errors).length > 0}
+                loading={isLoading}
+                onClick={() => {}}
+                type="submit"
                 {...loadingAriaProps}
               >
                 {isLoading ? 'Submitting...' : 'Submit Form'}
@@ -502,10 +504,10 @@ const ProductionReadyExample = memo(function ProductionReadyExample({
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-white">Processed Data</h3>
                 <MemoizedButton
-                  onClick={fetchData}
-                  loading={isLoading}
-                  variant="outline"
                   className="border-slate-600 text-slate-300"
+                  loading={isLoading}
+                  onClick={fetchData}
+                  variant="outline"
                 >
                   Refresh
                 </MemoizedButton>
@@ -519,7 +521,7 @@ const ProductionReadyExample = memo(function ProductionReadyExample({
                 <div className="space-y-2">
                   {processedData.length > 0 ? (
                     processedData.slice(0, 5).map((item, index) => (
-                      <div key={item.id || index} className="p-3 bg-slate-700/50 rounded-lg">
+                      <div className="p-3 bg-slate-700/50 rounded-lg" key={item.id || index}>
                         <p className="text-white font-medium">{item.name || `Item ${index + 1}`}</p>
                         <p className="text-slate-400 text-sm">{item.email || 'No email'}</p>
                       </div>
@@ -537,17 +539,17 @@ const ProductionReadyExample = memo(function ProductionReadyExample({
       {/* Actions Section */}
       <section className="flex flex-wrap gap-4">
         <MemoizedButton
-          onClick={openModal}
           className="bg-green-600 hover:bg-green-700"
+          onClick={openModal}
         >
           <Activity className="h-4 w-4 mr-2" />
           Open Modal
         </MemoizedButton>
 
         <MemoizedButton
+          className="border-slate-600 text-slate-300"
           onClick={() => announce('Action completed', 'polite')}
           variant="outline"
-          className="border-slate-600 text-slate-300"
         >
           <Zap className="h-4 w-4 mr-2" />
           Test Announcement
@@ -556,31 +558,33 @@ const ProductionReadyExample = memo(function ProductionReadyExample({
 
       {/* Lazy Loaded Heavy Components */}
       <section>
-        <Suspense fallback={
-          <div className="flex items-center justify-center h-64">
-            <Loader2 className="h-8 w-8 text-blue-400 animate-spin" />
-          </div>
-        }>
-          <HeavyChart data={processedData} symbol="BTC/USDT" timeframe="1h" onTimeframeChange={() => {}} />
+        <Suspense
+          fallback={
+            <div className="flex items-center justify-center h-64">
+              <Loader2 className="h-8 w-8 text-blue-400 animate-spin" />
+            </div>
+          }
+        >
+          <HeavyChart data={processedData} onTimeframeChange={() => {}} symbol="BTC/USDT" timeframe="1h" />
         </Suspense>
       </section>
 
       {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <Card 
-            ref={modalRef}
+          <Card
             className="w-full max-w-md bg-slate-800/95 border-slate-700 text-white"
+            ref={modalRef}
             {...modalProps}
           >
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle id="modal-title">Example Modal</CardTitle>
                 <Button
-                  onClick={closeModal}
-                  variant="ghost"
-                  size="sm"
                   aria-label="Close modal"
+                  onClick={closeModal}
+                  size="sm"
+                  variant="ghost"
                 >
                   ×
                 </Button>
@@ -591,8 +595,8 @@ const ProductionReadyExample = memo(function ProductionReadyExample({
                 This modal demonstrates proper focus management and accessibility.
               </p>
               <MemoizedButton
-                onClick={closeModal}
                 className="w-full"
+                onClick={closeModal}
               >
                 Close Modal
               </MemoizedButton>

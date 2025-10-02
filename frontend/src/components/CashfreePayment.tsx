@@ -4,22 +4,24 @@
  * @author CryptoPulse Team
  */
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
-import { Alert, AlertDescription } from './ui/alert';
-import { 
-  CreditCard, 
-  Shield, 
-  CheckCircle, 
+import {
+  CreditCard,
+  Shield,
+  CheckCircle,
   Loader2,
   Star,
   Zap,
   Brain,
-  Target
+  Target,
 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+
 import { useAuth } from '../contexts/AuthContext';
 import { logError, logInfo } from '../lib/logger';
+
+import { Alert, AlertDescription } from './ui/alert';
+import { Button } from './ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 
 interface PaymentOrder {
   orderId: string;
@@ -49,8 +51,8 @@ const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
       '3 trading strategies',
       'Basic alerts',
       'Email support',
-      '1 month backtesting'
-    ]
+      '1 month backtesting',
+    ],
   },
   {
     id: 'pro',
@@ -64,9 +66,9 @@ const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
       'AI-powered automation',
       'Advanced backtesting',
       'Priority support',
-      'Mobile app access'
+      'Mobile app access',
     ],
-    popular: true
+    popular: true,
   },
   {
     id: 'enterprise',
@@ -80,9 +82,9 @@ const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
       '24/7 phone support',
       'White-label options',
       'Advanced analytics',
-      'API access'
-    ]
-  }
+      'API access',
+    ],
+  },
 ];
 
 export default function CashfreePayment() {
@@ -98,7 +100,7 @@ export default function CashfreePayment() {
     const urlParams = new URLSearchParams(window.location.search);
     const paymentStatus = urlParams.get('status');
     const orderId = urlParams.get('order_id');
-    
+
     if (paymentStatus === 'success' && orderId) {
       setSuccess(true);
       logInfo('Payment completed successfully', 'CashfreePayment', { orderId });
@@ -113,7 +115,7 @@ export default function CashfreePayment() {
 
     setIsLoading(true);
     setError('');
-    
+
     try {
       const plan = SUBSCRIPTION_PLANS.find(p => p.id === planId);
       if (!plan) {
@@ -126,35 +128,35 @@ export default function CashfreePayment() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('cryptopulse_token')}`
+          'Authorization': `Bearer ${localStorage.getItem('cryptopulse_token')}`,
         },
         body: JSON.stringify({
           userId: user.id,
           planId: plan.id,
           amount: plan.price,
-          currency: plan.currency
-        })
+          currency: plan.currency,
+        }),
       });
 
       const orderData = await response.json();
-      
+
       if (orderData.success && orderData.data) {
         const order = orderData.data;
-        
+
         // Store order details for success page
         localStorage.setItem('cryptopulse_payment_order', JSON.stringify({
           orderId: order.orderId,
           amount: order.amount,
           currency: order.currency,
           subscriptionId: order.subscriptionId,
-          planId: plan.id
+          planId: plan.id,
         }));
-        
+
         setPaymentOrder(order);
-        
+
         // Redirect to Cashfree payment page
         window.location.href = order.paymentUrl;
-        
+
         logInfo('Payment order created successfully', 'CashfreePayment', { orderId: order.orderId });
       } else {
         throw new Error(orderData.message || 'Failed to create payment order');
@@ -182,9 +184,9 @@ export default function CashfreePayment() {
             <h2 className="text-2xl font-bold text-green-400 mb-2">Subscription Active!</h2>
             <p className="text-slate-300 mb-4">Your CryptoPulse subscription is now active.</p>
             <p className="text-sm text-slate-400">Enjoy unlimited trading features!</p>
-            <Button 
-              onClick={() => window.location.href = '/dashboard'}
+            <Button
               className="mt-4 bg-green-600 hover:bg-green-700 text-white"
+              onClick={() => window.location.href = '/dashboard'}
             >
               Go to Dashboard
             </Button>
@@ -210,11 +212,11 @@ export default function CashfreePayment() {
         {/* Pricing Plans */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           {SUBSCRIPTION_PLANS.map((plan) => (
-            <Card 
-              key={plan.id} 
+            <Card
               className={`bg-slate-800/90 border-slate-700 text-white relative ${
                 plan.popular ? 'ring-2 ring-purple-500' : ''
               } ${selectedPlan === plan.id ? 'bg-purple-500/10' : ''}`}
+              key={plan.id}
             >
               {plan.popular && (
                 <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
@@ -223,7 +225,7 @@ export default function CashfreePayment() {
                   </div>
                 </div>
               )}
-              
+
               <CardHeader className="text-center">
                 <CardTitle className="flex items-center justify-center">
                   {plan.id === 'basic' && <Target className="h-5 w-5 mr-2 text-blue-400" />}
@@ -236,24 +238,24 @@ export default function CashfreePayment() {
                   <span className="text-lg text-slate-400">/month</span>
                 </div>
               </CardHeader>
-              
+
               <CardContent className="space-y-4">
                 <ul className="space-y-2 text-sm text-slate-300">
                   {plan.features.map((feature, index) => (
-                    <li key={index} className="flex items-center">
+                    <li className="flex items-center" key={index}>
                       <CheckCircle className="h-4 w-4 text-green-400 mr-2 flex-shrink-0" />
                       {feature}
                     </li>
                   ))}
                 </ul>
-                
+
                 <Button
-                  onClick={() => handlePlanSelect(plan.id)}
                   className={`w-full ${
                     selectedPlan === plan.id
                       ? 'bg-purple-600 hover:bg-purple-700'
                       : 'bg-slate-700 hover:bg-slate-600'
                   } text-white`}
+                  onClick={() => handlePlanSelect(plan.id)}
                 >
                   {selectedPlan === plan.id ? 'Selected' : 'Select Plan'}
                 </Button>
@@ -304,9 +306,9 @@ export default function CashfreePayment() {
 
             <div className="text-center">
               <Button
-                onClick={() => handleSubscription(selectedPlan)}
                 className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold py-4 text-lg"
                 disabled={isLoading}
+                onClick={() => handleSubscription(selectedPlan)}
               >
                 {isLoading ? (
                   <>
@@ -319,7 +321,7 @@ export default function CashfreePayment() {
               </Button>
 
               <p className="text-xs text-slate-400 mt-4">
-                By subscribing, you agree to our Terms of Service and Privacy Policy. 
+                By subscribing, you agree to our Terms of Service and Privacy Policy.
                 Cancel anytime from your account settings.
               </p>
             </div>

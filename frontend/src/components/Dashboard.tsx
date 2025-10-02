@@ -1,19 +1,21 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
-import { 
-  TrendingUp, 
-  Settings, 
-  LogOut, 
-  Activity, 
+import {
+  TrendingUp,
+  Settings,
+  LogOut,
+  Activity,
   BarChart3,
   Zap,
   Shield,
   Target,
-  DollarSign
+  DollarSign,
 } from 'lucide-react';
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+
+import { useAuth } from '../contexts/AuthContext';
+
+import { Button } from './ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
@@ -40,19 +42,19 @@ export default function Dashboard() {
             </div>
             <div className="flex items-center space-x-4">
               <Button
-                onClick={() => navigate('/settings')}
-                variant="outline"
-                size="sm"
                 className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                onClick={() => navigate('/settings')}
+                size="sm"
+                variant="outline"
               >
                 <Settings className="h-4 w-4 mr-2" />
                 Settings
               </Button>
               <Button
-                onClick={handleLogout}
-                variant="outline"
-                size="sm"
                 className="border-red-600 text-red-400 hover:bg-red-600/10"
+                onClick={handleLogout}
+                size="sm"
+                variant="outline"
               >
                 <LogOut className="h-4 w-4 mr-2" />
                 Logout
@@ -140,33 +142,33 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <Button 
-                  onClick={() => navigate('/api-keys')}
+                <Button
                   className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                  onClick={() => navigate('/api-keys')}
                 >
                   <Shield className="h-4 w-4 mr-2" />
                   API Keys
                 </Button>
-                <Button 
+                <Button
+                  className="border-slate-600 text-slate-300 hover:bg-slate-700"
                   onClick={() => navigate('/crypto-pairs')}
                   variant="outline"
-                  className="border-slate-600 text-slate-300 hover:bg-slate-700"
                 >
                   <Target className="h-4 w-4 mr-2" />
                   Pairs
                 </Button>
-                <Button 
+                <Button
+                  className="border-slate-600 text-slate-300 hover:bg-slate-700"
                   onClick={() => navigate('/bot-setup')}
                   variant="outline"
-                  className="border-slate-600 text-slate-300 hover:bg-slate-700"
                 >
                   <Zap className="h-4 w-4 mr-2" />
                   Bot Setup
                 </Button>
-                <Button 
+                <Button
+                  className="border-slate-600 text-slate-300 hover:bg-slate-700"
                   onClick={() => navigate('/trade-execution')}
                   variant="outline"
-                  className="border-slate-600 text-slate-300 hover:bg-slate-700"
                 >
                   <TrendingUp className="h-4 w-4 mr-2" />
                   Trade

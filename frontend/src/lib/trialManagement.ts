@@ -45,7 +45,7 @@ export class TrialManager {
       trialEndDate,
       isActive: true,
       hasUsedTrial: true,
-      subscriptionStatus: 'none'
+      subscriptionStatus: 'none',
     };
 
     this.saveTrialInfo();
@@ -58,16 +58,16 @@ export class TrialManager {
 
   public isTrialActive(): boolean {
     if (!this.trialInfo) return false;
-    
+
     const now = new Date();
-    return this.trialInfo.isActive && 
+    return this.trialInfo.isActive &&
            now <= this.trialInfo.trialEndDate &&
            this.trialInfo.subscriptionStatus !== 'active';
   }
 
   public getTrialDaysRemaining(): number {
     if (!this.trialInfo || !this.isTrialActive()) return 0;
-    
+
     const now = new Date();
     const timeDiff = this.trialInfo.trialEndDate.getTime() - now.getTime();
     return Math.max(0, Math.ceil(timeDiff / (24 * 60 * 60 * 1000)));
@@ -75,7 +75,7 @@ export class TrialManager {
 
   public getTrialHoursRemaining(): number {
     if (!this.trialInfo || !this.isTrialActive()) return 0;
-    
+
     const now = new Date();
     const timeDiff = this.trialInfo.trialEndDate.getTime() - now.getTime();
     return Math.max(0, Math.ceil(timeDiff / (60 * 60 * 1000)));
@@ -105,7 +105,7 @@ export class TrialManager {
         canAccessBacktesting: true,
         canAccessAdvancedFeatures: true,
         maxAPIKeys: 10,
-        maxActiveStrategies: 20
+        maxActiveStrategies: 20,
       };
     } else if (isTrialActive) {
       // Limited access for trial users
@@ -116,7 +116,7 @@ export class TrialManager {
         canAccessBacktesting: false,
         canAccessAdvancedFeatures: false,
         maxAPIKeys: 2,
-        maxActiveStrategies: 3
+        maxActiveStrategies: 3,
       };
     } else {
       // No access for non-subscribers/expired trials
@@ -127,7 +127,7 @@ export class TrialManager {
         canAccessBacktesting: false,
         canAccessAdvancedFeatures: false,
         maxAPIKeys: 0,
-        maxActiveStrategies: 0
+        maxActiveStrategies: 0,
       };
     }
   }
@@ -152,8 +152,8 @@ export class TrialManager {
           canAccessBacktesting: true,
           canAccessAdvancedFeatures: false,
           maxAPIKeys: 5,
-          maxActiveStrategies: 10
-        }
+          maxActiveStrategies: 10,
+        },
       },
       {
         id: 'premium',
@@ -168,9 +168,9 @@ export class TrialManager {
           canAccessBacktesting: true,
           canAccessAdvancedFeatures: true,
           maxAPIKeys: 10,
-          maxActiveStrategies: 20
-        }
-      }
+          maxActiveStrategies: 20,
+        },
+      },
     ];
   }
 
@@ -189,7 +189,7 @@ export class TrialManager {
         this.trialInfo = {
           ...parsed,
           trialStartDate: new Date(parsed.trialStartDate),
-          trialEndDate: new Date(parsed.trialEndDate)
+          trialEndDate: new Date(parsed.trialEndDate),
         };
       }
     } catch (error) {

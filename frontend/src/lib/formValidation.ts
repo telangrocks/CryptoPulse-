@@ -36,23 +36,23 @@ export const percentageSchema = z.number()
 // Form validation schemas
 export const loginFormSchema = z.object({
   email: emailSchema,
-  password: z.string().min(1, 'Password is required')
+  password: z.string().min(1, 'Password is required'),
 });
 
 export const registerFormSchema = z.object({
   email: emailSchema,
   password: passwordSchema,
-  confirmPassword: z.string()
+  confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
-  path: ["confirmPassword"]
+  path: ['confirmPassword'],
 });
 
 export const apiKeysFormSchema = z.object({
   exchange: z.string().min(1, 'Exchange is required'),
   apiKey: apiKeySchema,
   apiSecret: apiSecretSchema,
-  passphrase: z.string().optional()
+  passphrase: z.string().optional(),
 });
 
 export const tradeFormSchema = z.object({
@@ -62,19 +62,19 @@ export const tradeFormSchema = z.object({
   stopLoss: priceSchema,
   takeProfit: priceSchema,
   amount: z.number().positive('Amount must be positive').optional(),
-  leverage: z.number().min(1).max(100).optional()
+  leverage: z.number().min(1).max(100).optional(),
 });
 
 export const portfolioFormSchema = z.object({
   totalBalance: z.number().positive('Total balance must be positive'),
   riskLevel: z.enum(['LOW', 'MEDIUM', 'HIGH']),
-  allocations: z.record(z.string(), percentageSchema)
+  allocations: z.record(z.string(), percentageSchema),
 });
 
 // Validation helper functions
 export function validateForm<T>(
   schema: z.ZodSchema<T>,
-  data: unknown
+  data: unknown,
 ): { success: true; data: T } | { success: false; errors: Record<string, string> } {
   try {
     const validatedData = schema.parse(data);
@@ -94,7 +94,7 @@ export function validateForm<T>(
 
 export function validateField<T>(
   schema: z.ZodSchema<T>,
-  value: unknown
+  value: unknown,
 ): { success: true; data: T } | { success: false; error: string } {
   try {
     const validatedData = schema.parse(value);
@@ -114,6 +114,6 @@ export function useFormValidation<T>(schema: z.ZodSchema<T>) {
     validateField: (field: keyof T, value: unknown) => {
       const fieldSchema = schema.shape[field] as z.ZodSchema;
       return validateField(fieldSchema, value);
-    }
+    },
   };
 }

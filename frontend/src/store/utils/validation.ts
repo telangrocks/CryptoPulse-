@@ -20,7 +20,7 @@ import { ValidationRule, ValidationSchema, ValidationResult, ApiError } from '..
 export const validateField = (
   value: any,
   rule: ValidationRule,
-  fieldName: string
+  fieldName: string,
 ): string | null => {
   // Required check
   if (rule.required && (value === null || value === undefined || value === '')) {
@@ -114,7 +114,7 @@ export const validateSchema = (data: Record<string, any>, schema: ValidationSche
 
   return {
     isValid: Object.keys(errors).length === 0,
-    errors
+    errors,
   };
 };
 
@@ -204,12 +204,12 @@ export const userRegistrationSchema: ValidationSchema = {
     min: 3,
     max: 20,
     pattern: /^[a-zA-Z0-9_]+$/,
-    message: 'Username must be 3-20 characters, alphanumeric and underscores only'
+    message: 'Username must be 3-20 characters, alphanumeric and underscores only',
   },
   email: {
     required: true,
     type: 'email',
-    message: 'Please provide a valid email address'
+    message: 'Please provide a valid email address',
   },
   password: {
     required: true,
@@ -217,7 +217,7 @@ export const userRegistrationSchema: ValidationSchema = {
     min: 8,
     max: 128,
     pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
-    message: 'Password must be 8-128 characters with uppercase, lowercase, number and special character'
+    message: 'Password must be 8-128 characters with uppercase, lowercase, number and special character',
   },
   firstName: {
     required: false,
@@ -225,7 +225,7 @@ export const userRegistrationSchema: ValidationSchema = {
     min: 1,
     max: 50,
     pattern: /^[a-zA-Z\s]+$/,
-    message: 'First name must contain only letters and spaces'
+    message: 'First name must contain only letters and spaces',
   },
   lastName: {
     required: false,
@@ -233,8 +233,8 @@ export const userRegistrationSchema: ValidationSchema = {
     min: 1,
     max: 50,
     pattern: /^[a-zA-Z\s]+$/,
-    message: 'Last name must contain only letters and spaces'
-  }
+    message: 'Last name must contain only letters and spaces',
+  },
 };
 
 /**
@@ -245,14 +245,14 @@ export const userLoginSchema: ValidationSchema = {
     required: true,
     type: 'string',
     min: 1,
-    message: 'Username is required'
+    message: 'Username is required',
   },
   password: {
     required: true,
     type: 'string',
     min: 1,
-    message: 'Password is required'
-  }
+    message: 'Password is required',
+  },
 };
 
 /**
@@ -262,39 +262,39 @@ export const tradeExecutionSchema: ValidationSchema = {
   symbol: {
     required: true,
     type: 'string',
-    custom: (value: string) => isValidTradingSymbol(value) ? null : 'Invalid trading symbol format'
+    custom: (value: string) => isValidTradingSymbol(value) ? null : 'Invalid trading symbol format',
   },
   side: {
     required: true,
     type: 'string',
-    custom: (value: string) => ['BUY', 'SELL'].includes(value) ? null : 'Side must be BUY or SELL'
+    custom: (value: string) => ['BUY', 'SELL'].includes(value) ? null : 'Side must be BUY or SELL',
   },
   type: {
     required: true,
     type: 'string',
-    custom: (value: string) => 
-      ['MARKET', 'LIMIT', 'STOP_LOSS', 'STOP_LOSS_LIMIT', 'TAKE_PROFIT', 'TAKE_PROFIT_LIMIT'].includes(value) 
-        ? null 
-        : 'Invalid order type'
+    custom: (value: string) =>
+      ['MARKET', 'LIMIT', 'STOP_LOSS', 'STOP_LOSS_LIMIT', 'TAKE_PROFIT', 'TAKE_PROFIT_LIMIT'].includes(value)
+        ? null
+        : 'Invalid order type',
   },
   quantity: {
     required: true,
     type: 'number',
     min: 0.00000001,
-    custom: (value: number) => isValidQuantity(value) ? null : 'Invalid quantity'
+    custom: (value: number) => isValidQuantity(value) ? null : 'Invalid quantity',
   },
   price: {
     required: false,
     type: 'number',
     min: 0.00000001,
-    custom: (value: number) => value ? isValidPrice(value) : null || 'Invalid price'
+    custom: (value: number) => value ? isValidPrice(value) : null || 'Invalid price',
   },
   stopPrice: {
     required: false,
     type: 'number',
     min: 0.00000001,
-    custom: (value: number) => value ? isValidPrice(value) : null || 'Invalid stop price'
-  }
+    custom: (value: number) => value ? isValidPrice(value) : null || 'Invalid stop price',
+  },
 };
 
 /**
@@ -307,48 +307,48 @@ export const botConfigSchema: ValidationSchema = {
     min: 3,
     max: 50,
     pattern: /^[a-zA-Z0-9\s_-]+$/,
-    message: 'Bot name must be 3-50 characters, alphanumeric, spaces, hyphens and underscores only'
+    message: 'Bot name must be 3-50 characters, alphanumeric, spaces, hyphens and underscores only',
   },
   strategy: {
     required: true,
     type: 'string',
-    custom: (value: string) => 
+    custom: (value: string) =>
       ['DCA', 'GRID', 'MOMENTUM', 'MEAN_REVERSION', 'ARBITRAGE', 'SCALPING'].includes(value)
         ? null
-        : 'Invalid strategy'
+        : 'Invalid strategy',
   },
   symbol: {
     required: true,
     type: 'string',
-    custom: (value: string) => isValidTradingSymbol(value) ? null : 'Invalid trading symbol'
+    custom: (value: string) => isValidTradingSymbol(value) ? null : 'Invalid trading symbol',
   },
   riskLevel: {
     required: true,
     type: 'string',
-    custom: (value: string) => 
-      ['LOW', 'MEDIUM', 'HIGH', 'EXTREME'].includes(value) ? null : 'Invalid risk level'
+    custom: (value: string) =>
+      ['LOW', 'MEDIUM', 'HIGH', 'EXTREME'].includes(value) ? null : 'Invalid risk level',
   },
   maxPositions: {
     required: true,
     type: 'number',
     min: 1,
     max: 100,
-    message: 'Max positions must be between 1 and 100'
+    message: 'Max positions must be between 1 and 100',
   },
   stopLoss: {
     required: true,
     type: 'number',
     min: 0.1,
     max: 50,
-    message: 'Stop loss must be between 0.1% and 50%'
+    message: 'Stop loss must be between 0.1% and 50%',
   },
   takeProfit: {
     required: true,
     type: 'number',
     min: 0.1,
     max: 1000,
-    message: 'Take profit must be between 0.1% and 1000%'
-  }
+    message: 'Take profit must be between 0.1% and 1000%',
+  },
 };
 
 // ============================================================================
@@ -365,12 +365,12 @@ export const botConfigSchema: ValidationSchema = {
 export const createApiError = (
   code: string,
   message: string,
-  details?: Record<string, any>
+  details?: Record<string, any>,
 ): ApiError => ({
   code,
   message,
   details,
-  timestamp: Date.now()
+  timestamp: Date.now(),
 });
 
 /**
@@ -379,7 +379,7 @@ export const createApiError = (
  * @param message - Error message
  * @returns API error object
  */
-export const createValidationError = (field: string, message: string): ApiError => 
+export const createValidationError = (field: string, message: string): ApiError =>
   createApiError('VALIDATION_ERROR', message, { field });
 
 /**
@@ -452,19 +452,19 @@ export const sanitizeObject = (input: any): any => {
  */
 export const sanitizeTradeData = (tradeData: any) => {
   const sanitized = sanitizeObject(tradeData);
-  
+
   // Additional trade-specific sanitization
   if (sanitized.symbol) {
     sanitized.symbol = sanitized.symbol.toUpperCase().replace(/[^A-Z0-9]/g, '');
   }
-  
+
   if (sanitized.side) {
     sanitized.side = sanitized.side.toUpperCase();
   }
-  
+
   if (sanitized.type) {
     sanitized.type = sanitized.type.toUpperCase().replace(/[^A-Z_]/g, '');
   }
-  
+
   return sanitized;
 };

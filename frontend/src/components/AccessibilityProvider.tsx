@@ -1,5 +1,4 @@
-import { useState, useEffect, useContext, createContext } from 'react';
-import React from 'react';
+import React, { useState, useEffect, useContext, createContext } from 'react';
 
 interface AccessibilitySettings {
   highContrast: boolean;
@@ -38,7 +37,7 @@ export function AccessibilityProvider({ children }: { children: React.ReactNode 
 
   const updateSetting = <K extends keyof AccessibilitySettings>(
     key: K,
-    value: AccessibilitySettings[K]
+    value: AccessibilitySettings[K],
   ) => {
     setSettings(prev => {
       const newSettings = { ...prev, [key]: value };
@@ -55,7 +54,7 @@ export function AccessibilityProvider({ children }: { children: React.ReactNode 
   // Apply accessibility settings to document
   useEffect(() => {
     const root = document.documentElement;
-    
+
     // High contrast
     if (settings.highContrast) {
       root.classList.add('high-contrast');
@@ -73,7 +72,7 @@ export function AccessibilityProvider({ children }: { children: React.ReactNode 
     // Font size
     root.classList.remove('font-small', 'font-medium', 'font-large');
     root.classList.add(`font-${settings.fontSize}`);
-    
+
     // Screen reader
     if (settings.screenReader) {
       root.classList.add('screen-reader');
@@ -145,15 +144,15 @@ export function useAccessibility() {
 }
 
 // Accessibility announcement component
-export function AccessibilityAnnouncement({ 
-  message, 
-  priority = 'polite' 
+export function AccessibilityAnnouncement({
+  message,
+  priority = 'polite',
 }: {
   message: string;
   priority?: 'polite' | 'assertive';
 }) {
   const [announcement, setAnnouncement] = useState('');
-  
+
   useEffect(() => {
     if (message) {
       setAnnouncement(message);
@@ -166,8 +165,8 @@ export function AccessibilityAnnouncement({
 
   return (
     <div
-      aria-live={priority}
       aria-atomic="true"
+      aria-live={priority}
       className="sr-only"
       role="status"
     >
@@ -177,17 +176,17 @@ export function AccessibilityAnnouncement({
 }
 
 // Skip link component
-export function SkipLink({ 
-  href, 
-  children 
-}: { 
-  href: string; 
-  children: React.ReactNode 
+export function SkipLink({
+  href,
+  children,
+}: {
+  href: string;
+  children: React.ReactNode
 }) {
   return (
     <a
-      href={href}
       className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-blue-600 focus:text-white focus:rounded focus:shadow-lg"
+      href={href}
     >
       {children}
     </a>
@@ -195,12 +194,12 @@ export function SkipLink({
 }
 
 // Focus trap component
-export function FocusTrap({ 
-  children, 
-  active 
-}: { 
-  children: React.ReactNode; 
-  active: boolean 
+export function FocusTrap({
+  children,
+  active,
+}: {
+  children: React.ReactNode;
+  active: boolean
 }) {
   const containerRef = React.useRef<HTMLDivElement>(null);
 
@@ -208,7 +207,7 @@ export function FocusTrap({
     if (!active || !containerRef.current) return;
 
     const focusableElements = containerRef.current.querySelectorAll(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
     );
     const firstElement = focusableElements[0] as HTMLElement;
     const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement;

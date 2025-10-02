@@ -1,7 +1,8 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+
 import { config } from '../lib/config';
-import { createSession, getCurrentSession, clearSession, initializeSessionManagement } from '../lib/sessionManager';
 import { logInfo, logWarn, logError } from '../lib/logger';
+import { createSession, getCurrentSession, clearSession, initializeSessionManagement } from '../lib/sessionManager';
 
 interface User {
   id: string;
@@ -93,7 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       logWarn('Session management initialization failed', 'AuthContext', error);
     }
-    
+
     // Try to restore user from secure session
     const restoreUser = async () => {
       try {
@@ -125,7 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(false);
       }
     };
-    
+
     restoreUser();
     // Fallback timeout to ensure loading is set to false
     const timeout = setTimeout(() => {
@@ -137,12 +138,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const { logInfo, logError } = await import('../lib/logger');
       logInfo('Attempting user login', 'Auth');
-      
+
       // Use REST API for authentication
       const response = await fetch(`${config.api.backendURL}/api/v1/auth/login`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email, password }),
       });
@@ -150,7 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Login failed');
       }
-      
+
       const userData = await response.json();
       const user = {
         id: userData.user.id,
@@ -160,14 +161,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         trialEnd: userData.user.trialEnd || new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
         sessionToken: userData.sessionToken,
       };
-      
+
       // Create secure session
       await createSession({
         userId: user.id,
         email: user.email,
         sessionToken: userData.sessionToken,
       });
-      
+
       setUser(user);
       localStorage.setItem('cryptopulse-user', JSON.stringify(user));
       localStorage.setItem('cryptopulse-session', userData.sessionToken);
@@ -183,22 +184,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const { logInfo, logError } = await import('../lib/logger');
       const { getTrialManagementService } = await import('../lib/trialManagement');
-      
+
       logInfo('Attempting user registration', 'Auth');
-      
+
       // Check if user can start a new trial
       const trialService = getTrialManagementService();
       const trialCheck = trialService.canStartTrial(email);
-      
+
       if (!trialCheck.allowed) {
         throw new Error(trialCheck.reason || 'Cannot start new trial');
       }
-      
+
       // Use REST API for registration
       const response = await fetch(`${config.api.backendURL}/api/v1/auth/register`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email, password, mobile }),
       });
@@ -206,11 +207,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Registration failed');
       }
-      
+
       const userData = await response.json();
       // Start trial for the user
       const trialInfo = trialService.startTrial(email);
-      
+
       const user = {
         id: userData.user.id,
         email: userData.user.email || email,
@@ -219,7 +220,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         trialEnd: trialInfo.trialEndDate.toISOString(),
         sessionToken: userData.sessionToken,
       };
-      
+
       setUser(user);
       localStorage.setItem('cryptopulse-user', JSON.stringify(user));
       localStorage.setItem('cryptopulse-session', userData.sessionToken);
@@ -235,7 +236,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const { logInfo, logError } = await import('../lib/logger');
       logInfo('User logout initiated', 'Auth');
-      
+
       // Use REST API to invalidate session on server
       try {
         const sessionToken = localStorage.getItem('cryptopulse-session');
@@ -243,13 +244,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${sessionToken || ''}`
-          }
+            'Authorization': `Bearer ${sessionToken || ''}`,
+          },
         });
       } catch (serverError) {
         logWarn('Server logout failed, continuing with local logout', 'Auth', serverError);
       }
-      
+
       // Clear secure session
       await clearSession();
       localStorage.removeItem('cryptopulse-user');
@@ -285,7 +286,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${sessionToken || ''}`
+            'Authorization': `Bearer ${sessionToken || ''}`,
           },
           body: JSON.stringify({}),
         });
@@ -311,7 +312,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logInfo('Disclaimer already accepted (local storage)', 'AuthContext');
         return true;
       }
-      
+
       // Try to check server status, but don't fail if it doesn't exist
       try {
         const sessionToken = localStorage.getItem('cryptopulse-session');
@@ -319,7 +320,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${sessionToken || ''}`
+            'Authorization': `Bearer ${sessionToken || ''}`,
           },
           body: JSON.stringify({}),
         });
@@ -337,7 +338,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (serverError) {
         logWarn('Server disclaimer check not available, using local storage only', 'AuthContext');
       }
-      
+
       return false;
     } catch (error) {
       logError('Failed to check disclaimer status', 'AuthContext', error);
@@ -350,14 +351,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await fetch(`${config.api.backendURL}/api/v1/auth/request-password-reset`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email }),
       });
       if (!response.ok) {
         throw new Error('Failed to request password reset');
       }
-      
+
       return await response.json();
     } catch (error) {
       throw new Error(error instanceof Error ? error.message : 'Failed to request password reset');
@@ -369,14 +370,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await fetch(`${config.api.backendURL}/api/v1/auth/reset-password`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({ token, newPassword }),
       });
       if (!response.ok) {
         throw new Error('Failed to reset password');
       }
-      
+
       return await response.json();
     } catch (error) {
       throw new Error(error instanceof Error ? error.message : 'Failed to reset password');
@@ -388,14 +389,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await fetch(`${config.api.backendURL}/api/v1/auth/validate-reset-token`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({ token }),
       });
       if (!response.ok) {
         return false;
       }
-      
+
       const result = await response.json();
       return result.valid || false;
     } catch (error) {
@@ -419,8 +420,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${sessionToken}`
-        }
+          'Authorization': `Bearer ${sessionToken}`,
+        },
       });
 
       if (response.ok) {
@@ -438,21 +439,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{
-      user,
-      loading,
-      error,
-      login,
-      register,
-      logout,
-      acceptDisclaimer,
-      checkDisclaimerStatus,
-      requestPasswordReset,
-      resetPassword,
-      validateResetToken,
-      clearError,
-      refreshSession,
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        error,
+        login,
+        register,
+        logout,
+        acceptDisclaimer,
+        checkDisclaimerStatus,
+        requestPasswordReset,
+        resetPassword,
+        validateResetToken,
+        clearError,
+        refreshSession,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

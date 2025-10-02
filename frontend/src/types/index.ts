@@ -1,9 +1,9 @@
 /**
  * Core type definitions for CryptoPulse frontend
- * 
+ *
  * This module contains the main type definitions used throughout the frontend application.
  * It serves as the central hub for all type definitions and re-exports from other modules.
- * 
+ *
  * @fileoverview Core frontend type definitions for production-ready crypto trading platform
  * @version 1.0.0
  * @author CryptoPulse Team
@@ -57,7 +57,7 @@ export type OrderStatus = 'PENDING' | 'FILLED' | 'PARTIALLY_FILLED' | 'CANCELLED
 
 /**
  * User account information
- * 
+ *
  * @interface User
  * @property {string} id - Unique user identifier
  * @property {string} email - User email address
@@ -110,7 +110,7 @@ export interface User {
 
 /**
  * User profile information
- * 
+ *
  * @interface UserProfile
  * @property {string} [firstName] - User's first name
  * @property {string} [lastName] - User's last name
@@ -142,7 +142,7 @@ export interface UserProfile {
 
 /**
  * User preferences and settings
- * 
+ *
  * @interface UserPreferences
  * @property {Theme} theme - UI theme preference
  * @property {string} language - Language preference
@@ -183,7 +183,7 @@ export type Theme = 'light' | 'dark' | 'system' | 'auto';
 
 /**
  * Notification settings configuration
- * 
+ *
  * @interface NotificationSettings
  * @property {boolean} email - Email notifications enabled
  * @property {boolean} push - Push notifications enabled
@@ -206,7 +206,7 @@ export interface NotificationSettings {
 
 /**
  * Trading settings configuration
- * 
+ *
  * @interface TradingSettings
  * @property {boolean} autoConfirm - Auto-confirm trades
  * @property {RiskLevel} defaultRiskLevel - Default risk level
@@ -235,7 +235,7 @@ export interface TradingSettings {
 
 /**
  * Display settings configuration
- * 
+ *
  * @interface DisplaySettings
  * @property {boolean} showAdvancedCharts - Show advanced chart features
  * @property {boolean} showOrderBook - Show order book
@@ -267,7 +267,7 @@ export interface DisplaySettings {
 
 /**
  * Privacy settings configuration
- * 
+ *
  * @interface PrivacySettings
  * @property {boolean} shareAnalytics - Share analytics data
  * @property {boolean} shareCrashReports - Share crash reports
@@ -290,7 +290,7 @@ export interface PrivacySettings {
 
 /**
  * Notification types configuration
- * 
+ *
  * @interface NotificationTypes
  * @property {boolean} tradeExecuted - Trade execution notifications
  * @property {boolean} tradeFailed - Trade failure notifications
@@ -320,7 +320,7 @@ export interface NotificationTypes {
 
 /**
  * Trading signal for automated trading
- * 
+ *
  * @interface TradeSignal
  * @property {string} pair - Trading pair symbol
  * @property {OrderSide} action - Buy or sell action
@@ -533,7 +533,7 @@ export interface Notification {
 
 /**
  * Legacy user settings interface (deprecated - use UserPreferences instead)
- * 
+ *
  * @deprecated Use UserPreferences interface instead for better type safety
  * @interface UserSettings
  */
@@ -687,7 +687,7 @@ export const VALIDATION_SCHEMAS = {
     disclaimerAccepted: { type: 'boolean', required: false },
     disclaimerAcceptedAt: { type: 'date', required: false },
     billingStatus: { type: 'string', required: false, enum: ['ACTIVE', 'PAST_DUE', 'CANCELED', 'UNPAID', 'TRIAL', 'PENDING'] },
-    subscriptionStatus: { type: 'string', required: false, enum: ['ACTIVE', 'EXPIRED', 'CANCELLED', 'PENDING', 'SUSPENDED', 'TRIAL'] }
+    subscriptionStatus: { type: 'string', required: false, enum: ['ACTIVE', 'EXPIRED', 'CANCELLED', 'PENDING', 'SUSPENDED', 'TRIAL'] },
   },
 
   /**
@@ -701,7 +701,7 @@ export const VALIDATION_SCHEMAS = {
     takeProfit: { type: 'number', required: true, min: 0 },
     confidence: { type: 'number', required: true, min: 0, max: 100 },
     timestamp: { type: 'string', required: true },
-    riskLevel: { type: 'string', required: false, enum: ['CONSERVATIVE', 'MODERATE', 'AGGRESSIVE', 'VERY_AGGRESSIVE'] }
+    riskLevel: { type: 'string', required: false, enum: ['CONSERVATIVE', 'MODERATE', 'AGGRESSIVE', 'VERY_AGGRESSIVE'] },
   },
 
   /**
@@ -711,8 +711,8 @@ export const VALIDATION_SCHEMAS = {
     success: { type: 'boolean', required: true },
     data: { type: 'any', required: false },
     error: { type: 'string', required: false },
-    message: { type: 'string', required: false }
-  }
+    message: { type: 'string', required: false },
+  },
 } as const;
 
 /**
@@ -772,7 +772,7 @@ export const TypeGuards = {
    */
   isRiskLevel: (value: unknown): value is RiskLevel => {
     return typeof value === 'string' && ['CONSERVATIVE', 'MODERATE', 'AGGRESSIVE', 'VERY_AGGRESSIVE'].includes(value);
-  }
+  },
 };
 
 // ============================================================================
@@ -787,7 +787,7 @@ export const EXCHANGE_NAMES = {
   WAZIRX: 'wazirx',
   COINDCX: 'coindcx',
   COINBASE: 'coinbase',
-  KRAKEN: 'kraken'
+  KRAKEN: 'kraken',
 } as const;
 
 /**
@@ -795,7 +795,7 @@ export const EXCHANGE_NAMES = {
  */
 export const TRADE_SIDES = {
   BUY: 'BUY',
-  SELL: 'SELL'
+  SELL: 'SELL',
 } as const;
 
 /**
@@ -805,7 +805,7 @@ export const RISK_LEVELS = {
   CONSERVATIVE: 'CONSERVATIVE',
   MODERATE: 'MODERATE',
   AGGRESSIVE: 'AGGRESSIVE',
-  VERY_AGGRESSIVE: 'VERY_AGGRESSIVE'
+  VERY_AGGRESSIVE: 'VERY_AGGRESSIVE',
 } as const;
 
 /**
@@ -815,7 +815,7 @@ export const NOTIFICATION_TYPES = {
   SUCCESS: 'success',
   ERROR: 'error',
   WARNING: 'warning',
-  INFO: 'info'
+  INFO: 'info',
 } as const;
 
 /**
@@ -825,7 +825,7 @@ export const THEMES = {
   LIGHT: 'light',
   DARK: 'dark',
   SYSTEM: 'system',
-  AUTO: 'auto'
+  AUTO: 'auto',
 } as const;
 
 /**
@@ -836,7 +836,7 @@ export const CHART_TYPES = {
   LINE: 'LINE',
   AREA: 'AREA',
   BAR: 'BAR',
-  HEIKIN_ASHI: 'HEIKIN_ASHI'
+  HEIKIN_ASHI: 'HEIKIN_ASHI',
 } as const;
 
 /**
@@ -858,5 +858,5 @@ export const ORDER_STATUS = {
   DONE_FOR_DAY: 'DONE_FOR_DAY',
   STOPPED: 'STOPPED',
   STOPPED_OUT: 'STOPPED_OUT',
-  UNKNOWN: 'UNKNOWN'
+  UNKNOWN: 'UNKNOWN',
 } as const;

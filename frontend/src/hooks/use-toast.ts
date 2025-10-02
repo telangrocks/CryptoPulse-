@@ -1,6 +1,6 @@
-const crypto = require('crypto');
-
 import React, { useCallback, useMemo } from 'react';
+
+const crypto = require('crypto');
 
 // Production-ready toast configuration
 const TOAST_LIMIT = 5;
@@ -34,11 +34,11 @@ interface ToasterToast extends ToastProps {
 
 // Action types with better type safety
 const actionTypes = {
-  ADD: "ADD-TOAST",
-  UPDATE: "UPDATE-TOAST",
-  DISMISS: "DISMISS-TOAST",
-  REMOVE: "REMOVE-TOAST",
-  CLEAR: "CLEAR-TOASTS",
+  ADD: 'ADD-TOAST',
+  UPDATE: 'UPDATE-TOAST',
+  DISMISS: 'DISMISS-TOAST',
+  REMOVE: 'REMOVE-TOAST',
+  CLEAR: 'CLEAR-TOASTS',
 } as const;
 
 // Secure ID generation with better collision resistance
@@ -53,23 +53,23 @@ const generateSecureId = (): string => {
 type ActionType = typeof actionTypes;
 type Action =
   | {
-      type: ActionType["ADD"];
+      type: ActionType['ADD'];
       toast: ToasterToast;
     }
   | {
-      type: ActionType["UPDATE"];
+      type: ActionType['UPDATE'];
       toast: Partial<ToasterToast> & { id: string };
     }
   | {
-      type: ActionType["DISMISS"];
-      toastId?: ToasterToast["id"];
+      type: ActionType['DISMISS'];
+      toastId?: ToasterToast['id'];
     }
   | {
-      type: ActionType["REMOVE"];
-      toastId?: ToasterToast["id"];
+      type: ActionType['REMOVE'];
+      toastId?: ToasterToast['id'];
     }
   | {
-      type: ActionType["CLEAR"];
+      type: ActionType['CLEAR'];
     };
 
 interface State {
@@ -145,7 +145,7 @@ const addToRemoveQueue = (toastId: string, duration: number = TOAST_REMOVE_DELAY
 
   timeoutManager.addTimeout(toastId, () => {
     dispatch({
-      type: "REMOVE-TOAST",
+      type: 'REMOVE-TOAST',
       toastId: toastId,
     });
   }, duration);
@@ -153,21 +153,21 @@ const addToRemoveQueue = (toastId: string, duration: number = TOAST_REMOVE_DELAY
 
 export const reducer = (state: State, action: Action): State => {
   switch (action.type) {
-    case "ADD-TOAST":
+    case 'ADD-TOAST':
       return {
         ...state,
         toasts: [action.toast, ...state.toasts].slice(0, TOAST_LIMIT),
       };
 
-    case "UPDATE-TOAST":
+    case 'UPDATE-TOAST':
       return {
         ...state,
         toasts: state.toasts.map((t) =>
-          t.id === action.toast.id ? { ...t, ...action.toast } : t
+          t.id === action.toast.id ? { ...t, ...action.toast } : t,
         ),
       };
 
-    case "DISMISS-TOAST": {
+    case 'DISMISS-TOAST': {
       const { toastId } = action;
       // ! Side effects ! - This could be extracted into a dismissToast() action,
       // but I'll keep it here for simplicity
@@ -184,14 +184,14 @@ export const reducer = (state: State, action: Action): State => {
         toasts: state.toasts.map((t) =>
           t.id === toastId || toastId === undefined
             ? {
-                ...t,
-                open: false,
-              }
-            : t
+              ...t,
+              open: false,
+            }
+            : t,
         ),
       };
     }
-    case "REMOVE-TOAST":
+    case 'REMOVE-TOAST':
       if (action.toastId === undefined) {
         return {
           ...state,
@@ -217,19 +217,19 @@ function dispatch(action: Action) {
   });
 }
 
-type Toast = Omit<ToasterToast, "id">;
+type Toast = Omit<ToasterToast, 'id'>;
 
 function toast({ ...props }: Toast) {
   const id = genId();
   const update = (props: Partial<ToasterToast>) =>
     dispatch({
-      type: "UPDATE-TOAST",
+      type: 'UPDATE-TOAST',
       toast: { ...props, id },
     });
-  const dismiss = () => dispatch({ type: "DISMISS-TOAST", toastId: id });
-  
+  const dismiss = () => dispatch({ type: 'DISMISS-TOAST', toastId: id });
+
   dispatch({
-    type: "ADD-TOAST",
+    type: 'ADD-TOAST',
     toast: {
       ...props,
       id,
@@ -239,7 +239,7 @@ function toast({ ...props }: Toast) {
       },
     },
   });
-  
+
   return {
     id: id,
     dismiss,
@@ -249,7 +249,7 @@ function toast({ ...props }: Toast) {
 
 function useToast() {
   const [state, setState] = React.useState<State>(memoryState);
-  
+
   React.useEffect(() => {
     listeners.push(setState);
     return () => {
@@ -259,11 +259,11 @@ function useToast() {
       }
     };
   }, []);
-  
+
   return {
     ...state,
     toast,
-    dismiss: (toastId?: string) => dispatch({ type: "DISMISS-TOAST", toastId }),
+    dismiss: (toastId?: string) => dispatch({ type: 'DISMISS-TOAST', toastId }),
   };
 }
 

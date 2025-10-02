@@ -1,9 +1,10 @@
+import { Shield, AlertTriangle, CheckCircle } from 'lucide-react';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+
+import { Alert, AlertDescription } from './ui/alert';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Alert, AlertDescription } from './ui/alert';
-import { Shield, AlertTriangle, CheckCircle } from 'lucide-react';
 
 export default function DisclaimerScreen() {
   const navigate = useNavigate();
@@ -30,7 +31,7 @@ export default function DisclaimerScreen() {
           </CardTitle>
           <p className="text-slate-400 mt-2">Please read and understand the following terms</p>
         </CardHeader>
-        
+
         <CardContent className="space-y-6">
           <Alert className="bg-red-500/10 border-red-500/20">
             <AlertTriangle className="h-4 w-4" />
@@ -43,19 +44,19 @@ export default function DisclaimerScreen() {
             <h3 className="text-xl font-semibold text-white">Trading Risks</h3>
             <ul className="space-y-2 text-slate-300">
               <li className="flex items-start gap-2">
-                <div className="w-2 h-2 bg-red-400 rounded-full mt-2 flex-shrink-0"></div>
+                <div className="w-2 h-2 bg-red-400 rounded-full mt-2 flex-shrink-0" />
                 <span>Past performance does not guarantee future results</span>
               </li>
               <li className="flex items-start gap-2">
-                <div className="w-2 h-2 bg-red-400 rounded-full mt-2 flex-shrink-0"></div>
+                <div className="w-2 h-2 bg-red-400 rounded-full mt-2 flex-shrink-0" />
                 <span>You may lose some or all of your invested capital</span>
               </li>
               <li className="flex items-start gap-2">
-                <div className="w-2 h-2 bg-red-400 rounded-full mt-2 flex-shrink-0"></div>
+                <div className="w-2 h-2 bg-red-400 rounded-full mt-2 flex-shrink-0" />
                 <span>Cryptocurrency markets are highly volatile and unpredictable</span>
               </li>
               <li className="flex items-start gap-2">
-                <div className="w-2 h-2 bg-red-400 rounded-full mt-2 flex-shrink-0"></div>
+                <div className="w-2 h-2 bg-red-400 rounded-full mt-2 flex-shrink-0" />
                 <span>Technical analysis and AI predictions are not foolproof</span>
               </li>
             </ul>
@@ -98,15 +99,15 @@ export default function DisclaimerScreen() {
 
           <div className="flex gap-4 pt-4">
             <Button
+              className="flex-1 border-slate-600 text-slate-300 hover:bg-slate-700"
               onClick={handleDecline}
               variant="outline"
-              className="flex-1 border-slate-600 text-slate-300 hover:bg-slate-700"
             >
               I Decline
             </Button>
             <Button
-              onClick={handleAccept}
               className="flex-1 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700"
+              onClick={handleAccept}
             >
               I Accept & Continue
             </Button>

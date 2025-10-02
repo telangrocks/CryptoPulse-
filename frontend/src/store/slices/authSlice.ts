@@ -1,16 +1,17 @@
 
 /**
  * Authentication Slice for CryptoPulse
- * 
+ *
  * Handles user authentication, session management, and authorization state.
  * Includes comprehensive error handling, validation, and security features.
- * 
+ *
  * @fileoverview Production-ready authentication state management
  * @version 1.0.0
  * @author CryptoPulse Team
  */
 
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+
 import { RootState } from '../index';
 
 // ============================================================================
@@ -241,30 +242,30 @@ const isValidEmail = (email: string): boolean => {
  */
 const isValidPassword = (password: string): { valid: boolean; errors: string[] } => {
   const errors: string[] = [];
-  
+
   if (password.length < 8) {
     errors.push('Password must be at least 8 characters long');
   }
-  
+
   if (!/[A-Z]/.test(password)) {
     errors.push('Password must contain at least one uppercase letter');
   }
-  
+
   if (!/[a-z]/.test(password)) {
     errors.push('Password must contain at least one lowercase letter');
   }
-  
+
   if (!/\d/.test(password)) {
     errors.push('Password must contain at least one number');
   }
-  
+
   if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
     errors.push('Password must contain at least one special character');
   }
-  
+
   return {
     valid: errors.length === 0,
-    errors
+    errors,
   };
 };
 
@@ -273,22 +274,22 @@ const isValidPassword = (password: string): { valid: boolean; errors: string[] }
  */
 const isValidUsername = (username: string): { valid: boolean; errors: string[] } => {
   const errors: string[] = [];
-  
+
   if (username.length < 3) {
     errors.push('Username must be at least 3 characters long');
   }
-  
+
   if (username.length > 20) {
     errors.push('Username must be less than 20 characters long');
   }
-  
+
   if (!/^[a-zA-Z0-9_]+$/.test(username)) {
     errors.push('Username can only contain letters, numbers, and underscores');
   }
-  
+
   return {
     valid: errors.length === 0,
-    errors
+    errors,
   };
 };
 
@@ -321,7 +322,7 @@ export const loginUser = createAsyncThunk<
       const state = getState() as RootState;
       const { loginAttempts, lastLoginAttempt } = state.auth;
       const now = Date.now();
-      
+
       if (loginAttempts >= 5 && lastLoginAttempt && (now - lastLoginAttempt) < 15 * 60 * 1000) {
         return rejectWithValue({
           code: 'RATE_LIMIT_EXCEEDED',
@@ -333,7 +334,7 @@ export const loginUser = createAsyncThunk<
 
       // Simulate API call with proper error handling
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       // Mock successful login response
       const user: User = {
         id: '1',
@@ -395,7 +396,7 @@ export const loginUser = createAsyncThunk<
           },
         },
       };
-      
+
       return user;
     } catch (error) {
       return rejectWithValue({
@@ -406,7 +407,7 @@ export const loginUser = createAsyncThunk<
         retryable: true,
       });
     }
-  }
+  },
 );
 
 /**
@@ -489,7 +490,7 @@ export const registerUser = createAsyncThunk<
 
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1500));
-      
+
       // Mock successful registration
       const user: User = {
         id: Date.now().toString(),
@@ -550,7 +551,7 @@ export const registerUser = createAsyncThunk<
           },
         },
       };
-      
+
       return user;
     } catch (error) {
       return rejectWithValue({
@@ -561,7 +562,7 @@ export const registerUser = createAsyncThunk<
         retryable: true,
       });
     }
-  }
+  },
 );
 
 /**
@@ -577,12 +578,12 @@ export const logoutUser = createAsyncThunk<
     try {
       const state = getState() as RootState;
       const { user } = state.auth;
-      
+
       if (user?.sessionToken) {
         // Simulate API call to invalidate session
         await new Promise(resolve => setTimeout(resolve, 500));
       }
-      
+
       return;
     } catch (error) {
       return rejectWithValue({
@@ -593,7 +594,7 @@ export const logoutUser = createAsyncThunk<
         retryable: true,
       });
     }
-  }
+  },
 );
 
 /**
@@ -609,7 +610,7 @@ export const refreshToken = createAsyncThunk<
     try {
       const state = getState() as RootState;
       const { user, refreshToken: currentRefreshToken } = state.auth;
-      
+
       if (!user || !currentRefreshToken) {
         return rejectWithValue({
           code: 'NO_REFRESH_TOKEN',
@@ -621,7 +622,7 @@ export const refreshToken = createAsyncThunk<
 
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 500));
-      
+
       return {
         sessionToken: 'new-session-token',
         refreshToken: 'new-refresh-token',
@@ -636,7 +637,7 @@ export const refreshToken = createAsyncThunk<
         retryable: false,
       });
     }
-  }
+  },
 );
 
 /**
@@ -662,7 +663,7 @@ export const requestPasswordReset = createAsyncThunk<
 
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       return;
     } catch (error) {
       return rejectWithValue({
@@ -673,7 +674,7 @@ export const requestPasswordReset = createAsyncThunk<
         retryable: true,
       });
     }
-  }
+  },
 );
 
 /**
@@ -719,7 +720,7 @@ export const confirmPasswordReset = createAsyncThunk<
 
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       return;
     } catch (error) {
       return rejectWithValue({
@@ -730,7 +731,7 @@ export const confirmPasswordReset = createAsyncThunk<
         retryable: true,
       });
     }
-  }
+  },
 );
 
 /**
@@ -746,7 +747,7 @@ export const setupTwoFactor = createAsyncThunk<
     try {
       const state = getState() as RootState;
       const { user } = state.auth;
-      
+
       if (!user) {
         return rejectWithValue({
           code: 'NOT_AUTHENTICATED',
@@ -758,7 +759,7 @@ export const setupTwoFactor = createAsyncThunk<
 
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       return {
         secret: 'mock-secret-key',
         qrCode: 'data:image/png;base64,mock-qr-code',
@@ -773,7 +774,7 @@ export const setupTwoFactor = createAsyncThunk<
         retryable: true,
       });
     }
-  }
+  },
 );
 
 /**
@@ -799,7 +800,7 @@ export const verifyTwoFactor = createAsyncThunk<
 
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       return;
     } catch (error) {
       return rejectWithValue({
@@ -810,7 +811,7 @@ export const verifyTwoFactor = createAsyncThunk<
         retryable: true,
       });
     }
-  }
+  },
 );
 // ============================================================================
 // SLICE DEFINITION
@@ -1008,7 +1009,7 @@ const authSlice = createSlice({
         state.user = null;
         state.sessionExpiry = null;
       });
-  }
+  },
 });
 // ============================================================================
 // SELECTORS

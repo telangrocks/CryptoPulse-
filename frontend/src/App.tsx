@@ -1,25 +1,26 @@
-import React from 'react';
-import { BrowserRouter as Router } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import React from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
+import { BrowserRouter as Router } from 'react-router-dom';
+
 // Context providers
-import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { ThemeProvider } from './contexts/ThemeContext';
-import { AppStateProvider } from './contexts/AppStateContext';
 import { AccessibilityProvider } from './components/AccessibilityProvider';
 // Components
-import SplashScreen from './components/SplashScreen';
-import GlobalLoadingIndicator from './components/GlobalLoadingIndicator';
 import ErrorFallback from './components/ErrorFallback';
+import GlobalLoadingIndicator from './components/GlobalLoadingIndicator';
+import SplashScreen from './components/SplashScreen';
 // import EnhancedErrorBoundary from './components/EnhancedErrorBoundary';
 import { Toaster } from './components/ui/toaster';
+import { AppStateProvider } from './contexts/AppStateContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 // Routes
-import { AppRoutes } from './routes';
 // Hooks
 import { useDocumentHead } from './hooks/useDocumentHead';
 // Utils
 import { queryClient } from './lib/queryClient';
+import { AppRoutes } from './routes';
 // Production monitoring and error reporting
 interface ErrorInfo {
   componentStack?: string | null;
@@ -142,10 +143,10 @@ const App = React.memo(() => {
     return () => clearTimeout(timeoutId);
   }, []);
   return (
-    <ErrorBoundary 
+    <ErrorBoundary
       fallbackRender={({ error, resetErrorBoundary }) => (
-        <ErrorFallback 
-          error={error} 
+        <ErrorFallback
+          error={error}
           resetErrorBoundary={resetErrorBoundary}
         />
       )}
@@ -246,17 +247,14 @@ const AppWithErrorBoundary = React.memo(() => {
     };
   }, []);
   return (
-    <ErrorBoundary 
-      onError={handleError}
-      onReset={handleReset}
-      resetKeys={[window.location.pathname]}
+    <ErrorBoundary
       fallbackRender={({ error, resetErrorBoundary }: { error: Error; resetErrorBoundary: () => void }) => (
         <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
           <div className="max-w-md w-full bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6">
             <div className="text-center">
               <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900">
-                <svg className="h-6 w-6 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                <svg className="h-6 w-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} />
                 </svg>
               </div>
               <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">
@@ -267,8 +265,8 @@ const AppWithErrorBoundary = React.memo(() => {
               </p>
               <div className="mt-6">
                 <button
-                  onClick={resetErrorBoundary}
                   className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  onClick={resetErrorBoundary}
                 >
                   Try Again
                 </button>
@@ -288,6 +286,9 @@ const AppWithErrorBoundary = React.memo(() => {
           </div>
         </div>
       )}
+      onError={handleError}
+      onReset={handleReset}
+      resetKeys={[window.location.pathname]}
     >
       <App />
     </ErrorBoundary>

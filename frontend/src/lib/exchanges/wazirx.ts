@@ -4,6 +4,7 @@
  */
 
 import { logError, logInfo, logWarn } from '../logger';
+
 import { Exchange, ExchangeConfig, Ticker, Balance, OrderRequest, OrderResponse, ExchangeInfo } from './index';
 
 export class WazirXExchange implements Exchange {
@@ -33,7 +34,7 @@ export class WazirXExchange implements Exchange {
     try {
       const formattedSymbol = this.formatSymbol(symbol);
       const response = await this.makeRequest('GET', '/api/v2/ticker', { market: formattedSymbol });
-      
+
       return {
         symbol: response.symbol,
         price: response.last,
@@ -48,7 +49,7 @@ export class WazirXExchange implements Exchange {
         priceChange: response.change,
         priceChangePercent: response.changePercent,
         count: 0,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
     } catch (error) {
       logError('Failed to get WazirX ticker', 'WazirXExchange', error);
@@ -72,9 +73,9 @@ export class WazirXExchange implements Exchange {
       const response = await this.makeRequest('GET', '/api/v2/klines', {
         market: formattedSymbol,
         interval,
-        limit
+        limit,
       });
-      
+
       return response.map((kline: any) => [
         kline[0], // Open time
         kline[1], // Open
@@ -87,7 +88,7 @@ export class WazirXExchange implements Exchange {
         kline[8], // Number of trades
         kline[9], // Taker buy base asset volume
         kline[10], // Taker buy quote asset volume
-        kline[11]  // Ignore
+        kline[11],  // Ignore
       ]);
     } catch (error) {
       logError('Failed to get WazirX klines', 'WazirXExchange', error);
@@ -111,7 +112,7 @@ export class WazirXExchange implements Exchange {
         asset: balance.currency,
         free: balance.available,
         locked: balance.locked,
-        total: (parseFloat(balance.available) + parseFloat(balance.locked)).toString()
+        total: (parseFloat(balance.available) + parseFloat(balance.locked)).toString(),
       }));
     } catch (error) {
       logError('Failed to get WazirX balances', 'WazirXExchange', error);
@@ -128,7 +129,7 @@ export class WazirXExchange implements Exchange {
           asset,
           free: '0',
           locked: '0',
-          total: '0'
+          total: '0',
         };
       }
       return balance;
@@ -149,11 +150,11 @@ export class WazirXExchange implements Exchange {
         ...(order.price && { price: order.price.toString() }),
         ...(order.stopPrice && { stop: order.stopPrice.toString() }),
         ...(order.timeInForce && { time: order.timeInForce }),
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       const response = await this.makeRequest('POST', '/api/v2/orders', orderData);
-      
+
       return {
         orderId: response.id.toString(),
         symbol: response.market,
@@ -165,7 +166,7 @@ export class WazirXExchange implements Exchange {
         executedQty: parseFloat(response.executed_quantity || '0'),
         cummulativeQuoteQty: parseFloat(response.executed_quantity || '0') * parseFloat(response.price || '0'),
         timestamp: response.created_at,
-        clientOrderId: response.client_order_id
+        clientOrderId: response.client_order_id,
       };
     } catch (error) {
       logError('Failed to create WazirX order', 'WazirXExchange', error);
@@ -178,7 +179,7 @@ export class WazirXExchange implements Exchange {
       const formattedSymbol = this.formatSymbol(symbol);
       await this.makeRequest('DELETE', '/api/v2/orders', {
         market: formattedSymbol,
-        order_id: orderId
+        order_id: orderId,
       });
       return true;
     } catch (error) {
@@ -192,7 +193,7 @@ export class WazirXExchange implements Exchange {
       const formattedSymbol = this.formatSymbol(symbol);
       const response = await this.makeRequest('GET', '/api/v2/orders', {
         market: formattedSymbol,
-        order_id: orderId
+        order_id: orderId,
       });
 
       return {
@@ -206,7 +207,7 @@ export class WazirXExchange implements Exchange {
         executedQty: parseFloat(response.executed_quantity || '0'),
         cummulativeQuoteQty: parseFloat(response.executed_quantity || '0') * parseFloat(response.price || '0'),
         timestamp: response.created_at,
-        clientOrderId: response.client_order_id
+        clientOrderId: response.client_order_id,
       };
     } catch (error) {
       logError('Failed to get WazirX order', 'WazirXExchange', error);
@@ -222,7 +223,7 @@ export class WazirXExchange implements Exchange {
       }
 
       const response = await this.makeRequest('GET', '/api/v2/orders', params);
-      
+
       return response.map((order: any) => ({
         orderId: order.id.toString(),
         symbol: order.market,
@@ -234,7 +235,7 @@ export class WazirXExchange implements Exchange {
         executedQty: parseFloat(order.executed_quantity || '0'),
         cummulativeQuoteQty: parseFloat(order.executed_quantity || '0') * parseFloat(order.price || '0'),
         timestamp: order.created_at,
-        clientOrderId: order.client_order_id
+        clientOrderId: order.client_order_id,
       }));
     } catch (error) {
       logError('Failed to get WazirX open orders', 'WazirXExchange', error);
@@ -250,7 +251,7 @@ export class WazirXExchange implements Exchange {
       }
 
       const response = await this.makeRequest('GET', '/api/v2/orders', params);
-      
+
       return response.map((order: any) => ({
         orderId: order.id.toString(),
         symbol: order.market,
@@ -262,7 +263,7 @@ export class WazirXExchange implements Exchange {
         executedQty: parseFloat(order.executed_quantity || '0'),
         cummulativeQuoteQty: parseFloat(order.executed_quantity || '0') * parseFloat(order.price || '0'),
         timestamp: order.created_at,
-        clientOrderId: order.client_order_id
+        clientOrderId: order.client_order_id,
       }));
     } catch (error) {
       logError('Failed to get WazirX order history', 'WazirXExchange', error);
@@ -277,30 +278,30 @@ export class WazirXExchange implements Exchange {
       isIndiaApproved: true,
       supportedPairs: [
         'btcinr', 'ethinr', 'wrxinr', 'adainr', 'trxinr',
-        'xrpinr', 'eosinr', 'zilinr', 'batinr', 'usdtinr'
+        'xrpinr', 'eosinr', 'zilinr', 'batinr', 'usdtinr',
       ],
       tradingFees: {
         maker: 0.2,
-        taker: 0.2
+        taker: 0.2,
       },
       withdrawalFees: {
         'BTC': 0.5,
         'ETH': 0.1,
-        'INR': 0
+        'INR': 0,
       },
       minOrderSize: {
         'btcinr': 0.1,
-        'ethinr': 0.1
+        'ethinr': 0.1,
       },
       maxOrderSize: {
         'btcinr': 10,
-        'ethinr': 100
+        'ethinr': 100,
       },
       supportedOrderTypes: ['MARKET', 'LIMIT', 'STOP-LOSS'],
       apiLimits: {
         requestsPerMinute: 1000,
-        ordersPerSecond: 5
-      }
+        ordersPerSecond: 5,
+      },
     };
   }
 
@@ -321,7 +322,7 @@ export class WazirXExchange implements Exchange {
       'filled': 'FILLED',
       'cancelled': 'CANCELED',
       'rejected': 'REJECTED',
-      'expired': 'EXPIRED'
+      'expired': 'EXPIRED',
     };
     return statusMap[status.toLowerCase()] || 'NEW';
   }
@@ -331,7 +332,7 @@ export class WazirXExchange implements Exchange {
     await this.checkRateLimit();
 
     const url = new URL(this.baseUrl + endpoint);
-    
+
     // Add query parameters for GET requests
     if (method === 'GET') {
       Object.keys(params).forEach(key => {
@@ -341,7 +342,7 @@ export class WazirXExchange implements Exchange {
 
     const headers: any = {
       'X-Api-Key': this.config.apiKey,
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
     };
 
     // Add signature for authenticated requests
@@ -353,7 +354,7 @@ export class WazirXExchange implements Exchange {
 
     const requestOptions: RequestInit = {
       method,
-      headers
+      headers,
     };
 
     if (method === 'POST' && Object.keys(params).length > 0) {
@@ -362,7 +363,7 @@ export class WazirXExchange implements Exchange {
 
     try {
       const response = await fetch(url.toString(), requestOptions);
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(`WazirX API Error: ${errorData.message || response.statusText}`);
@@ -380,15 +381,15 @@ export class WazirXExchange implements Exchange {
     const encoder = new TextEncoder();
     const keyData = encoder.encode(this.config.apiSecret);
     const messageData = encoder.encode(queryString);
-    
+
     const key = await crypto.subtle.importKey(
       'raw',
       keyData,
       { name: 'HMAC', hash: 'SHA-256' },
       false,
-      ['sign']
+      ['sign'],
     );
-    
+
     const signature = await crypto.subtle.sign('HMAC', key, messageData);
     const hashArray = Array.from(new Uint8Array(signature));
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
@@ -397,25 +398,25 @@ export class WazirXExchange implements Exchange {
   private async checkRateLimit(): Promise<void> {
     const now = Date.now();
     const windowStart = now - this.RATE_LIMIT_WINDOW;
-    
+
     // Clean old entries
     for (const [timestamp] of this.rateLimiter) {
       if (timestamp < windowStart) {
         this.rateLimiter.delete(timestamp);
       }
     }
-    
+
     // Check if we're within limits
     if (this.rateLimiter.size >= this.MAX_REQUESTS_PER_MINUTE) {
       const oldestRequest = Math.min(...this.rateLimiter.keys());
       const waitTime = this.RATE_LIMIT_WINDOW - (now - oldestRequest);
-      
+
       if (waitTime > 0) {
         logWarn(`Rate limit reached, waiting ${waitTime}ms`, 'WazirXExchange');
         await new Promise(resolve => setTimeout(resolve, waitTime));
       }
     }
-    
+
     this.rateLimiter.set(now, 1);
   }
 }

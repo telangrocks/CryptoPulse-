@@ -4,6 +4,7 @@
  */
 
 import { logError } from '../logger';
+
 import { Exchange, ExchangeConfig, Ticker, Balance, OrderRequest, OrderResponse, ExchangeInfo } from './index';
 
 export class BinanceExchange implements Exchange {
@@ -30,7 +31,7 @@ export class BinanceExchange implements Exchange {
     try {
       const formattedSymbol = this.formatSymbol(symbol);
       const response = await this.makeRequest('GET', '/api/v3/ticker/24hr', { symbol: formattedSymbol });
-      
+
       return {
         symbol: response.symbol,
         price: response.lastPrice,
@@ -45,7 +46,7 @@ export class BinanceExchange implements Exchange {
         priceChange: response.priceChange,
         priceChangePercent: response.priceChangePercent,
         count: response.count,
-        timestamp: response.closeTime
+        timestamp: response.closeTime,
       };
     } catch (error) {
       logError('Failed to get Binance ticker', 'BinanceExchange', error);
@@ -69,7 +70,7 @@ export class BinanceExchange implements Exchange {
       return await this.makeRequest('GET', '/api/v3/klines', {
         symbol: formattedSymbol,
         interval,
-        limit
+        limit,
       });
     } catch (error) {
       logError('Failed to get Binance klines', 'BinanceExchange', error);
@@ -93,7 +94,7 @@ export class BinanceExchange implements Exchange {
         asset: balance.asset,
         free: balance.free,
         locked: balance.locked,
-        total: (parseFloat(balance.free) + parseFloat(balance.locked)).toString()
+        total: (parseFloat(balance.free) + parseFloat(balance.locked)).toString(),
       }));
     } catch (error) {
       logError('Failed to get Binance balances', 'BinanceExchange', error);
@@ -110,7 +111,7 @@ export class BinanceExchange implements Exchange {
           asset,
           free: '0',
           locked: '0',
-          total: '0'
+          total: '0',
         };
       }
       return balance;
@@ -131,11 +132,11 @@ export class BinanceExchange implements Exchange {
         ...(order.price && { price: order.price.toString() }),
         ...(order.stopPrice && { stopPrice: order.stopPrice.toString() }),
         ...(order.timeInForce && { timeInForce: order.timeInForce }),
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       const response = await this.makeRequest('POST', '/api/v3/order', orderData);
-      
+
       return {
         orderId: response.orderId.toString(),
         symbol: response.symbol,
@@ -147,7 +148,7 @@ export class BinanceExchange implements Exchange {
         executedQty: parseFloat(response.executedQty),
         cummulativeQuoteQty: parseFloat(response.cummulativeQuoteQty),
         timestamp: response.transactTime,
-        clientOrderId: response.clientOrderId
+        clientOrderId: response.clientOrderId,
       };
     } catch (error) {
       logError('Failed to create Binance order', 'BinanceExchange', error);
@@ -161,7 +162,7 @@ export class BinanceExchange implements Exchange {
       await this.makeRequest('DELETE', '/api/v3/order', {
         symbol: formattedSymbol,
         orderId,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
       return true;
     } catch (error) {
@@ -176,7 +177,7 @@ export class BinanceExchange implements Exchange {
       const response = await this.makeRequest('GET', '/api/v3/order', {
         symbol: formattedSymbol,
         orderId,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
 
       return {
@@ -190,7 +191,7 @@ export class BinanceExchange implements Exchange {
         executedQty: parseFloat(response.executedQty),
         cummulativeQuoteQty: parseFloat(response.cummulativeQuoteQty),
         timestamp: response.time,
-        clientOrderId: response.clientOrderId
+        clientOrderId: response.clientOrderId,
       };
     } catch (error) {
       logError('Failed to get Binance order', 'BinanceExchange', error);
@@ -206,7 +207,7 @@ export class BinanceExchange implements Exchange {
       }
 
       const response = await this.makeRequest('GET', '/api/v3/openOrders', params);
-      
+
       return response.map((order: any) => ({
         orderId: order.orderId.toString(),
         symbol: order.symbol,
@@ -218,7 +219,7 @@ export class BinanceExchange implements Exchange {
         executedQty: parseFloat(order.executedQty),
         cummulativeQuoteQty: parseFloat(order.cummulativeQuoteQty),
         timestamp: order.time,
-        clientOrderId: order.clientOrderId
+        clientOrderId: order.clientOrderId,
       }));
     } catch (error) {
       logError('Failed to get Binance open orders', 'BinanceExchange', error);
@@ -234,7 +235,7 @@ export class BinanceExchange implements Exchange {
       }
 
       const response = await this.makeRequest('GET', '/api/v3/allOrders', params);
-      
+
       return response.map((order: any) => ({
         orderId: order.orderId.toString(),
         symbol: order.symbol,
@@ -246,7 +247,7 @@ export class BinanceExchange implements Exchange {
         executedQty: parseFloat(order.executedQty),
         cummulativeQuoteQty: parseFloat(order.cummulativeQuoteQty),
         timestamp: order.time,
-        clientOrderId: order.clientOrderId
+        clientOrderId: order.clientOrderId,
       }));
     } catch (error) {
       logError('Failed to get Binance order history', 'BinanceExchange', error);
@@ -261,30 +262,30 @@ export class BinanceExchange implements Exchange {
       isIndiaApproved: false,
       supportedPairs: [
         'BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'ADAUSDT', 'SOLUSDT',
-        'XRPUSDT', 'DOTUSDT', 'DOGEUSDT', 'AVAXUSDT', 'MATICUSDT'
+        'XRPUSDT', 'DOTUSDT', 'DOGEUSDT', 'AVAXUSDT', 'MATICUSDT',
       ],
       tradingFees: {
         maker: 0.1,
-        taker: 0.1
+        taker: 0.1,
       },
       withdrawalFees: {
         'BTC': 0.5,
         'ETH': 0.1,
-        'USDT': 1.0
+        'USDT': 1.0,
       },
       minOrderSize: {
         'BTCUSDT': 0.1,
-        'ETHUSDT': 0.1
+        'ETHUSDT': 0.1,
       },
       maxOrderSize: {
         'BTCUSDT': 9000,
-        'ETHUSDT': 90000
+        'ETHUSDT': 90000,
       },
       supportedOrderTypes: ['MARKET', 'LIMIT', 'STOP-LOSS', 'STOP_LOSS-LIMIT'],
       apiLimits: {
         requestsPerMinute: 1200,
-        ordersPerSecond: 10
-      }
+        ordersPerSecond: 10,
+      },
     };
   }
 
@@ -300,7 +301,7 @@ export class BinanceExchange implements Exchange {
 
   private async makeRequest(method: string, endpoint: string, params: any = {}): Promise<any> {
     const url = new URL(this.baseUrl + endpoint);
-    
+
     // Add query parameters for GET requests
     if (method === 'GET') {
       Object.keys(params).forEach(key => {
@@ -310,7 +311,7 @@ export class BinanceExchange implements Exchange {
 
     const headers: any = {
       'X-MBX-APIKEY': this.config.apiKey,
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
     };
 
     // Add signature for authenticated requests
@@ -322,7 +323,7 @@ export class BinanceExchange implements Exchange {
 
     const requestOptions: RequestInit = {
       method,
-      headers
+      headers,
     };
 
     if (method === 'POST' && Object.keys(params).length > 0) {
@@ -330,7 +331,7 @@ export class BinanceExchange implements Exchange {
     }
 
     const response = await fetch(url.toString(), requestOptions);
-    
+
     if (!response.ok) {
       const errorData = await response.json();
       throw new Error(`Binance API Error: ${errorData.msg || response.statusText}`);
@@ -344,15 +345,15 @@ export class BinanceExchange implements Exchange {
     const encoder = new TextEncoder();
     const keyData = encoder.encode(this.config.apiSecret);
     const messageData = encoder.encode(queryString);
-    
+
     const key = await crypto.subtle.importKey(
       'raw',
       keyData,
       { name: 'HMAC', hash: 'SHA-256' },
       false,
-      ['sign']
+      ['sign'],
     );
-    
+
     const signature = await crypto.subtle.sign('HMAC', key, messageData);
     const hashArray = Array.from(new Uint8Array(signature));
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');

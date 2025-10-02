@@ -25,13 +25,13 @@ const defaultConfig: AppConfig = {
   features: {
     enableAdvancedCharts: true,
     enableAIAssistant: true,
-    enableBacktesting: false
+    enableBacktesting: false,
   },
   limits: {
     maxAPIKeys: 5,
     maxActiveStrategies: 10,
-    trialDurationDays: 7
-  }
+    trialDurationDays: 7,
+  },
 };
 
 let currentConfig: AppConfig = { ...defaultConfig };

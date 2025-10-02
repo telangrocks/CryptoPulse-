@@ -20,7 +20,7 @@ export class SimpleCache<T = any> {
     const entry: CacheEntry<T> = {
       data,
       timestamp: Date.now(),
-      ttl: ttl ?? this.defaultTTL
+      ttl: ttl ?? this.defaultTTL,
     };
     this.cache.set(key, entry);
   }

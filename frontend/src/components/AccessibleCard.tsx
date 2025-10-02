@@ -1,6 +1,8 @@
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+
 import { cn } from '../lib/utils';
+
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 
 interface AccessibleCardProps extends React.HTMLAttributes<HTMLDivElement> {
   title?: string;
@@ -11,7 +13,7 @@ interface AccessibleCardProps extends React.HTMLAttributes<HTMLDivElement> {
 
 export const AccessibleCard = React.forwardRef<HTMLDivElement, AccessibleCardProps>(
   ({
-    className, 
+    className,
     title,
     titleLevel = 'h3',
     description,
@@ -21,7 +23,7 @@ export const AccessibleCard = React.forwardRef<HTMLDivElement, AccessibleCardPro
     const TitleComponent = titleLevel;
 
     return (
-      <Card ref={ref} className={cn("", className)} {...props}>
+      <Card className={cn('', className)} ref={ref} {...props}>
         {(title || description) && (
           <CardHeader>
             {title && (
@@ -39,7 +41,7 @@ export const AccessibleCard = React.forwardRef<HTMLDivElement, AccessibleCardPro
         </CardContent>
       </Card>
     );
-  }
+  },
 );
 
-AccessibleCard.displayName = "AccessibleCard";
+AccessibleCard.displayName = 'AccessibleCard';

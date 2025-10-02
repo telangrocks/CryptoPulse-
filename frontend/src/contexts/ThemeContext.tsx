@@ -17,9 +17,9 @@ interface ThemeProviderProps {
 }
 
 export function ThemeProvider({
-  children, 
+  children,
   defaultTheme = 'system',
-  storageKey = 'cryptopulse-theme'
+  storageKey = 'cryptopulse-theme',
 }: ThemeProviderProps) {
   const [theme, setTheme] = useState<Theme>(() => {
     if (typeof window !== 'undefined') {
@@ -28,7 +28,7 @@ export function ThemeProvider({
     return defaultTheme;
   });
   const [actualTheme, setActualTheme] = useState<'light' | 'dark'>('dark');
-  
+
   useEffect(() => {
     const root = window.document.documentElement;
     root.classList.remove('light', 'dark');
@@ -41,7 +41,7 @@ export function ThemeProvider({
       setActualTheme(theme);
     }
   }, [theme]);
-  
+
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const handleChange = () => {
@@ -56,7 +56,7 @@ export function ThemeProvider({
     mediaQuery.addEventListener('change', handleChange);
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, [theme]);
-  
+
   const value = {
     theme,
     setTheme: (theme: Theme) => {

@@ -4,21 +4,23 @@
  * @author CryptoPulse Team
  */
 
-import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
-import { Alert, AlertDescription } from './ui/alert';
-import { 
-  AlertTriangle, 
-  RefreshCw, 
-  Home, 
-  Bug, 
+import {
+  AlertTriangle,
+  RefreshCw,
+  Home,
+  Bug,
   Shield,
   Activity,
-  Zap
+  Zap,
 } from 'lucide-react';
+import React, { Component, ErrorInfo, ReactNode } from 'react';
+
 import { errorHandler, ErrorContext } from '../lib/errorHandler';
 import { logError } from '../lib/logger';
+
+import { Alert, AlertDescription } from './ui/alert';
+import { Button } from './ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 
 interface Props {
   children: ReactNode;
@@ -49,14 +51,14 @@ export default class ErrorBoundary extends Component<Props, State> {
       errorInfo: null,
       errorId: null,
       retryCount: 0,
-      isRetrying: false
+      isRetrying: false,
     };
   }
 
   static getDerivedStateFromError(error: Error): Partial<State> {
     return {
       hasError: true,
-      error
+      error,
     };
   }
 
@@ -66,24 +68,24 @@ export default class ErrorBoundary extends Component<Props, State> {
       action: 'componentDidCatch',
       timestamp: Date.now(),
       userAgent: navigator.userAgent,
-      url: window.location.href
+      url: window.location.href,
     };
 
     // Handle error through our error handler
     const errorReport = errorHandler.handleError(error, errorContext);
-    
+
     // Log error
     logError('Error boundary caught error', 'ErrorBoundary', {
       error: error.message,
       stack: error.stack,
       componentStack: errorInfo.componentStack,
-      errorId: errorReport.id
+      errorId: errorReport.id,
     });
 
     this.setState({
       error,
       errorInfo,
-      errorId: errorReport.id
+      errorId: errorReport.id,
     });
 
     // Call custom error handler if provided
@@ -97,8 +99,8 @@ export default class ErrorBoundary extends Component<Props, State> {
     const { hasError } = this.state;
 
     if (hasError && resetOnPropsChange && resetKeys) {
-      const hasResetKeyChanged = resetKeys.some((key, index) => 
-        key !== prevProps.resetKeys?.[index]
+      const hasResetKeyChanged = resetKeys.some((key, index) =>
+        key !== prevProps.resetKeys?.[index],
       );
 
       if (hasResetKeyChanged) {
@@ -120,13 +122,13 @@ export default class ErrorBoundary extends Component<Props, State> {
       errorInfo: null,
       errorId: null,
       retryCount: 0,
-      isRetrying: false
+      isRetrying: false,
     });
   };
 
   handleRetry = () => {
     this.setState({ isRetrying: true });
-    
+
     // Simulate retry delay
     setTimeout(() => {
       this.resetErrorBoundary();
@@ -145,7 +147,7 @@ export default class ErrorBoundary extends Component<Props, State> {
       stack: error?.stack,
       userAgent: navigator.userAgent,
       url: window.location.href,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     // In a real implementation, this would open a bug report form
@@ -226,9 +228,9 @@ export default class ErrorBoundary extends Component<Props, State> {
               {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row gap-3">
                 <Button
-                  onClick={this.handleRetry}
-                  disabled={isRetrying}
                   className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                  disabled={isRetrying}
+                  onClick={this.handleRetry}
                 >
                   {isRetrying ? (
                     <>
@@ -242,18 +244,18 @@ export default class ErrorBoundary extends Component<Props, State> {
                     </>
                   )}
                 </Button>
-                
+
                 <Button
-                  onClick={this.handleGoHome}
                   className="flex-1 bg-slate-600 hover:bg-slate-700 text-white"
+                  onClick={this.handleGoHome}
                 >
                   <Home className="h-4 w-4 mr-2" />
                   Go Home
                 </Button>
-                
+
                 <Button
-                  onClick={this.handleReportBug}
                   className="flex-1 bg-orange-600 hover:bg-orange-700 text-white"
+                  onClick={this.handleReportBug}
                 >
                   <Bug className="h-4 w-4 mr-2" />
                   Report Bug
@@ -290,7 +292,7 @@ export default class ErrorBoundary extends Component<Props, State> {
 // Higher-order component for easier usage
 export function withErrorBoundary<P extends object>(
   Component: React.ComponentType<P>,
-  errorBoundaryProps?: Omit<Props, 'children'>
+  errorBoundaryProps?: Omit<Props, 'children'>,
 ) {
   const WrappedComponent = (props: P) => (
     <ErrorBoundary {...errorBoundaryProps}>
@@ -299,7 +301,7 @@ export function withErrorBoundary<P extends object>(
   );
 
   WrappedComponent.displayName = `withErrorBoundary(${Component.displayName || Component.name})`;
-  
+
   return WrappedComponent;
 }
 
@@ -315,6 +317,6 @@ export function useErrorHandler() {
 
   return {
     handleError,
-    getErrorStatistics
+    getErrorStatistics,
   };
 }

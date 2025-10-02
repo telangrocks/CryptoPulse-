@@ -1,5 +1,6 @@
-import { cn } from '@/lib/utils';
 import React from 'react';
+
+import { cn } from '@/lib/utils';
 
 export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   /**
@@ -14,7 +15,7 @@ export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
 
 /**
  * Card component for displaying content in a contained area
- * 
+ *
  * @example
  * ```tsx
  * <Card>
@@ -29,79 +30,79 @@ export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
 const Card = React.forwardRef<HTMLDivElement, CardProps>(
   ({ className, interactive = false, onClick, ...props }, ref) => {
     const Component = interactive ? 'button' : 'div';
-    
+
     return (
       <Component
-        ref={ref}
         className={cn(
-          "rounded-xl border border-zinc-200 bg-white text-zinc-950 shadow dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50",
-          interactive && "cursor-pointer transition-all hover:shadow-md focus:outline-none focus:ring-2 focus:ring-zinc-950 focus:ring-offset-2 dark:focus:ring-zinc-300",
-          className
+          'rounded-xl border border-zinc-200 bg-white text-zinc-950 shadow dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50',
+          interactive && 'cursor-pointer transition-all hover:shadow-md focus:outline-none focus:ring-2 focus:ring-zinc-950 focus:ring-offset-2 dark:focus:ring-zinc-300',
+          className,
         )}
         onClick={interactive ? onClick : undefined}
+        ref={ref}
         role={interactive ? 'button' : undefined}
         tabIndex={interactive ? 0 : undefined}
         {...props}
       />
     );
-  }
+  },
 );
-Card.displayName = "Card";
+Card.displayName = 'Card';
 
 const CardHeader = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => (
   <div
+    className={cn('flex flex-col space-y-1.5 p-6', className)}
     ref={ref}
-    className={cn("flex flex-col space-y-1.5 p-6", className)}
     {...props}
   />
 ));
-CardHeader.displayName = "CardHeader";
+CardHeader.displayName = 'CardHeader';
 
 const CardTitle = React.forwardRef<
   HTMLParagraphElement,
   React.HTMLAttributes<HTMLHeadingElement>
 >(({ className, ...props }, ref) => (
   <h3
+    className={cn('font-semibold leading-none tracking-tight', className)}
     ref={ref}
-    className={cn("font-semibold leading-none tracking-tight", className)}
     {...props}
   />
 ));
-CardTitle.displayName = "CardTitle";
+CardTitle.displayName = 'CardTitle';
 
 const CardDescription = React.forwardRef<
   HTMLParagraphElement,
   React.HTMLAttributes<HTMLParagraphElement>
 >(({ className, ...props }, ref) => (
   <p
+    className={cn('text-sm text-zinc-500 dark:text-zinc-400', className)}
     ref={ref}
-    className={cn("text-sm text-zinc-500 dark:text-zinc-400", className)}
     {...props}
   />
 ));
-CardDescription.displayName = "CardDescription";
+CardDescription.displayName = 'CardDescription';
 
 const CardContent = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn("p-6 pt-0", className)} {...props} />
+  <div className={cn('p-6 pt-0', className)} ref={ref} {...props} />
 ));
-CardContent.displayName = "CardContent";
+CardContent.displayName = 'CardContent';
 
 const CardFooter = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => (
   <div
+    className={cn('flex items-center p-6 pt-0', className)}
     ref={ref}
-    className={cn("flex items-center p-6 pt-0", className)}
     {...props}
   />
 ));
-CardFooter.displayName = "CardFooter";
+CardFooter.displayName = 'CardFooter';
 
 export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent };

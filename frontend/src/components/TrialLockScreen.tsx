@@ -1,18 +1,19 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
-  Lock, 
-  Crown, 
-  Clock, 
-  CreditCard, 
-  CheckCircle, 
+  Lock,
+  Crown,
+  Clock,
+  CreditCard,
+  CheckCircle,
   XCircle,
   AlertTriangle,
-  Star
+  Star,
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+
 import { Badge } from './ui/badge';
+import { Button } from './ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 
 interface TrialLockScreenProps {
   trialInfo?: {
@@ -25,7 +26,7 @@ interface TrialLockScreenProps {
 
 export default function TrialLockScreen({ trialInfo, onSubscribe }: TrialLockScreenProps) {
   const navigate = useNavigate();
-  
+
   const handleSubscribe = () => {
     if (onSubscribe) {
       onSubscribe();
@@ -41,41 +42,41 @@ export default function TrialLockScreen({ trialInfo, onSubscribe }: TrialLockScr
         title: 'Active Subscription',
         message: 'You have full access to all features',
         color: 'text-green-500',
-        bgColor: 'bg-green-50 dark:bg-green-900/20'
+        bgColor: 'bg-green-50 dark:bg-green-900/20',
       };
     }
-    
+
     if (trialInfo?.daysRemaining && trialInfo.daysRemaining > 0) {
       return {
         icon: <Clock className="h-8 w-8 text-blue-500" />,
         title: 'Trial Active',
         message: `${trialInfo.daysRemaining} days remaining in your trial`,
         color: 'text-blue-500',
-        bgColor: 'bg-blue-50 dark:bg-blue-900/20'
+        bgColor: 'bg-blue-50 dark:bg-blue-900/20',
       };
     }
-    
+
     if (trialInfo?.hasUsedTrial) {
       return {
         icon: <XCircle className="h-8 w-8 text-red-500" />,
         title: 'Trial Expired',
         message: 'Your free trial has ended. Subscribe to continue using the app.',
         color: 'text-red-500',
-        bgColor: 'bg-red-50 dark:bg-red-900/20'
+        bgColor: 'bg-red-50 dark:bg-red-900/20',
       };
     }
-    
+
     return {
       icon: <Lock className="h-8 w-8 text-gray-500" />,
       title: 'Access Restricted',
       message: 'Please subscribe to access this feature',
       color: 'text-gray-500',
-      bgColor: 'bg-gray-50 dark:bg-gray-900/20'
+      bgColor: 'bg-gray-50 dark:bg-gray-900/20',
     };
   };
 
   const statusInfo = getStatusInfo();
-  
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
       <Card className="w-full max-w-2xl">
@@ -86,16 +87,16 @@ export default function TrialLockScreen({ trialInfo, onSubscribe }: TrialLockScr
           <CardTitle className="text-2xl font-bold">{statusInfo.title}</CardTitle>
           <p className={`text-lg ${statusInfo.color}`}>{statusInfo.message}</p>
         </CardHeader>
-        
+
         <CardContent className="space-y-6">
           {/* Trial Status Badge */}
           <div className="flex justify-center">
-            <Badge 
-              variant="outline" 
+            <Badge
               className={`${statusInfo.color} border-current text-lg px-4 py-2`}
+              variant="outline"
             >
-              {trialInfo?.subscriptionStatus === 'active' ? 'Premium User' : 
-               (trialInfo?.daysRemaining && trialInfo.daysRemaining > 0) ? 'Trial User' : 'Trial Expired'}
+              {trialInfo?.subscriptionStatus === 'active' ? 'Premium User' :
+                (trialInfo?.daysRemaining && trialInfo.daysRemaining > 0) ? 'Trial User' : 'Trial Expired'}
             </Badge>
           </div>
 
@@ -109,9 +110,9 @@ export default function TrialLockScreen({ trialInfo, onSubscribe }: TrialLockScr
                 { name: 'Bot Setup', icon: '🤖' },
                 { name: 'Backtesting', icon: '📊' },
                 { name: 'Monitoring', icon: '📱' },
-                { name: 'AI Assistant', icon: '🧠' }
+                { name: 'AI Assistant', icon: '🧠' },
               ].map((feature) => (
-                <div key={feature.name} className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2" key={feature.name}>
                   {trialInfo?.subscriptionStatus === 'active' || (trialInfo?.daysRemaining && trialInfo.daysRemaining > 0) ? (
                     <CheckCircle className="h-5 w-5 text-green-500" />
                   ) : (
@@ -162,19 +163,19 @@ export default function TrialLockScreen({ trialInfo, onSubscribe }: TrialLockScr
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-4">
             {trialInfo?.subscriptionStatus !== 'active' && (
-              <Button 
-                onClick={handleSubscribe}
+              <Button
                 className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                onClick={handleSubscribe}
               >
                 <CreditCard className="h-4 w-4 mr-2" />
                 Subscribe Now - ₹999/month
               </Button>
             )}
-            
-            <Button 
-              variant="outline" 
-              onClick={() => navigate('/')}
+
+            <Button
               className="flex-1"
+              onClick={() => navigate('/')}
+              variant="outline"
             >
               Back to Dashboard
             </Button>

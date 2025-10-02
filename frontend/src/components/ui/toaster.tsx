@@ -1,6 +1,9 @@
-"use client";
+'use client';
 
 import React, { useCallback } from 'react';
+
+import { useToast } from '@/hooks/use-toast';
+
 import {
   Toast,
   ToastClose,
@@ -8,12 +11,11 @@ import {
   ToastProvider,
   ToastTitle,
   ToastViewport,
-} from "./toast";
-import { useToast } from "@/hooks/use-toast";
+} from './toast';
 
 /**
  * Toaster component for displaying toast notifications
- * 
+ *
  * @example
  * ```tsx
  * <Toaster />

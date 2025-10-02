@@ -4,12 +4,15 @@
 
 import { debounce as lodashDebounce, throttle as lodashThrottle } from 'es-toolkit';
 
+// Re-export from React for convenience
+import React from 'react';
+
 /**
  * Debounce function - delays execution until after delay has passed
  */
 export function debounce<T extends (...args: any[]) => any>(
   func: T,
-  wait: number
+  wait: number,
 ): (...args: Parameters<T>) => void {
   let timeout: NodeJS.Timeout;
   return (...args: Parameters<T>) => {
@@ -23,7 +26,7 @@ export function debounce<T extends (...args: any[]) => any>(
  */
 export function throttle<T extends (...args: any[]) => any>(
   func: T,
-  limit: number
+  limit: number,
 ): (...args: Parameters<T>) => void {
   let inThrottle: boolean;
   return (...args: Parameters<T>) => {
@@ -40,17 +43,17 @@ export function throttle<T extends (...args: any[]) => any>(
  */
 export function memoize<T extends (...args: any[]) => any>(
   func: T,
-  getKey?: (...args: Parameters<T>) => string
+  getKey?: (...args: Parameters<T>) => string,
 ): T {
   const cache = new Map();
-  
+
   return ((...args: Parameters<T>) => {
     const key = getKey ? getKey(...args) : JSON.stringify(args);
-    
+
     if (cache.has(key)) {
       return cache.get(key);
     }
-    
+
     const result = func(...args);
     cache.set(key, result);
     return result;
@@ -61,7 +64,7 @@ export function memoize<T extends (...args: any[]) => any>(
  * Lazy load component
  */
 export function lazyLoad<T extends React.ComponentType<any>>(
-  importFunc: () => Promise<{ default: T }>
+  importFunc: () => Promise<{ default: T }>,
 ): React.LazyExoticComponent<T> {
   return React.lazy(importFunc);
 }
@@ -75,7 +78,7 @@ export function optimizeImage(src: string, options?: {
   quality?: number;
 }): string {
   if (!src) return '';
-  
+
   // In a real app, you might use a service like Cloudinary or similar
   // For now, just return the original src
   return src;
@@ -108,20 +111,17 @@ export function calculateVisibleItems(
   itemHeight: number,
   scrollTop: number,
   totalItems: number,
-  overscan: number = 5
+  overscan: number = 5,
 ): { startIndex: number; endIndex: number } {
   const visibleStart = Math.floor(scrollTop / itemHeight);
   const visibleEnd = Math.min(
     visibleStart + Math.ceil(containerHeight / itemHeight),
-    totalItems - 1
+    totalItems - 1,
   );
 
   return {
     startIndex: Math.max(0, visibleStart - overscan),
-    endIndex: Math.min(totalItems - 1, visibleEnd + overscan)
+    endIndex: Math.min(totalItems - 1, visibleEnd + overscan),
   };
 }
-
-// Re-export from React for convenience
-import React from 'react';
 export const { memo, useMemo, useCallback, startTransition } = React;

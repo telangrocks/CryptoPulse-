@@ -4,20 +4,22 @@
  */
 
 import { logError, logInfo, logWarn } from '../logger';
-import { 
-  Exchange, 
-  ExchangeConfig, 
-  Ticker, 
-  Balance, 
-  OrderRequest, 
-  OrderResponse, 
-  ExchangeInfo 
-} from './index';
+
 import { BinanceExchange } from './binance';
 import { CoinbaseExchange } from './coinbase';
-import { WazirXExchange } from './wazirx';
 import { CoinDCXExchange } from './coindcx';
 import { DeltaExchange } from './delta';
+import { WazirXExchange } from './wazirx';
+
+import {
+  Exchange,
+  ExchangeConfig,
+  Ticker,
+  Balance,
+  OrderRequest,
+  OrderResponse,
+  ExchangeInfo,
+} from './index';
 
 export interface ExchangeCredentials {
   [exchangeName: string]: {
@@ -62,7 +64,7 @@ export class ExchangeManager {
         apiKey: this.credentials.binance.apiKey,
         apiSecret: this.credentials.binance.apiSecret,
         sandbox: this.credentials.binance.sandbox,
-        baseUrl: this.credentials.binance.baseUrl
+        baseUrl: this.credentials.binance.baseUrl,
       }));
     }
 
@@ -72,7 +74,7 @@ export class ExchangeManager {
         apiKey: this.credentials.wazirx.apiKey,
         apiSecret: this.credentials.wazirx.apiSecret,
         sandbox: this.credentials.wazirx.sandbox,
-        baseUrl: this.credentials.wazirx.baseUrl
+        baseUrl: this.credentials.wazirx.baseUrl,
       }));
     }
 
@@ -82,7 +84,7 @@ export class ExchangeManager {
         apiKey: this.credentials.coindcx.apiKey,
         apiSecret: this.credentials.coindcx.apiSecret,
         sandbox: this.credentials.coindcx.sandbox,
-        baseUrl: this.credentials.coindcx.baseUrl
+        baseUrl: this.credentials.coindcx.baseUrl,
       }));
     }
 
@@ -92,7 +94,7 @@ export class ExchangeManager {
         apiKey: this.credentials.delta.apiKey,
         apiSecret: this.credentials.delta.apiSecret,
         sandbox: this.credentials.delta.sandbox,
-        baseUrl: this.credentials.delta.baseUrl
+        baseUrl: this.credentials.delta.baseUrl,
       }));
     }
 
@@ -102,19 +104,19 @@ export class ExchangeManager {
         apiKey: this.credentials.coinbase.apiKey,
         apiSecret: this.credentials.coinbase.apiSecret,
         sandbox: this.credentials.coinbase.sandbox,
-        baseUrl: this.credentials.coinbase.baseUrl
+        baseUrl: this.credentials.coinbase.baseUrl,
       }));
     }
 
     logInfo('Exchange Manager initialized', 'ExchangeManager', {
       exchanges: Array.from(this.exchanges.keys()),
-      primaryExchange: this.config.primaryExchange
+      primaryExchange: this.config.primaryExchange,
     });
   }
 
   async authenticateAll(): Promise<{ [exchangeName: string]: boolean }> {
     const results: { [exchangeName: string]: boolean } = {};
-    
+
     for (const [name, exchange] of this.exchanges) {
       try {
         results[name] = await exchange.authenticate();
@@ -136,7 +138,7 @@ export class ExchangeManager {
     }
 
     const tickers: { exchange: string; ticker: Ticker }[] = [];
-    
+
     for (const [name, exchange] of this.exchanges) {
       try {
         if (exchange.validateSymbol(symbol)) {
@@ -166,7 +168,7 @@ export class ExchangeManager {
     }
 
     const orderBooks: { exchange: string; orderBook: any }[] = [];
-    
+
     for (const [name, exchange] of this.exchanges) {
       try {
         if (exchange.validateSymbol(symbol)) {
@@ -190,7 +192,7 @@ export class ExchangeManager {
   async createOrder(order: OrderRequest, preferredExchange?: string): Promise<OrderResponse> {
     const exchangeName = preferredExchange || this.config.primaryExchange;
     const exchange = this.exchanges.get(exchangeName);
-    
+
     if (!exchange) {
       throw new Error(`Exchange ${exchangeName} not available`);
     }
@@ -215,12 +217,12 @@ export class ExchangeManager {
         orderId: result.orderId,
         symbol: result.symbol,
         side: result.side,
-        quantity: result.quantity
+        quantity: result.quantity,
       });
       return result;
     } catch (error) {
       logError(`Failed to create order on ${exchangeName}`, 'ExchangeManager', error);
-      
+
       // Try fallback exchanges
       for (const fallbackExchange of this.config.fallbackExchanges) {
         const fallback = this.exchanges.get(fallbackExchange);
@@ -234,14 +236,14 @@ export class ExchangeManager {
           }
         }
       }
-      
+
       throw error;
     }
   }
 
   async cancelOrder(symbol: string, orderId: string, exchangeName?: string): Promise<boolean> {
     const exchange = this.exchanges.get(exchangeName || this.config.primaryExchange);
-    
+
     if (!exchange) {
       throw new Error(`Exchange ${exchangeName || this.config.primaryExchange} not available`);
     }
@@ -251,7 +253,7 @@ export class ExchangeManager {
       logInfo('Order cancelled successfully', 'ExchangeManager', {
         exchange: exchangeName || this.config.primaryExchange,
         orderId,
-        symbol
+        symbol,
       });
       return result;
     } catch (error) {
@@ -262,7 +264,7 @@ export class ExchangeManager {
 
   async getOrder(symbol: string, orderId: string, exchangeName?: string): Promise<OrderResponse> {
     const exchange = this.exchanges.get(exchangeName || this.config.primaryExchange);
-    
+
     if (!exchange) {
       throw new Error(`Exchange ${exchangeName || this.config.primaryExchange} not available`);
     }
@@ -272,7 +274,7 @@ export class ExchangeManager {
 
   async getOpenOrders(symbol?: string, exchangeName?: string): Promise<OrderResponse[]> {
     const exchange = this.exchanges.get(exchangeName || this.config.primaryExchange);
-    
+
     if (!exchange) {
       throw new Error(`Exchange ${exchangeName || this.config.primaryExchange} not available`);
     }
@@ -282,7 +284,7 @@ export class ExchangeManager {
 
   async getOrderHistory(symbol?: string, limit?: number, exchangeName?: string): Promise<OrderResponse[]> {
     const exchange = this.exchanges.get(exchangeName || this.config.primaryExchange);
-    
+
     if (!exchange) {
       throw new Error(`Exchange ${exchangeName || this.config.primaryExchange} not available`);
     }
@@ -292,7 +294,7 @@ export class ExchangeManager {
 
   async getAllBalances(): Promise<{ [exchangeName: string]: Balance[] }> {
     const allBalances: { [exchangeName: string]: Balance[] } = {};
-    
+
     for (const [name, exchange] of this.exchanges) {
       try {
         allBalances[name] = await exchange.getBalances();
@@ -307,7 +309,7 @@ export class ExchangeManager {
 
   async getBalance(asset: string, exchangeName?: string): Promise<Balance> {
     const exchange = this.exchanges.get(exchangeName || this.config.primaryExchange);
-    
+
     if (!exchange) {
       throw new Error(`Exchange ${exchangeName || this.config.primaryExchange} not available`);
     }
@@ -397,7 +399,7 @@ export class ExchangeManager {
 
     return {
       valid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -421,14 +423,14 @@ export class ExchangeManager {
   private setCachedData(key: string, data: any): void {
     this.requestCache.set(key, {
       data,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   }
 
   // Health check method
   async healthCheck(): Promise<{ [exchangeName: string]: { status: string; latency: number } }> {
     const results: { [exchangeName: string]: { status: string; latency: number } } = {};
-    
+
     for (const [name, exchange] of this.exchanges) {
       const startTime = Date.now();
       try {
@@ -441,7 +443,7 @@ export class ExchangeManager {
         logError(`Health check failed for ${name}`, 'ExchangeManager', error);
       }
     }
-    
+
     return results;
   }
 }

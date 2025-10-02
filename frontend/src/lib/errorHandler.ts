@@ -35,7 +35,7 @@ class GlobalErrorHandler {
       message: typeof error === 'string' ? error : error.message,
       stack: typeof error === 'object' ? error.stack : undefined,
       timestamp: new Date(),
-      context
+      context,
     };
 
     // Store error
@@ -75,14 +75,14 @@ if (typeof window !== 'undefined') {
     globalErrorHandler.handleError(event.error || event.message, {
       filename: event.filename,
       lineno: event.lineno,
-      colno: event.colno
+      colno: event.colno,
     });
   });
 
   window.addEventListener('unhandledrejection', (event) => {
     globalErrorHandler.handleError(
       event.reason instanceof Error ? event.reason : String(event.reason),
-      { type: 'unhandledRejection' }
+      { type: 'unhandledRejection' },
     );
   });
 }

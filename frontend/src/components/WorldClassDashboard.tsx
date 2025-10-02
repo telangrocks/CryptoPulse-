@@ -1,12 +1,10 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
-  TrendingUp, 
-  Settings, 
-  LogOut, 
-  Clock, 
-  CreditCard, 
-  Activity, 
+  TrendingUp,
+  Settings,
+  LogOut,
+  Clock,
+  CreditCard,
+  Activity,
   BarChart3,
   Zap,
   Shield,
@@ -22,14 +20,18 @@ import {
   Bot,
   Brain,
   AlertTriangle,
-  CheckCircle
+  CheckCircle,
 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+
 import { useAuth } from '../contexts/AuthContext';
 import { useAuthenticatedAPI } from '../hooks/useAuthenticatedAPI';
 import { logError } from '../lib/logger';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
+
 import { Badge } from './ui/badge';
+import { Button } from './ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 
 export default function WorldClassDashboard() {
   const { user, logout } = useAuth();
@@ -46,7 +48,7 @@ export default function WorldClassDashboard() {
     totalTrades: 0,
     winRate: 0,
     totalProfit: 0,
-    activeBots: 0
+    activeBots: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
   const [recentTrades, setRecentTrades] = useState<any[]>([]);
@@ -59,7 +61,7 @@ export default function WorldClassDashboard() {
           authenticatedCall('getBillingStatus').catch(() => ({ success: true, data: {} })),
           authenticatedCall('getTradeStatistics', { period: '30d' }).catch(() => ({ success: true, data: {} })),
           authenticatedCall('getRecentTrades', { limit: 5 }).catch(() => ({ success: true, data: [] })),
-          authenticatedCall('getAIInsights').catch(() => ({ success: true, data: [] }))
+          authenticatedCall('getAIInsights').catch(() => ({ success: true, data: [] })),
         ]);
         setBillingInfo(billingData.data);
         if (statsData.success) {
@@ -67,7 +69,7 @@ export default function WorldClassDashboard() {
             totalTrades: statsData.data?.totalTrades || 0,
             winRate: statsData.data?.winRate || 0,
             totalProfit: statsData.data?.totalProfit || 0,
-            activeBots: 1 // Assuming 1 active bot for now
+            activeBots: 1, // Assuming 1 active bot for now
           });
         }
 
@@ -99,30 +101,30 @@ export default function WorldClassDashboard() {
       return {
         status: 'trial',
         message: `${billingInfo.days_remaining} days remaining`,
-        color: 'bg-green-500'
+        color: 'bg-green-500',
       };
     } else if (billingInfo.subscription_status === 'active') {
       return {
         status: 'active',
         message: 'Active Subscription',
-        color: 'bg-blue-500'
+        color: 'bg-blue-500',
       };
     } else {
       return {
         status: 'expired',
         message: 'Trial Expired',
-        color: 'bg-red-500'
+        color: 'bg-red-500',
       };
     }
   };
 
   const trialStatus = getTrialStatus();
-  
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-400 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-400 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-white mb-2">Loading Dashboard</h2>
           <p className="text-slate-400">Preparing your trading overview...</p>
         </div>
@@ -144,7 +146,7 @@ export default function WorldClassDashboard() {
               <p className="text-slate-400">Welcome back, {user?.email}</p>
             </div>
           </div>
-          
+
           <div className="flex items-center space-x-3">
             {trialStatus && (
               <Badge className={`${trialStatus.color} text-white`}>
@@ -152,11 +154,11 @@ export default function WorldClassDashboard() {
                 {trialStatus.message}
               </Badge>
             )}
-            <Button variant="outline" size="sm" className="border-slate-600 text-slate-300">
+            <Button className="border-slate-600 text-slate-300" size="sm" variant="outline">
               <Settings className="h-4 w-4 mr-2" />
               Settings
             </Button>
-            <Button variant="outline" size="sm" onClick={handleLogout} className="border-slate-600 text-slate-300">
+            <Button className="border-slate-600 text-slate-300" onClick={handleLogout} size="sm" variant="outline">
               <LogOut className="h-4 w-4 mr-2" />
               Logout
             </Button>
@@ -217,55 +219,64 @@ export default function WorldClassDashboard() {
               <CardTitle className="text-lg">Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button className="w-full bg-purple-600 hover:bg-purple-700" 
+              <Button
+                className="w-full bg-purple-600 hover:bg-purple-700"
                 onClick={() => navigate('/api-keys')}
               >
                 Setup API Keys
               </Button>
-              <Button className="w-full bg-blue-600 hover:bg-blue-700" 
+              <Button
+                className="w-full bg-blue-600 hover:bg-blue-700"
                 onClick={() => navigate('/crypto-pairs')}
               >
                 Configure Bot
               </Button>
               <div className="flex space-x-2">
-                <Button className="flex-1 bg-orange-600 hover:bg-orange-700" 
+                <Button
+                  className="flex-1 bg-orange-600 hover:bg-orange-700"
                   onClick={() => navigate('/ai-automation')}
                 >
                   AI Automation
                 </Button>
-                <Button className="flex-1 bg-cyan-600 hover:bg-cyan-700" 
+                <Button
+                  className="flex-1 bg-cyan-600 hover:bg-cyan-700"
                   onClick={() => navigate('/alerts-settings')}
                 >
                   Alerts
                 </Button>
               </div>
               <div className="space-y-2">
-                <Button className="w-full bg-green-600 hover:bg-green-700" 
+                <Button
+                  className="w-full bg-green-600 hover:bg-green-700"
                   onClick={() => navigate('/backtesting')}
                 >
                   Start Trading
                 </Button>
-                <Button className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700" 
+                <Button
+                  className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700"
                   onClick={() => navigate('/monitoring')}
                 >
                   <Activity className="h-4 w-4 mr-2" />
                   Live Monitoring
                 </Button>
                 <div className="flex space-x-2">
-                  <Button className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700" 
+                  <Button
+                    className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
                     onClick={() => navigate('/end-to-end-automation')}
                   >
                     <Bot className="h-4 w-4 mr-2" />
                     E2E Automation
                   </Button>
-                  <Button className="flex-1 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700" 
+                  <Button
+                    className="flex-1 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700"
                     onClick={() => navigate('/automation-dashboard')}
                   >
                     <Settings className="h-4 w-4 mr-2" />
                     Auto Dashboard
                   </Button>
                 </div>
-                <Button className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700" 
+                <Button
+                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
                   onClick={() => navigate('/performance')}
                 >
                   <BarChart3 className="h-4 w-4 mr-2" />
@@ -284,7 +295,7 @@ export default function WorldClassDashboard() {
               <div className="space-y-3">
                 {recentTrades.length > 0 ? (
                   recentTrades.map((trade, index) => (
-                    <div key={index} className="flex items-center justify-between p-2 bg-slate-700/50 rounded-lg">
+                    <div className="flex items-center justify-between p-2 bg-slate-700/50 rounded-lg" key={index}>
                       <div className="flex items-center space-x-2">
                         {trade.action === 'BUY' ? (
                           <ArrowUpRight className="h-4 w-4 text-green-400" />
@@ -326,7 +337,7 @@ export default function WorldClassDashboard() {
               <div className="space-y-3">
                 {aiInsights.length > 0 ? (
                   aiInsights.map((insight, index) => (
-                    <div key={index} className="p-3 bg-slate-700/30 rounded-lg">
+                    <div className="p-3 bg-slate-700/30 rounded-lg" key={index}>
                       <div className="flex items-start space-x-2">
                         <div className="p-1 bg-purple-500/20 rounded">
                           <Sparkles className="h-3 w-3 text-purple-400" />
@@ -364,7 +375,7 @@ export default function WorldClassDashboard() {
                   <p className="text-sm text-slate-400">Connect your exchange API keys for market data and trading</p>
                 </div>
               </div>
-              
+
               <div className="flex items-center space-x-3 p-3 bg-slate-700/30 rounded-lg opacity-60">
                 <div className="w-6 h-6 bg-slate-500 rounded-full flex items-center justify-center text-xs font-bold">2</div>
                 <div>
@@ -372,7 +383,7 @@ export default function WorldClassDashboard() {
                   <p className="text-sm text-slate-400">Choose cryptocurrency pairs to monitor and trade</p>
                 </div>
               </div>
-              
+
               <div className="flex items-center space-x-3 p-3 bg-slate-700/30 rounded-lg opacity-60">
                 <div className="w-6 h-6 bg-slate-500 rounded-full flex items-center justify-center text-xs font-bold">3</div>
                 <div>
@@ -380,7 +391,7 @@ export default function WorldClassDashboard() {
                   <p className="text-sm text-slate-400">Set up timeframes and trading strategies</p>
                 </div>
               </div>
-              
+
               <div className="flex items-center space-x-3 p-3 bg-slate-700/30 rounded-lg opacity-60">
                 <div className="w-6 h-6 bg-slate-500 rounded-full flex items-center justify-center text-xs font-bold">4</div>
                 <div>

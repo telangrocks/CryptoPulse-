@@ -1,18 +1,19 @@
-const crypto = require('crypto');
-
 /**
  * Market Data Slice for CryptoPulse
- * 
+ *
  * Handles real-time market data, price updates, and market analysis.
  * Includes comprehensive error handling, caching, and WebSocket integration.
- * 
+ *
  * @fileoverview Production-ready market data state management
  * @version 1.0.0
  * @author CryptoPulse Team
  */
 
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+
 import { RootState } from '../index';
+
+const crypto = require('crypto');
 
 // ============================================================================
 // TYPES AND INTERFACES
@@ -271,7 +272,7 @@ const initialState: MarketDataState = {
   subscriptions: [],
   supportedSymbols: [
     'BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'ADAUSDT', 'XRPUSDT',
-    'SOLUSDT', 'DOTUSDT', 'DOGEUSDT', 'AVAXUSDT', 'MATICUSDT'
+    'SOLUSDT', 'DOTUSDT', 'DOGEUSDT', 'AVAXUSDT', 'MATICUSDT',
   ],
   supportedIntervals: ['1m', '3m', '5m', '15m', '30m', '1h', '2h', '4h', '6h', '8h', '12h', '1d', '3d', '1w', '1M'],
   cache: {},
@@ -291,30 +292,30 @@ const initialState: MarketDataState = {
  */
 const validateMarketData = (data: Partial<MarketData>): { valid: boolean; errors: string[] } => {
   const errors: string[] = [];
-  
+
   if (!data.symbol || typeof data.symbol !== 'string') {
     errors.push('Symbol is required and must be a string');
   }
-  
+
   if (data.price !== undefined && (typeof data.price !== 'number' || data.price < 0)) {
     errors.push('Price must be a positive number');
   }
-  
+
   if (data.volume !== undefined && (typeof data.volume !== 'number' || data.volume < 0)) {
     errors.push('Volume must be a positive number');
   }
-  
+
   if (data.high !== undefined && data.low !== undefined && data.high < data.low) {
     errors.push('High price cannot be less than low price');
   }
-  
+
   if (data.timestamp !== undefined && (typeof data.timestamp !== 'number' || data.timestamp <= 0)) {
     errors.push('Timestamp must be a positive number');
   }
-  
+
   return {
     valid: errors.length === 0,
-    errors
+    errors,
   };
 };
 
@@ -339,7 +340,7 @@ const sortMarketData = (data: MarketData[], sortBy: string, sortOrder: 'asc' | '
   return [...data].sort((a, b) => {
     let aValue: number;
     let bValue: number;
-    
+
     switch (sortBy) {
       case 'price':
         aValue = a.price;
@@ -364,7 +365,7 @@ const sortMarketData = (data: MarketData[], sortBy: string, sortOrder: 'asc' | '
       default:
         return 0;
     }
-    
+
     if (sortOrder === 'asc') {
       return aValue - bValue;
     } else {
@@ -381,47 +382,47 @@ const filterMarketData = (data: MarketData[], filters: MarketDataFilter): Market
     if (filters.symbols && !filters.symbols.includes(item.symbol)) {
       return false;
     }
-    
+
     if (filters.exchanges && !filters.exchanges.includes(item.exchange)) {
       return false;
     }
-    
+
     if (filters.minVolume !== undefined && item.volume < filters.minVolume) {
       return false;
     }
-    
+
     if (filters.maxVolume !== undefined && item.volume > filters.maxVolume) {
       return false;
     }
-    
+
     if (filters.minPrice !== undefined && item.price < filters.minPrice) {
       return false;
     }
-    
+
     if (filters.maxPrice !== undefined && item.price > filters.maxPrice) {
       return false;
     }
-    
+
     if (filters.minChangePercent !== undefined && item.changePercent < filters.minChangePercent) {
       return false;
     }
-    
+
     if (filters.maxChangePercent !== undefined && item.changePercent > filters.maxChangePercent) {
       return false;
     }
-    
+
     if (filters.minMarketCap !== undefined && (item.marketCap || 0) < filters.minMarketCap) {
       return false;
     }
-    
+
     if (filters.maxMarketCap !== undefined && (item.marketCap || 0) > filters.maxMarketCap) {
       return false;
     }
-    
+
     if (filters.isActive !== undefined && item.isActive !== filters.isActive) {
       return false;
     }
-    
+
     return true;
   });
 };
@@ -443,7 +444,7 @@ export const fetchMarketData = createAsyncThunk<
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       // Mock market data
       const mockData: MarketData[] = (symbols || ['BTCUSDT', 'ETHUSDT', 'BNBUSDT']).map(symbol => ({
         symbol,
@@ -483,7 +484,7 @@ export const fetchMarketData = createAsyncThunk<
           stepSize: 0.001,
         },
       }));
-      
+
       return mockData;
     } catch (error) {
       return rejectWithValue({
@@ -494,7 +495,7 @@ export const fetchMarketData = createAsyncThunk<
         retryable: true,
       });
     }
-  }
+  },
 );
 
 /**
@@ -510,13 +511,13 @@ export const fetchKlineData = createAsyncThunk<
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 800));
-      
+
       // Mock kline data
       const klineData: KlineData[] = Array.from({ length: limit }, (_, index) => {
         const basePrice = (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 100000 + 1000;
         const openTime = Date.now() - (limit - index) * 60000; // 1 minute intervals
         const closeTime = openTime + 60000;
-        
+
         return {
           symbol,
           interval,
@@ -534,7 +535,7 @@ export const fetchKlineData = createAsyncThunk<
           ignore: 0,
         };
       });
-      
+
       return { symbol, interval, data: klineData };
     } catch (error) {
       return rejectWithValue({
@@ -546,7 +547,7 @@ export const fetchKlineData = createAsyncThunk<
         retryable: true,
       });
     }
-  }
+  },
 );
 
 /**
@@ -562,18 +563,18 @@ export const fetchOrderBookData = createAsyncThunk<
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 500));
-      
+
       // Mock order book data
       const basePrice = (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 100000 + 1000;
       const bids: [number, number][] = Array.from({ length: limit }, (_, index) => [
         basePrice - (index * 0.01),
-        (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 100 + 1
+        (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 100 + 1,
       ]);
       const asks: [number, number][] = Array.from({ length: limit }, (_, index) => [
         basePrice + (index * 0.01),
-        (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 100 + 1
+        (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 100 + 1,
       ]);
-      
+
       return {
         symbol,
         bids,
@@ -591,7 +592,7 @@ export const fetchOrderBookData = createAsyncThunk<
         retryable: true,
       });
     }
-  }
+  },
 );
 
 /**
@@ -607,12 +608,12 @@ export const fetchTickerData = createAsyncThunk<
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 300));
-      
+
       // Mock ticker data
       const basePrice = (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 100000 + 1000;
       const priceChange = ((crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) - 0.5) * 1000;
       const priceChangePercent = ((crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) - 0.5) * 20;
-      
+
       return {
         symbol,
         price: basePrice,
@@ -645,7 +646,7 @@ export const fetchTickerData = createAsyncThunk<
         retryable: true,
       });
     }
-  }
+  },
 );
 
 /**
@@ -661,9 +662,9 @@ export const subscribeToMarketData = createAsyncThunk<
     try {
       // Simulate WebSocket subscription
       await new Promise(resolve => setTimeout(resolve, 200));
-      
+
       const subscriptionId = `sub_${Date.now()}_${(crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff).toString(36).substr(2, 9)}`;
-      
+
       return {
         subscriptionId,
         symbol,
@@ -679,7 +680,7 @@ export const subscribeToMarketData = createAsyncThunk<
         retryable: true,
       });
     }
-  }
+  },
 );
 
 /**
@@ -695,7 +696,7 @@ export const unsubscribeFromMarketData = createAsyncThunk<
     try {
       // Simulate WebSocket unsubscription
       await new Promise(resolve => setTimeout(resolve, 200));
-      
+
       return subscriptionId;
     } catch (error) {
       return rejectWithValue({
@@ -706,7 +707,7 @@ export const unsubscribeFromMarketData = createAsyncThunk<
         retryable: true,
       });
     }
-  }
+  },
 );
 
 // ============================================================================
@@ -731,7 +732,7 @@ const marketDataSlice = createSlice({
     updateMarketData: (state, action: PayloadAction<MarketDataUpdate>) => {
       const { symbol, data, timestamp, source } = action.payload;
       const index = state.data.findIndex(item => item.symbol === symbol);
-      
+
       if (index !== -1) {
         state.data[index] = { ...state.data[index], ...data, timestamp };
       } else {
@@ -763,7 +764,7 @@ const marketDataSlice = createSlice({
         };
         state.data.push(newMarketData);
       }
-      
+
       state.lastUpdate = timestamp;
     },
 
@@ -905,11 +906,11 @@ const marketDataSlice = createSlice({
       if (!state.klines[symbol][interval]) {
         state.klines[symbol][interval] = [];
       }
-      
+
       const existingIndex = state.klines[symbol][interval].findIndex(
-        kline => kline.openTime === data.openTime
+        kline => kline.openTime === data.openTime,
       );
-      
+
       if (existingIndex !== -1) {
         state.klines[symbol][interval][existingIndex] = data;
       } else {
@@ -956,7 +957,7 @@ const marketDataSlice = createSlice({
           retryable: true,
         };
       })
-      
+
       // Fetch kline data
       .addCase(fetchKlineData.pending, (state) => {
         state.isLoading = true;
@@ -980,7 +981,7 @@ const marketDataSlice = createSlice({
           retryable: true,
         };
       })
-      
+
       // Fetch order book data
       .addCase(fetchOrderBookData.pending, (state) => {
         state.isLoading = true;
@@ -1000,7 +1001,7 @@ const marketDataSlice = createSlice({
           retryable: true,
         };
       })
-      
+
       // Fetch ticker data
       .addCase(fetchTickerData.pending, (state) => {
         state.isLoading = true;
@@ -1020,7 +1021,7 @@ const marketDataSlice = createSlice({
           retryable: true,
         };
       })
-      
+
       // Subscribe to market data
       .addCase(subscribeToMarketData.pending, (state) => {
         state.isLoading = true;
@@ -1042,7 +1043,7 @@ const marketDataSlice = createSlice({
           retryable: true,
         };
       })
-      
+
       // Unsubscribe from market data
       .addCase(unsubscribeFromMarketData.pending, (state) => {
         state.isLoading = true;
@@ -1062,7 +1063,7 @@ const marketDataSlice = createSlice({
           retryable: true,
         };
       });
-  }
+  },
 });
 
 // ============================================================================
@@ -1126,26 +1127,26 @@ export const selectMarketDataStatistics = (state: RootState): MarketDataStatisti
       totalMarketCap: 0,
       topGainers: [],
       topLosers: [],
-      lastUpdated: 0
+      lastUpdated: 0,
     };
   }
   const { data } = state.marketData;
   const activeSymbols = data.filter((item: any) => item.isActive);
   const totalVolume24h = data.reduce((sum: number, item: any) => sum + (item.volume24h || 0), 0);
   const totalMarketCap = data.reduce((sum: number, item: any) => sum + (item.marketCap || 0), 0);
-  
+
   const topGainers = [...data]
     .sort((a, b) => b.changePercent - a.changePercent)
     .slice(0, 10);
-  
+
   const topLosers = [...data]
     .sort((a, b) => a.changePercent - b.changePercent)
     .slice(0, 10);
-  
+
   const mostActive = [...data]
     .sort((a, b) => b.volume - a.volume)
     .slice(0, 10);
-  
+
   return {
     totalSymbols: data.length,
     activeSymbols: activeSymbols.length,

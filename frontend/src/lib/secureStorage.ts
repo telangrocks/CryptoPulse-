@@ -35,7 +35,7 @@ class SecureStorage {
     try {
       const encryptedData = localStorage.getItem(STORAGE_KEY);
       if (!encryptedData) return {};
-      
+
       const decryptedData = this.decrypt(encryptedData);
       return JSON.parse(decryptedData);
     } catch (error) {

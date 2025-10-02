@@ -1,9 +1,9 @@
 /**
  * TypeScript type definitions for external APIs used in CryptoPulse
- * 
+ *
  * This module contains comprehensive type definitions for all external API integrations
  * including exchange APIs, payment gateways, market data providers, and third-party services.
- * 
+ *
  * @fileoverview External API type definitions for production-ready crypto trading platform
  * @version 1.0.0
  * @author CryptoPulse Team
@@ -15,7 +15,7 @@
 
 /**
  * Exchange API credentials for authentication
- * 
+ *
  * @interface ExchangeCredentials
  * @property {string} apiKey - The API key for authentication
  * @property {string} secret - The secret key for HMAC signing
@@ -38,7 +38,7 @@ export interface ExchangeCredentials {
 
 /**
  * Exchange configuration for API integration
- * 
+ *
  * @interface ExchangeConfig
  * @property {string} name - Exchange name identifier
  * @property {string} baseUrl - Base URL for production API
@@ -73,7 +73,7 @@ export interface ExchangeConfig {
 
 /**
  * API endpoint definitions for exchange integration
- * 
+ *
  * @interface ExchangeEndpoints
  * @property {string} account - Account information endpoint
  * @property {string} order - Order management endpoint
@@ -102,7 +102,7 @@ export interface ExchangeEndpoints {
 
 /**
  * Rate limiting configuration
- * 
+ *
  * @interface RateLimit
  * @property {number} requests - Maximum requests allowed
  * @property {number} window - Time window in milliseconds
@@ -122,7 +122,7 @@ export interface RateLimit {
 
 /**
  * Security configuration for exchange integration
- * 
+ *
  * @interface SecurityConfig
  * @property {boolean} requireIPWhitelist - Whether IP whitelisting is required
  * @property {string[]} allowedIPs - List of allowed IP addresses
@@ -145,7 +145,7 @@ export interface SecurityConfig {
 
 /**
  * Exchange trading and API limits
- * 
+ *
  * @interface ExchangeLimits
  * @property {number} minOrderSize - Minimum order size
  * @property {number} maxOrderSize - Maximum order size
@@ -180,7 +180,7 @@ export type AuthType = 'HMAC-SHA256' | 'HMAC-SHA512' | 'API-KEY' | 'OAUTH2' | 'J
 
 /**
  * Binance account information response
- * 
+ *
  * @interface BinanceAccountInfo
  * @property {number} makerCommission - Maker commission rate
  * @property {number} takerCommission - Taker commission rate
@@ -227,7 +227,7 @@ export interface BinanceAccountInfo {
 
 /**
  * Binance account balance information
- * 
+ *
  * @interface BinanceBalance
  * @property {string} asset - Asset symbol (e.g., BTC, ETH)
  * @property {string} free - Available balance
@@ -505,7 +505,6 @@ export interface PaymentWebhook {
   };
 }
 
-
 // Health Check Types;
 export interface HealthStatus {
   status: 'healthy' | 'degraded' | 'unhealthy';
@@ -573,7 +572,7 @@ export interface UserSubscription {
 
 /**
  * Standardized API error response
- * 
+ *
  * @interface APIError
  * @property {string} code - Error code identifier
  * @property {string} message - Human-readable error message
@@ -605,7 +604,7 @@ export interface APIError {
 
 /**
  * Validation error details
- * 
+ *
  * @interface ValidationError
  * @property {string} field - Field name that failed validation
  * @property {string} message - Validation error message
@@ -634,7 +633,7 @@ export type ErrorSeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 /**
  * Error categories for better classification
  */
-export type ErrorCategory = 
+export type ErrorCategory =
   | 'AUTHENTICATION'
   | 'AUTHORIZATION'
   | 'VALIDATION'
@@ -647,7 +646,7 @@ export type ErrorCategory =
 
 /**
  * Comprehensive error response with context
- * 
+ *
  * @interface ErrorResponse
  * @property {APIError} error - The main error
  * @property {ValidationError[]} [validationErrors] - Validation errors if any
@@ -670,7 +669,7 @@ export interface ErrorResponse {
 
 /**
  * Additional error context information
- * 
+ *
  * @interface ErrorContext
  * @property {string} [userId] - User ID if authenticated
  * @property {string} [sessionId] - Session ID
@@ -726,7 +725,7 @@ export type OrderType = 'MARKET' | 'LIMIT' | 'STOP' | 'STOP_LIMIT' | 'TAKE_PROFI
 /**
  * Comprehensive order status types
  */
-export type OrderStatus = 
+export type OrderStatus =
   | 'NEW'           // Order has been accepted by the exchange
   | 'PENDING_NEW'   // Order is being processed
   | 'PARTIALLY_FILLED' // Order has been partially filled
@@ -762,7 +761,7 @@ export type SubscriptionType = 'ticker' | 'orderbook' | 'trades' | 'kline' | 'de
 /**
  * WebSocket message types
  */
-export type WebSocketMessageType = 
+export type WebSocketMessageType =
   | 'ping'
   | 'pong'
   | 'subscribe'
@@ -805,7 +804,7 @@ export type ChartType = 'CANDLESTICK' | 'LINE' | 'AREA' | 'BAR' | 'HEIKIN_ASHI';
 /**
  * Technical indicator types
  */
-export type TechnicalIndicatorType = 
+export type TechnicalIndicatorType =
   | 'SMA' | 'EMA' | 'WMA' | 'DEMA' | 'TEMA' | 'TRIMA' | 'KAMA' | 'MAMA' | 'VWMA' | 'T3'
   | 'RSI' | 'STOCH' | 'STOCHF' | 'STOCHRSI' | 'WILLR' | 'ADX' | 'ADXR' | 'APO' | 'PPO' | 'MOM' | 'BOP'
   | 'CCI' | 'CMO' | 'ROC' | 'ROCP' | 'ROCR' | 'ROCR100' | 'TRIX' | 'ULTOSC' | 'DX' | 'MINUS_DI' | 'PLUS_DI'
@@ -826,7 +825,7 @@ export const EXCHANGE_CONSTANTS = {
     sandboxUrl: 'https://testnet.binance.vision',
     supportedPairs: ['BTCUSDT', 'ETHUSDT', 'BNBUSDT'],
     maxConnections: 5,
-    rateLimit: { requests: 1200, window: 60000 }
+    rateLimit: { requests: 1200, window: 60000 },
   },
   WAZIRX: {
     name: 'wazirx',
@@ -834,7 +833,7 @@ export const EXCHANGE_CONSTANTS = {
     sandboxUrl: 'https://sandbox.wazirx.com',
     supportedPairs: ['btcinr', 'ethinr', 'wrxinr'],
     maxConnections: 3,
-    rateLimit: { requests: 100, window: 60000 }
+    rateLimit: { requests: 100, window: 60000 },
   },
   COINDCX: {
     name: 'coindcx',
@@ -842,8 +841,8 @@ export const EXCHANGE_CONSTANTS = {
     sandboxUrl: 'https://api-sandbox.coindcx.com',
     supportedPairs: ['BTCINR', 'ETHINR', 'WRXINR'],
     maxConnections: 3,
-    rateLimit: { requests: 100, window: 60000 }
-  }
+    rateLimit: { requests: 100, window: 60000 },
+  },
 } as const;
 
 /**
@@ -865,7 +864,7 @@ export const ORDER_STATUS = {
   DONE_FOR_DAY: 'DONE_FOR_DAY',
   STOPPED: 'STOPPED',
   STOPPED_OUT: 'STOPPED_OUT',
-  UNKNOWN: 'UNKNOWN'
+  UNKNOWN: 'UNKNOWN',
 } as const;
 
 /**
@@ -877,31 +876,31 @@ export const ERROR_CODES = {
   INVALID_SIGNATURE: 'INVALID_SIGNATURE',
   API_KEY_EXPIRED: 'API_KEY_EXPIRED',
   INSUFFICIENT_PERMISSIONS: 'INSUFFICIENT_PERMISSIONS',
-  
+
   // Rate limiting errors
   RATE_LIMIT_EXCEEDED: 'RATE_LIMIT_EXCEEDED',
   TOO_MANY_REQUESTS: 'TOO_MANY_REQUESTS',
-  
+
   // Validation errors
   INVALID_SYMBOL: 'INVALID_SYMBOL',
   INVALID_ORDER_TYPE: 'INVALID_ORDER_TYPE',
   INVALID_QUANTITY: 'INVALID_QUANTITY',
   INVALID_PRICE: 'INVALID_PRICE',
   INSUFFICIENT_BALANCE: 'INSUFFICIENT_BALANCE',
-  
+
   // Exchange errors
   EXCHANGE_MAINTENANCE: 'EXCHANGE_MAINTENANCE',
   EXCHANGE_ERROR: 'EXCHANGE_ERROR',
   ORDER_NOT_FOUND: 'ORDER_NOT_FOUND',
   ORDER_ALREADY_EXISTS: 'ORDER_ALREADY_EXISTS',
-  
+
   // Network errors
   NETWORK_ERROR: 'NETWORK_ERROR',
   TIMEOUT: 'TIMEOUT',
   CONNECTION_LOST: 'CONNECTION_LOST',
-  
+
   // System errors
   INTERNAL_ERROR: 'INTERNAL_ERROR',
   SERVICE_UNAVAILABLE: 'SERVICE_UNAVAILABLE',
-  UNKNOWN_ERROR: 'UNKNOWN_ERROR'
+  UNKNOWN_ERROR: 'UNKNOWN_ERROR',
 } as const;

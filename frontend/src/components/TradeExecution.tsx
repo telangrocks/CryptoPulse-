@@ -1,7 +1,8 @@
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
 import { TrendingUp, Activity, BarChart3 } from 'lucide-react';
+import React from 'react';
+
+import { Button } from './ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 
 export default function TradeExecution() {
   return (
@@ -21,7 +22,7 @@ export default function TradeExecution() {
               Execute trades and monitor your positions
             </p>
           </CardHeader>
-          
+
           <CardContent className="space-y-6">
             <div className="text-center py-12">
               <Activity className="h-16 w-16 text-slate-600 mx-auto mb-4" />

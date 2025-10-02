@@ -1,18 +1,19 @@
-const crypto = require('crypto');
-
 /**
  * Notification Slice for CryptoPulse
- * 
+ *
  * Handles system notifications, alerts, and user messages.
  * Includes comprehensive error handling, persistence, and notification management.
- * 
+ *
  * @fileoverview Production-ready notification state management
  * @version 1.0.0
  * @author CryptoPulse Team
  */
 
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+
 import { RootState } from '../index';
+
+const crypto = require('crypto');
 
 // ============================================================================
 // TYPES AND INTERFACES
@@ -386,38 +387,38 @@ const initialState: NotificationState = {
  */
 const validateNotification = (notification: Partial<Notification>): { valid: boolean; errors: string[] } => {
   const errors: string[] = [];
-  
+
   if (!notification.title || typeof notification.title !== 'string' || notification.title.trim().length === 0) {
     errors.push('Title is required and must be a non-empty string');
   }
-  
+
   if (!notification.message || typeof notification.message !== 'string' || notification.message.trim().length === 0) {
     errors.push('Message is required and must be a non-empty string');
   }
-  
+
   if (notification.type && !['success', 'error', 'warning', 'info', 'trade', 'system', 'security', 'market'].includes(notification.type)) {
     errors.push('Invalid notification type');
   }
-  
+
   if (notification.priority && !['low', 'medium', 'high', 'critical'].includes(notification.priority)) {
     errors.push('Invalid notification priority');
   }
-  
+
   if (notification.status && !['pending', 'sent', 'delivered', 'failed', 'read', 'archived'].includes(notification.status)) {
     errors.push('Invalid notification status');
   }
-  
+
   if (notification.timestamp && (typeof notification.timestamp !== 'number' || notification.timestamp <= 0)) {
     errors.push('Timestamp must be a positive number');
   }
-  
+
   if (notification.expiresAt && notification.timestamp && notification.expiresAt <= notification.timestamp) {
     errors.push('Expiration time must be after creation time');
   }
-  
+
   return {
     valid: errors.length === 0,
-    errors
+    errors,
   };
 };
 
@@ -435,25 +436,25 @@ const shouldSendNotification = (notification: Notification, settings: Notificati
   if (!settings.enabled) {
     return false;
   }
-  
+
   // Check if notification type is enabled
   if (!settings.types[notification.type]) {
     return false;
   }
-  
+
   // Check quiet hours
   if (settings.quietHours.enabled) {
     const now = new Date();
-    const currentTime = now.toLocaleTimeString('en-US', { 
-      hour12: false, 
-      timeZone: settings.quietHours.timezone 
+    const currentTime = now.toLocaleTimeString('en-US', {
+      hour12: false,
+      timeZone: settings.quietHours.timezone,
     });
-    
+
     if (currentTime >= settings.quietHours.start || currentTime <= settings.quietHours.end) {
       return false;
     }
   }
-  
+
   return true;
 };
 
@@ -465,53 +466,53 @@ const filterNotifications = (notifications: Notification[], filters: Notificatio
     if (filters.types && !filters.types.includes(notification.type)) {
       return false;
     }
-    
+
     if (filters.priorities && !filters.priorities.includes(notification.priority)) {
       return false;
     }
-    
+
     if (filters.statuses && !filters.statuses.includes(notification.status)) {
       return false;
     }
-    
+
     if (filters.channels && !notification.channels.some(channel => filters.channels!.includes(channel))) {
       return false;
     }
-    
+
     if (filters.read !== undefined && notification.read !== filters.read) {
       return false;
     }
-    
+
     if (filters.persistent !== undefined && notification.persistent !== filters.persistent) {
       return false;
     }
-    
+
     if (filters.dateRange) {
       if (notification.timestamp < filters.dateRange.start || notification.timestamp > filters.dateRange.end) {
         return false;
       }
     }
-    
+
     if (filters.search) {
       const searchLower = filters.search.toLowerCase();
-      if (!notification.title.toLowerCase().includes(searchLower) && 
+      if (!notification.title.toLowerCase().includes(searchLower) &&
           !notification.message.toLowerCase().includes(searchLower)) {
         return false;
       }
     }
-    
+
     if (filters.tags && (!notification.tags || !notification.tags.some(tag => filters.tags!.includes(tag)))) {
       return false;
     }
-    
+
     if (filters.category && notification.category !== filters.category) {
       return false;
     }
-    
+
     if (filters.source && notification.source !== filters.source) {
       return false;
     }
-    
+
     return true;
   });
 };
@@ -523,7 +524,7 @@ const sortNotifications = (notifications: Notification[], sortBy: string, sortOr
   return [...notifications].sort((a, b) => {
     let aValue: string | number;
     let bValue: string | number;
-    
+
     switch (sortBy) {
       case 'timestamp':
         aValue = a.timestamp;
@@ -545,7 +546,7 @@ const sortNotifications = (notifications: Notification[], sortBy: string, sortOr
       default:
         return 0;
     }
-    
+
     if (sortOrder === 'asc') {
       return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
     } else {
@@ -562,7 +563,7 @@ const calculateStatistics = (notifications: Notification[]): NotificationStatist
   const unread = notifications.filter(n => !n.read).length;
   const read = notifications.filter(n => n.read).length;
   const archived = notifications.filter(n => n.status === 'archived').length;
-  
+
   const byType = {
     success: 0,
     error: 0,
@@ -573,14 +574,14 @@ const calculateStatistics = (notifications: Notification[]): NotificationStatist
     security: 0,
     market: 0,
   };
-  
+
   const byPriority = {
     low: 0,
     medium: 0,
     high: 0,
     critical: 0,
   };
-  
+
   const byChannel = {
     inApp: 0,
     email: 0,
@@ -588,7 +589,7 @@ const calculateStatistics = (notifications: Notification[]): NotificationStatist
     sms: 0,
     webhook: 0,
   };
-  
+
   const byStatus = {
     pending: 0,
     sent: 0,
@@ -597,33 +598,33 @@ const calculateStatistics = (notifications: Notification[]): NotificationStatist
     read: 0,
     archived: 0,
   };
-  
+
   notifications.forEach(notification => {
     byType[notification.type]++;
     byPriority[notification.priority]++;
     byStatus[notification.status]++;
-    
+
     notification.channels.forEach(channel => {
       byChannel[channel]++;
     });
   });
-  
+
   // Calculate average read time
   const readNotifications = notifications.filter(n => n.read && n.readAt);
-  const averageReadTime = readNotifications.length > 0 
+  const averageReadTime = readNotifications.length > 0
     ? readNotifications.reduce((sum, n) => {
-        const readTime = n.readAt ? new Date(n.readAt).getTime() - new Date(n.timestamp).getTime() : 0;
-        return sum + readTime;
-      }, 0) / readNotifications.length
+      const readTime = n.readAt ? new Date(n.readAt).getTime() - new Date(n.timestamp).getTime() : 0;
+      return sum + readTime;
+    }, 0) / readNotifications.length
     : 0;
-  
+
   // Calculate click-through rate
   const notificationsWithActions = notifications.filter(n => n.actions && n.actions.length > 0);
   const totalClicks = notificationsWithActions.reduce((sum, n) => {
     return sum + (n.actions?.reduce((actionSum, action) => actionSum + (action.clicks || 0), 0) || 0);
   }, 0);
-  const clickThroughRate = notificationsWithActions.length > 0 
-    ? (totalClicks / notificationsWithActions.length) * 100 
+  const clickThroughRate = notificationsWithActions.length > 0
+    ? (totalClicks / notificationsWithActions.length) * 100
     : 0;
 
   return {
@@ -669,7 +670,7 @@ export const createNotification = createAsyncThunk<
 
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 500));
-      
+
       // Create notification
       const notification: Notification = {
         ...notificationData,
@@ -678,7 +679,7 @@ export const createNotification = createAsyncThunk<
         read: false,
         status: 'pending',
       };
-      
+
       return notification;
     } catch (error) {
       return rejectWithValue({
@@ -689,7 +690,7 @@ export const createNotification = createAsyncThunk<
         retryable: true,
       });
     }
-  }
+  },
 );
 
 /**
@@ -705,7 +706,7 @@ export const markNotificationAsRead = createAsyncThunk<
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 200));
-      
+
       return notificationId;
     } catch (error) {
       return rejectWithValue({
@@ -717,7 +718,7 @@ export const markNotificationAsRead = createAsyncThunk<
         retryable: true,
       });
     }
-  }
+  },
 );
 
 /**
@@ -733,7 +734,7 @@ export const updateNotificationSettings = createAsyncThunk<
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 300));
-      
+
       return settings as NotificationSettings;
     } catch (error) {
       return rejectWithValue({
@@ -744,7 +745,7 @@ export const updateNotificationSettings = createAsyncThunk<
         retryable: true,
       });
     }
-  }
+  },
 );
 
 // ============================================================================
@@ -761,7 +762,7 @@ const notificationSlice = createSlice({
     addNotification: (state, action: PayloadAction<Notification>) => {
       state.notifications.unshift(action.payload);
       if (!action.payload.read) {
-      state.unreadCount += 1;
+        state.unreadCount += 1;
       }
       state.statistics = calculateStatistics(state.notifications);
     },
@@ -785,7 +786,7 @@ const notificationSlice = createSlice({
     markAllAsRead: (state) => {
       state.notifications.forEach(notification => {
         if (!notification.read) {
-        notification.read = true;
+          notification.read = true;
           notification.status = 'read';
         }
       });
@@ -970,7 +971,7 @@ const notificationSlice = createSlice({
           retryable: true,
         };
       })
-      
+
       // Mark notification as read
       .addCase(markNotificationAsRead.pending, (state) => {
         state.isLoading = true;
@@ -995,7 +996,7 @@ const notificationSlice = createSlice({
           retryable: true,
         };
       })
-      
+
       // Update notification settings
       .addCase(updateNotificationSettings.pending, (state) => {
         state.isLoading = true;
@@ -1014,7 +1015,7 @@ const notificationSlice = createSlice({
           retryable: true,
         };
       });
-  }
+  },
 });
 
 // ============================================================================
@@ -1073,11 +1074,11 @@ export const selectNotificationStatistics = (state: RootState) => state.notifica
 // ============================================================================
 
 export const {
-  addNotification, 
-  markAsRead, 
-  markAllAsRead, 
-  removeNotification, 
-  clearNotifications, 
+  addNotification,
+  markAsRead,
+  markAllAsRead,
+  removeNotification,
+  clearNotifications,
   clearOldNotifications,
   setLoading,
   setError,

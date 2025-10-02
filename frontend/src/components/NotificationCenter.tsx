@@ -1,16 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
-import { Badge } from './ui/badge';
-import { ScrollArea } from './ui/scroll-area';
-import { 
-  Bell, 
-  X, 
-  CheckCircle, 
-  AlertTriangle, 
-  XCircle, 
-  Info 
+import {
+  Bell,
+  X,
+  CheckCircle,
+  AlertTriangle,
+  XCircle,
+  Info,
 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+
+import { Badge } from './ui/badge';
+import { Button } from './ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { ScrollArea } from './ui/scroll-area';
 
 interface TradeDetails {
   pair: string;
@@ -59,8 +60,8 @@ const mockNotifications: Notification[] = [
       label: 'Renew Now',
       onClick: () => {
         // Renew API key action - handled by notification system
-      }
-    }
+      },
+    },
   },
   {
     id: '3',
@@ -77,29 +78,29 @@ const mockNotifications: Notification[] = [
     message: 'Advanced charting tools are now available',
     timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000),
     read: true,
-  }
+  },
 ];
 
 export default function NotificationCenter() {
   const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
   const [isOpen, setIsOpen] = useState(false);
   const [selectedTradeDetails, setSelectedTradeDetails] = useState<TradeDetails | null>(null);
-  
+
   const unreadCount = notifications.filter(n => !n.read).length;
-  
+
   const markAsRead = (id: string) => {
-    setNotifications(prev => 
-      prev.map(notification => 
-        notification.id === id 
+    setNotifications(prev =>
+      prev.map(notification =>
+        notification.id === id
           ? { ...notification, read: true }
-          : notification
-      )
+          : notification,
+      ),
     );
   };
 
   const markAllAsRead = () => {
-    setNotifications(prev => 
-      prev.map(notification => ({ ...notification, read: true }))
+    setNotifications(prev =>
+      prev.map(notification => ({ ...notification, read: true })),
     );
   };
 
@@ -143,7 +144,7 @@ export default function NotificationCenter() {
     const minutes = Math.floor(diff / 60000);
     const hours = Math.floor(diff / 3600000);
     const days = Math.floor(diff / 86400000);
-    
+
     if (minutes < 1) return 'Just now';
     if (minutes < 60) return `${minutes}m ago`;
     if (hours < 24) return `${hours}h ago`;
@@ -167,17 +168,17 @@ export default function NotificationCenter() {
 
   return (
     <div className="relative">
-      <Button 
-        variant="outline"
-        size="icon"
-        onClick={() => setIsOpen(!isOpen)}
+      <Button
         className="relative"
+        onClick={() => setIsOpen(!isOpen)}
+        size="icon"
+        variant="outline"
       >
         <Bell className="w-5 h-5" />
         {unreadCount > 0 && (
-          <Badge 
-            variant="destructive" 
+          <Badge
             className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs"
+            variant="destructive"
           >
             {unreadCount}
           </Badge>
@@ -187,7 +188,7 @@ export default function NotificationCenter() {
       {isOpen && (
         <>
           <div
-            className="fixed inset-0 z-40" 
+            className="fixed inset-0 z-40"
             onClick={() => setIsOpen(false)}
           />
           <Card className="absolute right-0 top-12 w-80 z-50 shadow-lg">
@@ -197,19 +198,19 @@ export default function NotificationCenter() {
               </CardTitle>
               <div className="flex items-center space-x-2">
                 {unreadCount > 0 && (
-                  <Button 
-                    variant="ghost"
-                    size="sm"
-                    onClick={markAllAsRead}
+                  <Button
                     className="text-xs"
+                    onClick={markAllAsRead}
+                    size="sm"
+                    variant="ghost"
                   >
                     Mark all read
                   </Button>
                 )}
-                <Button 
-                  variant="ghost"
-                  size="sm"
+                <Button
                   onClick={() => setIsOpen(false)}
+                  size="sm"
+                  variant="ghost"
                 >
                   <X className="w-4 h-4" />
                 </Button>
@@ -225,29 +226,31 @@ export default function NotificationCenter() {
                   <div className="space-y-1">
                     {notifications.map((notification) => (
                       <div
-                        key={notification.id}
                         className={`p-4 border-l-4 ${getTypeColor(notification.type)} ${
                           !notification.read ? 'bg-opacity-100' : 'bg-opacity-50'
                         } hover:bg-opacity-100 transition-all duration-200`}
+                        key={notification.id}
                       >
                         <div className="flex items-start space-x-3">
                           {getIcon(notification.type)}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between">
-                              <p className={`text-sm font-medium ${
-                                !notification.read ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400'
-                              }`}>
+                              <p
+                                className={`text-sm font-medium ${
+                                  !notification.read ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400'
+                                }`}
+                              >
                                 {notification.title}
                               </p>
                               <div className="flex items-center space-x-2">
                                 <span className="text-xs text-gray-500">
                                   {formatTime(notification.timestamp)}
                                 </span>
-                                <Button 
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleRemoveNotification(notification.id)}
+                                <Button
                                   className="h-6 w-6 p-0"
+                                  onClick={() => handleRemoveNotification(notification.id)}
+                                  size="sm"
+                                  variant="ghost"
                                 >
                                   <X className="w-3 h-3" />
                                 </Button>
@@ -257,11 +260,11 @@ export default function NotificationCenter() {
                               {notification.message}
                             </p>
                             {notification.action && (
-                              <Button 
-                                variant="outline"
-                                size="sm"
-                                onClick={notification.action.onClick}
+                              <Button
                                 className="mt-2 text-xs"
+                                onClick={notification.action.onClick}
+                                size="sm"
+                                variant="outline"
                               >
                                 {notification.action.label}
                               </Button>

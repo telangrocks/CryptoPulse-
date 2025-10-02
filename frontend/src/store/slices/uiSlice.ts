@@ -1,18 +1,19 @@
-const crypto = require('crypto');
-
 /**
  * UI Slice for CryptoPulse
- * 
+ *
  * Handles user interface state, theming, modals, and UI interactions.
  * Includes comprehensive state management, persistence, and error handling.
- * 
+ *
  * @fileoverview Production-ready UI state management
  * @version 1.0.0
  * @author CryptoPulse Team
  */
 
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+
 import { RootState } from '../index';
+
+const crypto = require('crypto');
 
 // ============================================================================
 // TYPES AND INTERFACES
@@ -400,7 +401,7 @@ const createToastId = (): string => {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return `toast_${crypto.randomUUID()}`;
   }
-  
+
   // Fallback for older environments
   return `toast_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 };
@@ -413,7 +414,7 @@ const createModalId = (): string => {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return `modal_${crypto.randomUUID()}`;
   }
-  
+
   // Fallback for older environments
   return `modal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 };
@@ -448,12 +449,12 @@ export const saveUIPreferences = createAsyncThunk<
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 500));
-      
+
       // In a real app, this would save to localStorage or API
       if (typeof window !== 'undefined') {
         localStorage.setItem('ui-preferences', JSON.stringify(preferences));
       }
-      
+
       return preferences as UIPreferences;
     } catch (error) {
       return rejectWithValue({
@@ -464,7 +465,7 @@ export const saveUIPreferences = createAsyncThunk<
         retryable: true,
       });
     }
-  }
+  },
 );
 
 /**
@@ -480,7 +481,7 @@ export const loadUIPreferences = createAsyncThunk<
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 300));
-      
+
       // In a real app, this would load from localStorage or API
       if (typeof window !== 'undefined') {
         const saved = localStorage.getItem('ui-preferences');
@@ -488,7 +489,7 @@ export const loadUIPreferences = createAsyncThunk<
           return JSON.parse(saved);
         }
       }
-      
+
       return initialState.preferences;
     } catch (error) {
       return rejectWithValue({
@@ -499,7 +500,7 @@ export const loadUIPreferences = createAsyncThunk<
         retryable: true,
       });
     }
-  }
+  },
 );
 
 // ============================================================================
@@ -675,7 +676,7 @@ const uiSlice = createSlice({
       state.navigation.previousRoute = state.navigation.currentRoute;
       state.navigation.currentRoute = action.payload;
       state.navigation.history.push(action.payload);
-      
+
       // Keep only last 50 routes
       if (state.navigation.history.length > 50) {
         state.navigation.history = state.navigation.history.slice(-50);
@@ -830,7 +831,7 @@ const uiSlice = createSlice({
           retryable: true,
         };
       })
-      
+
       // Load UI preferences
       .addCase(loadUIPreferences.pending, (state) => {
         state.isLoading = true;
@@ -849,7 +850,7 @@ const uiSlice = createSlice({
           retryable: true,
         };
       });
-  }
+  },
 });
 
 // ============================================================================
