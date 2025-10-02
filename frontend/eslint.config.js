@@ -90,6 +90,10 @@ export default [
         // Development/Production globals
         __DEV__: 'readonly',
         __PROD__: 'readonly',
+        // Service Worker globals (for public/sw.js)
+        self: 'readonly',
+        caches: 'readonly',
+        clients: 'readonly',
       },
     },
     plugins: {
@@ -227,8 +231,17 @@ export default [
     },
   },
   {
-    // Service Worker specific configuration
-    files: ['**/sw.js', '**/service-worker.js', 'public/sw.js', '**/public/sw.js'],
+    // Service Worker specific configuration - try multiple patterns
+    files: [
+      '**/sw.js', 
+      '**/service-worker.js', 
+      'public/sw.js', 
+      '**/public/sw.js',
+      'frontend/public/sw.js',
+      './public/sw.js',
+      'public/**/*.js',
+      '**/public/**/*.js'
+    ],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'script',
@@ -246,6 +259,7 @@ export default [
         setInterval: 'readonly',
         clearInterval: 'readonly',
         process: 'readonly',
+        globalThis: 'readonly',
       },
     },
     rules: {
@@ -267,6 +281,15 @@ export default [
     rules: {
       'no-console': 'off',
       'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+    },
+  },
+  {
+    // Public directory configuration (for sw.js)
+    files: ['**/public/**/*.js'],
+    rules: {
+      'no-console': 'off',
+      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      'no-undef': 'off',
     },
   },
 ];

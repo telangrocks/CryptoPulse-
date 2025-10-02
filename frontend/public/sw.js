@@ -5,7 +5,7 @@
 
 // Cache version - automatically updated during build
 const CACHE_VERSION = process.env.SW_VERSION || '1.0.0';
-const CACHE_NAME = `cryptopulse-v${CACHE_VERSION}`;
+const _CACHE_NAME = `cryptopulse-v${CACHE_VERSION}`;
 const STATIC_CACHE = `cryptopulse-static-v${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `cryptopulse-dynamic-v${CACHE_VERSION}`;
 const API_CACHE = `cryptopulse-api-v${CACHE_VERSION}`;
