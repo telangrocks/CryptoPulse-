@@ -60,9 +60,9 @@
     "@typescript-eslint/eslint-plugin": "8.18.1",
     "@typescript-eslint/parser": "8.18.1",
     "@vitejs/plugin-react": "4.3.4",
-    "@vitest/coverage-v8": "2.1.8",
+    "@vitest/coverage-v8": "2.1.9",
     "autoprefixer": "10.4.20",
-    "esbuild": "0.24.2",
+    "esbuild": "0.25.0",
     "eslint-config-prettier": "9.1.0",
     "eslint-import-resolver-typescript": "4.4.4",
     "eslint-plugin-import": "2.31.0",
@@ -81,7 +81,7 @@
     "tailwindcss-animate": "1.0.7",
     "terser": "5.37.0",
     "vite-bundle-analyzer": "0.18.0",
-    "vitest": "2.1.8"
+    "vitest": "2.1.9"
   },
   "dependencies": {
     "@hookform/resolvers": "3.10.0",
@@ -106,7 +106,7 @@
     "@reduxjs/toolkit": "2.9.0",
     "@tanstack/react-query": "5.90.2",
     "@tanstack/react-query-devtools": "5.90.2",
-    "axios": "1.7.7",
+    "axios": "1.12.0",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "crypto-js": "4.2.0",
