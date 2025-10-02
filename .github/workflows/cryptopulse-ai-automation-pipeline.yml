@@ -69,7 +69,7 @@ jobs:
         run: |
           cd backend
           pnpm install || true
-          pnpm audit fix --force || true
+          pnpm audit fix || true
           pnpm run lint:fix || true
           pnpm run test:ci || true
 
@@ -78,7 +78,7 @@ jobs:
         run: |
           cd frontend
           pnpm install || true
-          pnpm audit fix --force || true
+          pnpm audit fix || true
           pnpm run lint:fix || true
           pnpm run format || true
           pnpm run test:run || true
@@ -88,7 +88,7 @@ jobs:
         run: |
           cd cloud
           pnpm install || true
-          pnpm audit fix --force || true
+          pnpm audit fix || true
           pnpx eslint . --ext .js --fix || true
 
       - name: Commit and push autofix changes

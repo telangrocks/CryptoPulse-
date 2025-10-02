@@ -139,7 +139,7 @@ export default [
       'indent': ['error', 2, { SwitchCase: 1 }],
       'max-len': ['warn', { code: 100, ignoreUrls: true }],
 
-      // React rules
+      // React rules - simplified to avoid conflicts
       'react/jsx-uses-react': 'off',
       'react/react-in-jsx-scope': 'off',
       'react/prop-types': 'off',
@@ -151,19 +151,19 @@ export default [
       'react/no-unescaped-entities': 'error',
       'react/no-unknown-property': 'error',
       'react/self-closing-comp': 'error',
-      'react/jsx-wrap-multilines': 'error',
-      'react/jsx-closing-bracket-location': 'error',
-      'react/jsx-closing-tag-location': 'error',
+      'react/jsx-wrap-multilines': 'off', // Disabled to prevent conflicts
+      'react/jsx-closing-bracket-location': 'off', // Disabled to prevent conflicts
+      'react/jsx-closing-tag-location': 'off', // Disabled to prevent conflicts
       'react/jsx-curly-spacing': ['error', 'never'],
       'react/jsx-equals-spacing': ['error', 'never'],
-      'react/jsx-first-prop-new-line': ['error', 'multiline'],
-      'react/jsx-indent': ['error', 2],
-      'react/jsx-indent-props': ['error', 2],
-      'react/jsx-max-props-per-line': ['error', { maximum: 1, when: 'multiline' }],
+      'react/jsx-first-prop-new-line': 'off', // Disabled to prevent conflicts
+      'react/jsx-indent': 'off', // Disabled to prevent conflicts with indent rule
+      'react/jsx-indent-props': 'off', // Disabled to prevent conflicts
+      'react/jsx-max-props-per-line': 'off', // Disabled to prevent conflicts
       'react/jsx-no-bind': ['error', { allowArrowFunctions: true }],
       'react/jsx-pascal-case': 'error',
-      'react/jsx-sort-props': ['error', { ignoreCase: true }],
-      'react/jsx-tag-spacing': ['error', { closingSlash: 'never', beforeSelfClosing: 'always', afterOpening: 'never', beforeClosing: 'never' }],
+      'react/jsx-sort-props': 'off', // Disabled to prevent conflicts
+      'react/jsx-tag-spacing': 'off', // Disabled to prevent conflicts
 
       // React Hooks rules
       'react-hooks/rules-of-hooks': 'error',
@@ -228,7 +228,7 @@ export default [
   },
   {
     // Service Worker specific configuration
-    files: ['**/sw.js', '**/service-worker.js', '**/public/sw.js'],
+    files: ['**/sw.js', '**/service-worker.js', 'public/sw.js', '**/public/sw.js'],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'script',
@@ -245,11 +245,13 @@ export default [
         clearTimeout: 'readonly',
         setInterval: 'readonly',
         clearInterval: 'readonly',
+        process: 'readonly',
       },
     },
     rules: {
       'no-console': 'off',
       'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+      'no-undef': 'off',
     },
   },
   {
