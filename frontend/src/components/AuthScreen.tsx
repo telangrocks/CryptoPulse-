@@ -1,5 +1,5 @@
 import { TrendingUp, Mail, Lock, Phone, Eye, EyeOff, ArrowLeft, Shield, AlertTriangle, CheckCircle } from 'lucide-react';
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../contexts/AuthContext';
@@ -192,10 +192,12 @@ export default function AuthScreen() {
       // Validate all fields
       const emailValidation = validateField('email', email);
       const passwordValidation = validateField('password', password);
+      let mobileValidation;
+      let confirmPasswordValidation;
 
       if (!isLogin) {
-        const mobileValidation = validateField('mobile', mobile);
-        const confirmPasswordValidation = validateField('confirmPassword', confirmPassword);
+        mobileValidation = validateField('mobile', mobile);
+        confirmPasswordValidation = validateField('confirmPassword', confirmPassword);
 
         if (!emailValidation.isValid || !passwordValidation.isValid ||
             !mobileValidation.isValid || !confirmPasswordValidation.isValid) {
