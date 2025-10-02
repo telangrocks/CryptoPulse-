@@ -640,12 +640,18 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          cache-dependency-path: 'backend/package-lock.json'
+          cache-dependency-path: 'backend/package.json'
       
       - name: INSTALL-BACKEND
         run: |
           echo "📦 [BACKEND-TEST] Installing backend dependencies..."
-          cd backend && npm ci
+          cd backend
+          if [ ! -f "package-lock.json" ]; then
+            echo "📦 [BACKEND-TEST] No package-lock.json found, generating..."
+            npm install
+          else
+            npm ci
+          fi
       
       - name: RUN-BACKEND-TESTS
         run: |
@@ -692,12 +698,18 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          cache-dependency-path: 'frontend/package-lock.json'
+          cache-dependency-path: 'frontend/package.json'
       
       - name: INSTALL-FRONTEND
         run: |
           echo "📦 [FRONTEND-TEST] Installing frontend dependencies..."
-          cd frontend && npm ci
+          cd frontend
+          if [ ! -f "package-lock.json" ]; then
+            echo "📦 [FRONTEND-TEST] No package-lock.json found, generating..."
+            npm install
+          else
+            npm ci
+          fi
       
       - name: RUN-FRONTEND-TESTS
         run: |
@@ -763,8 +775,20 @@ jobs:
       - name: INSTALL-DEPENDENCIES
         run: |
           echo "📦 [TRADING-VALIDATION] Installing dependencies..."
-          cd frontend && npm ci
-          cd ../backend && npm ci
+          cd frontend
+          if [ ! -f "package-lock.json" ]; then
+            echo "📦 [TRADING-VALIDATION] No frontend package-lock.json found, generating..."
+            npm install
+          else
+            npm ci
+          fi
+          cd ../backend
+          if [ ! -f "package-lock.json" ]; then
+            echo "📦 [TRADING-VALIDATION] No backend package-lock.json found, generating..."
+            npm install
+          else
+            npm ci
+          fi
       
       - name: VALIDATE-TRADING-LOGIC
         run: |
@@ -889,14 +913,26 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
           cache-dependency-path: |
-            backend/package-lock.json
-            frontend/package-lock.json
+            backend/package.json
+            frontend/package.json
       
       - name: INSTALL-ALL-DEPENDENCIES
         run: |
           echo "📦 [BUILD] Installing all dependencies..."
-          cd backend && npm ci
-          cd ../frontend && npm ci
+          cd backend
+          if [ ! -f "package-lock.json" ]; then
+            echo "📦 [BUILD] No backend package-lock.json found, generating..."
+            npm install
+          else
+            npm ci
+          fi
+          cd ../frontend
+          if [ ! -f "package-lock.json" ]; then
+            echo "📦 [BUILD] No frontend package-lock.json found, generating..."
+            npm install
+          else
+            npm ci
+          fi
           cd ../cloud && (npm ci || npm install)
           cd ..
       
@@ -966,7 +1002,12 @@ jobs:
           if [ -d "backend" ]; then
             echo "📡 [DEPLOY] Deploying backend..."
             cd backend
-            npm ci --production || echo "⚠️ Backend production install completed with warnings"
+            if [ ! -f "package-lock.json" ]; then
+              echo "📦 [DEPLOY] No backend package-lock.json found, generating..."
+              npm install --production
+            else
+              npm ci --production
+            fi || echo "⚠️ Backend production install completed with warnings"
             cd ..
           fi
           
@@ -974,7 +1015,12 @@ jobs:
           if [ -d "frontend" ]; then
             echo "🌐 [DEPLOY] Deploying frontend..."
             cd frontend
-            npm ci
+            if [ ! -f "package-lock.json" ]; then
+              echo "📦 [DEPLOY] No frontend package-lock.json found, generating..."
+              npm install
+            else
+              npm ci
+            fi
             npm run build:northflank || echo "⚠️ Frontend build completed with warnings"
             cd ..
           fi
@@ -1118,8 +1164,20 @@ jobs:
       - name: INSTALL-DEPENDENCIES
         run: |
           echo "📦 [AI-REFACTOR] Installing dependencies..."
-          cd backend && npm ci
-          cd ../frontend && npm ci
+          cd backend
+          if [ ! -f "package-lock.json" ]; then
+            echo "📦 [AI-REFACTOR] No backend package-lock.json found, generating..."
+            npm install
+          else
+            npm ci
+          fi
+          cd ../frontend
+          if [ ! -f "package-lock.json" ]; then
+            echo "📦 [AI-REFACTOR] No frontend package-lock.json found, generating..."
+            npm install
+          else
+            npm ci
+          fi
           cd ../cloud && (npm ci || npm install)
           cd ..
       
