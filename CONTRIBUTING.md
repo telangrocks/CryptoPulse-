@@ -1,332 +1,363 @@
-# Contributing to CryptoPulse Trading Bot
+# Contributing to CryptoPulse
 
 Thank you for your interest in contributing to CryptoPulse! This document provides guidelines and information for contributors.
 
+## 📋 Table of Contents
+
+- [Code of Conduct](#code-of-conduct)
+- [Getting Started](#getting-started)
+- [Development Setup](#development-setup)
+- [Contributing Guidelines](#contributing-guidelines)
+- [Code Standards](#code-standards)
+- [Testing](#testing)
+- [Pull Request Process](#pull-request-process)
+- [Issue Reporting](#issue-reporting)
+- [Documentation](#documentation)
+- [Release Process](#release-process)
+
 ## 🤝 Code of Conduct
 
-We are committed to providing a welcoming and inclusive experience for everyone. Please read and follow our Code of Conduct.
+This project follows the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code.
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Node.js v20 or higher
-- pnpm v9 or higher
+
+- Node.js 20+
+- pnpm 10.18.0+
 - Git
-- Basic knowledge of TypeScript/JavaScript
+- Docker (optional, for containerized development)
 
-### Development Setup
+### Fork and Clone
 
-1. **Fork and clone the repository**
+1. Fork the repository on GitHub
+2. Clone your fork locally:
    ```bash
-   git clone https://github.com/your-username/cryptopulse-trading-bot.git
-   cd cryptopulse-trading-bot
+   git clone https://github.com/your-username/Cryptopulse-.git
+   cd Cryptopulse-
    ```
 
-2. **Install dependencies**
+3. Add the upstream repository:
    ```bash
-   pnpm install
+   git remote add upstream https://github.com/telangrocks/Cryptopulse-.git
    ```
 
-3. **Set up environment variables**
-   ```bash
-   cp env-templates/backend.env backend/.env
-   cp env-templates/frontend.env frontend/.env
-   # Edit the .env files with your configuration
-   ```
+## 🛠️ Development Setup
 
-4. **Start development servers**
-   ```bash
-   pnpm dev
-   ```
+### Installation
 
-## 📝 Development Workflow
+```bash
+# Install dependencies
+pnpm install
 
-### Branching Strategy
-- `main` - Production-ready code
-- `develop` - Integration branch for features
-- `feature/*` - New features
-- `bugfix/*` - Bug fixes
-- `hotfix/*` - Critical production fixes
+# Set up environment variables
+cp env-templates/backend.env.production backend/.env
+cp env-templates/frontend.env.production frontend/.env
 
-### Making Changes
+# Start development servers
+pnpm dev:all
+```
 
-1. **Create a feature branch**
+### Environment Configuration
+
+1. **Backend Environment** (`backend/.env`):
+   - Copy from `env-templates/backend.env.production`
+   - Configure database connections
+   - Set up API keys for exchanges
+   - Configure security settings
+
+2. **Frontend Environment** (`frontend/.env`):
+   - Copy from `env-templates/frontend.env.production`
+   - Set API base URL
+   - Configure encryption keys
+
+## 📝 Contributing Guidelines
+
+### Types of Contributions
+
+- **Bug Fixes**: Fix existing issues
+- **Features**: Add new functionality
+- **Documentation**: Improve or add documentation
+- **Tests**: Add or improve test coverage
+- **Performance**: Optimize existing code
+- **Security**: Enhance security measures
+
+### Workflow
+
+1. **Create a Feature Branch**:
    ```bash
    git checkout -b feature/your-feature-name
    ```
 
-2. **Make your changes**
-   - Write clean, readable code
-   - Follow the existing code style
-   - Add tests for new functionality
+2. **Make Changes**:
+   - Follow coding standards
+   - Write tests for new functionality
    - Update documentation as needed
 
-3. **Test your changes**
+3. **Test Your Changes**:
    ```bash
    # Run all tests
-   pnpm test
+   pnpm test:all
    
    # Run linting
-   pnpm lint
+   pnpm lint:all
    
    # Run type checking
-   pnpm typecheck
+   pnpm typecheck:all
+   
+   # Run security audit
+   pnpm audit:full
    ```
 
-4. **Commit your changes**
+4. **Commit Your Changes**:
    ```bash
    git add .
-   git commit -m "feat: add new trading strategy"
+   git commit -m "feat: add new trading feature"
    ```
 
-5. **Push and create a Pull Request**
+5. **Push and Create Pull Request**:
    ```bash
    git push origin feature/your-feature-name
    ```
 
-## 📋 Commit Guidelines
+## 🎯 Code Standards
 
-We follow [Conventional Commits](https://www.conventionalcommits.org/) specification:
+### General Guidelines
 
-### Commit Types
-- `feat:` - New features
-- `fix:` - Bug fixes
-- `docs:` - Documentation changes
-- `style:` - Code style changes (formatting, etc.)
-- `refactor:` - Code refactoring
-- `test:` - Adding or updating tests
-- `chore:` - Maintenance tasks
+- **Clean Code**: Write readable, maintainable code
+- **DRY Principle**: Don't repeat yourself
+- **SOLID Principles**: Follow object-oriented design principles
+- **Consistent Naming**: Use descriptive, consistent names
+- **Comments**: Document complex logic and business rules
 
-### Examples
-```bash
-feat: add support for Binance Futures API
-fix: resolve WebSocket connection timeout issue
-docs: update API documentation
-style: format code with prettier
-refactor: optimize trading strategy calculations
-test: add unit tests for risk management
-chore: update dependencies
-```
+### TypeScript/JavaScript
+
+- Use TypeScript for all new code
+- Follow ESLint configuration
+- Use Prettier for formatting
+- Prefer `const` over `let`, avoid `var`
+- Use arrow functions for callbacks
+- Use async/await over Promises
+
+### React Components
+
+- Use functional components with hooks
+- Use TypeScript interfaces for props
+- Implement proper error boundaries
+- Use React.memo for performance optimization
+- Follow accessibility guidelines
+
+### Backend Code
+
+- Use async/await for asynchronous operations
+- Implement proper error handling
+- Use middleware for cross-cutting concerns
+- Follow RESTful API design
+- Implement proper logging
 
 ## 🧪 Testing
 
 ### Test Types
-- **Unit Tests** - Test individual functions and components
-- **Integration Tests** - Test API endpoints and database interactions
-- **End-to-End Tests** - Test complete user workflows
+
+1. **Unit Tests**: Test individual functions and components
+2. **Integration Tests**: Test API endpoints and database operations
+3. **E2E Tests**: Test complete user workflows
+4. **Performance Tests**: Test system performance under load
 
 ### Running Tests
+
 ```bash
 # Run all tests
-pnpm test
+pnpm test:all
 
-# Run tests in watch mode
-pnpm test:watch
+# Run backend tests
+pnpm test:backend
+
+# Run frontend tests
+pnpm test:frontend
+
+# Run E2E tests
+pnpm test:e2e
 
 # Run tests with coverage
 pnpm test:coverage
-
-# Run specific test file
-pnpm test path/to/test-file.test.ts
 ```
 
 ### Writing Tests
+
 - Write tests for all new functionality
-- Maintain at least 80% code coverage
+- Aim for 80%+ code coverage
 - Use descriptive test names
-- Follow the AAA pattern (Arrange, Act, Assert)
+- Test edge cases and error conditions
+- Mock external dependencies
+
+### Test Structure
 
 ```typescript
-// Example test
-describe('TradingStrategy', () => {
-  it('should generate buy signal when conditions are met', () => {
-    // Arrange
-    const strategy = new TradingStrategy();
-    const marketData = createMockMarketData();
-    
-    // Act
-    const signal = strategy.analyze(marketData);
-    
-    // Assert
-    expect(signal.action).toBe('BUY');
-    expect(signal.confidence).toBeGreaterThan(0.7);
+describe('Component Name', () => {
+  beforeEach(() => {
+    // Setup
+  });
+
+  it('should do something specific', () => {
+    // Test implementation
+  });
+
+  it('should handle error cases', () => {
+    // Error handling test
   });
 });
 ```
 
+## 🔄 Pull Request Process
+
+### Before Submitting
+
+- [ ] Code follows project standards
+- [ ] All tests pass
+- [ ] No linting errors
+- [ ] TypeScript compilation successful
+- [ ] Security audit passes
+- [ ] Documentation updated
+- [ ] Commit messages follow conventional format
+
+### PR Template
+
+```markdown
+## Description
+Brief description of changes
+
+## Type of Change
+- [ ] Bug fix
+- [ ] New feature
+- [ ] Breaking change
+- [ ] Documentation update
+
+## Testing
+- [ ] Unit tests added/updated
+- [ ] Integration tests added/updated
+- [ ] E2E tests added/updated
+- [ ] Manual testing completed
+
+## Checklist
+- [ ] Code follows project standards
+- [ ] Self-review completed
+- [ ] Documentation updated
+- [ ] No breaking changes (or documented)
+```
+
+### Review Process
+
+1. **Automated Checks**: CI/CD pipeline runs automatically
+2. **Code Review**: At least one maintainer reviews
+3. **Testing**: All tests must pass
+4. **Approval**: Maintainer approves the PR
+5. **Merge**: PR is merged to main branch
+
+## 🐛 Issue Reporting
+
+### Bug Reports
+
+When reporting bugs, include:
+
+- **Description**: Clear description of the issue
+- **Steps to Reproduce**: Detailed steps to reproduce
+- **Expected Behavior**: What should happen
+- **Actual Behavior**: What actually happens
+- **Environment**: OS, browser, Node.js version
+- **Screenshots**: If applicable
+- **Logs**: Relevant error logs
+
+### Feature Requests
+
+When requesting features, include:
+
+- **Description**: Clear description of the feature
+- **Use Case**: Why this feature is needed
+- **Proposed Solution**: How you think it should work
+- **Alternatives**: Other solutions considered
+- **Additional Context**: Any other relevant information
+
 ## 📚 Documentation
 
 ### Code Documentation
-- Add JSDoc comments for public APIs
-- Use clear variable and function names
-- Include inline comments for complex logic
 
-```typescript
-/**
- * Calculates the optimal position size based on risk parameters
- * @param balance - Available trading balance
- * @param riskPercentage - Maximum risk percentage (0-1)
- * @param stopLoss - Stop loss price
- * @param entryPrice - Entry price
- * @returns Optimal position size
- */
-function calculatePositionSize(
-  balance: number,
-  riskPercentage: number,
-  stopLoss: number,
-  entryPrice: number
-): number {
-  // Implementation
-}
+- Use JSDoc for functions and classes
+- Document complex algorithms
+- Include examples for public APIs
+- Keep README files updated
+
+### API Documentation
+
+- Document all API endpoints
+- Include request/response examples
+- Document error codes and messages
+- Keep OpenAPI/Swagger specs updated
+
+### User Documentation
+
+- Update user guides for new features
+- Include screenshots and examples
+- Keep installation instructions current
+- Document configuration options
+
+## 🚀 Release Process
+
+### Version Numbering
+
+We follow [Semantic Versioning](https://semver.org/):
+
+- **MAJOR**: Breaking changes
+- **MINOR**: New features (backward compatible)
+- **PATCH**: Bug fixes (backward compatible)
+
+### Release Steps
+
+1. **Update Version**: Update version in package.json files
+2. **Update Changelog**: Add changes to CHANGELOG.md
+3. **Create Release**: Create GitHub release
+4. **Deploy**: Deploy to production
+5. **Announce**: Announce release to community
+
+## 🏗️ Project Structure
+
+```
+CryptoPulse/
+├── .github/workflows/     # CI/CD pipelines
+├── backend/               # Backend API
+│   ├── lib/              # Core libraries
+│   ├── tests/            # Backend tests
+│   └── package.json
+├── frontend/              # React frontend
+│   ├── src/              # Source code
+│   │   ├── components/   # React components
+│   │   ├── lib/          # Utilities
+│   │   └── tests/        # Frontend tests
+│   └── package.json
+├── e2e/                   # E2E tests
+├── docs/                  # Documentation
+├── scripts/               # Utility scripts
+└── README.md
 ```
 
-### README Updates
-- Update README.md when adding new features
-- Include examples and usage instructions
-- Keep the documentation up to date
+## 🤔 Getting Help
 
-## 🎨 Code Style
-
-### TypeScript/JavaScript
-- Use TypeScript for all new code
-- Follow ESLint and Prettier configurations
-- Use meaningful variable names
-- Prefer `const` over `let`
-- Use async/await over Promises
-
-### React Components
-- Use functional components with hooks
-- Extract custom hooks for reusable logic
-- Use TypeScript interfaces for props
-- Keep components small and focused
-
-```tsx
-interface TradeButtonProps {
-  action: 'BUY' | 'SELL';
-  amount: number;
-  onTrade: (action: string, amount: number) => void;
-  disabled?: boolean;
-}
-
-export const TradeButton: React.FC<TradeButtonProps> = ({
-  action,
-  amount,
-  onTrade,
-  disabled = false
-}) => {
-  // Component implementation
-};
-```
-
-## 🔐 Security Guidelines
-
-### API Keys and Secrets
-- Never commit API keys or secrets
-- Use environment variables for sensitive data
-- Validate all user inputs
-- Implement proper error handling
-
-### Trading Logic
-- Always validate trading parameters
-- Implement proper risk management
-- Log all trading activities
-- Use secure communication protocols
-
-## 📊 Performance Guidelines
-
-### Frontend
-- Optimize bundle size
-- Use React.memo for expensive components
-- Implement proper loading states
-- Minimize API calls
-
-### Backend
-- Use database indexing appropriately
-- Implement caching for frequently accessed data
-- Handle errors gracefully
-- Monitor performance metrics
-
-## 🐛 Bug Reports
-
-When reporting bugs, please include:
-
-1. **Description** - Clear description of the issue
-2. **Steps to Reproduce** - Detailed steps to reproduce the bug
-3. **Expected Behavior** - What you expected to happen
-4. **Actual Behavior** - What actually happened
-5. **Environment** - OS, Node.js version, browser, etc.
-6. **Screenshots** - If applicable
-
-### Bug Report Template
-```markdown
-## Bug Description
-Brief description of the bug
-
-## Steps to Reproduce
-1. Go to '...'
-2. Click on '...'
-3. See error
-
-## Expected Behavior
-What should happen
-
-## Actual Behavior
-What actually happens
-
-## Environment
-- OS: [e.g. Windows 10]
-- Node.js: [e.g. v20.0.0]
-- Browser: [e.g. Chrome 91]
-
-## Screenshots
-If applicable, add screenshots
-```
-
-## 💡 Feature Requests
-
-We welcome feature requests! Please:
-
-1. Check existing issues first
-2. Provide a clear use case
-3. Explain the expected behavior
-4. Consider the impact on existing users
-
-### Feature Request Template
-```markdown
-## Feature Description
-Brief description of the feature
-
-## Use Case
-Why is this feature needed?
-
-## Proposed Solution
-How should this feature work?
-
-## Alternatives
-Any alternative solutions considered?
-
-## Additional Context
-Any other context or screenshots
-```
-
-## 📞 Getting Help
-
-- **GitHub Issues** - Bug reports and feature requests
-- **GitHub Discussions** - General questions and discussions
-- **Discord** - Real-time community chat
-- **Email** - team@cryptopulse.com for security issues
-
-## 🏆 Recognition
-
-Contributors will be recognized in:
-- README.md contributors section
-- Release notes
-- Hall of Fame page (coming soon)
+- **Documentation**: Check the docs folder
+- **Issues**: Search existing issues
+- **Discussions**: Use GitHub Discussions
+- **Discord**: Join our Discord server
+- **Email**: Contact maintainers
 
 ## 📄 License
 
 By contributing to CryptoPulse, you agree that your contributions will be licensed under the MIT License.
 
----
+## 🙏 Recognition
+
+Contributors will be recognized in:
+- CONTRIBUTORS.md file
+- Release notes
+- Project documentation
+- Community acknowledgments
 
 Thank you for contributing to CryptoPulse! 🚀

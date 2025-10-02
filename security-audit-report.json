@@ -1,0 +1,39 @@
+{
+  "timestamp": "2025-10-02T22:17:59.315Z",
+  "summary": {
+    "totalIssues": 1,
+    "criticalCount": 0,
+    "highCount": 0,
+    "mediumCount": 0,
+    "lowCount": 0,
+    "infoCount": 1
+  },
+  "issues": {
+    "critical": [],
+    "high": [],
+    "medium": [],
+    "low": [],
+    "info": [
+      {
+        "file": "backend/index.js",
+        "line": 0,
+        "message": "Security middleware detected (Helmet.js)",
+        "timestamp": "2025-10-02T22:17:59.309Z"
+      }
+    ],
+    "summary": {
+      "totalIssues": 1,
+      "criticalCount": 0,
+      "highCount": 0,
+      "mediumCount": 0,
+      "lowCount": 0,
+      "infoCount": 1
+    }
+  },
+  "recommendations": [
+    "Implement automated security scanning in CI/CD pipeline",
+    "Regular dependency updates and vulnerability scanning",
+    "Code review process for security-sensitive changes",
+    "Security training for development team"
+  ]
+}

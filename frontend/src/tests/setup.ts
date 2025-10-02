@@ -1,118 +1,125 @@
 // =============================================================================
-// Vitest Test Setup for CryptoPulse Frontend
+// Frontend Test Setup - Production Ready
 // =============================================================================
-// Global test setup and configuration
+// Comprehensive test setup for React components and utilities
 
-import { expect, afterEach, vi } from 'vitest';
-import { cleanup } from '@testing-library/react';
-import * as matchers from '@testing-library/jest-dom/matchers';
+import '@testing-library/jest-dom';
+import { configure } from '@testing-library/react';
+import { TextEncoder, TextDecoder } from 'util';
 
-// Extend Vitest's expect with jest-dom matchers
-expect.extend(matchers);
-
-// Cleanup after each test
-afterEach(() => {
-  cleanup();
+// Configure testing library
+configure({
+  testIdAttribute: 'data-testid',
+  asyncUtilTimeout: 5000,
 });
+
+// Polyfills for Node.js environment
+global.TextEncoder = TextEncoder;
+global.TextDecoder = TextDecoder as any;
 
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
-  value: vi.fn().mockImplementation(query => ({
+  value: jest.fn().mockImplementation(query => ({
     matches: false,
     media: query,
     onchange: null,
-    addListener: vi.fn(), // deprecated
-    removeListener: vi.fn(), // deprecated
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
+    addListener: jest.fn(), // deprecated
+    removeListener: jest.fn(), // deprecated
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+    dispatchEvent: jest.fn(),
   })),
 });
 
-// Mock ResizeObserver
-global.ResizeObserver = vi.fn().mockImplementation(() => ({
-  observe: vi.fn(),
-  unobserve: vi.fn(),
-  disconnect: vi.fn(),
-}));
-
 // Mock IntersectionObserver
-global.IntersectionObserver = vi.fn().mockImplementation(() => ({
-  observe: vi.fn(),
-  unobserve: vi.fn(),
-  disconnect: vi.fn(),
-}));
+global.IntersectionObserver = class IntersectionObserver {
+  constructor() {}
+  disconnect() {}
+  observe() {}
+  unobserve() {}
+};
+
+// Mock ResizeObserver
+global.ResizeObserver = class ResizeObserver {
+  constructor() {}
+  disconnect() {}
+  observe() {}
+  unobserve() {}
+};
+
+// Mock window.getComputedStyle
+Object.defineProperty(window, 'getComputedStyle', {
+  value: () => ({
+    getPropertyValue: () => '',
+  }),
+});
 
 // Mock localStorage
 const localStorageMock = {
-  getItem: vi.fn(),
-  setItem: vi.fn(),
-  removeItem: vi.fn(),
-  clear: vi.fn(),
+  getItem: jest.fn(),
+  setItem: jest.fn(),
+  removeItem: jest.fn(),
+  clear: jest.fn(),
 };
-vi.stubGlobal('localStorage', localStorageMock);
+Object.defineProperty(window, 'localStorage', {
+  value: localStorageMock,
+});
 
 // Mock sessionStorage
 const sessionStorageMock = {
-  getItem: vi.fn(),
-  setItem: vi.fn(),
-  removeItem: vi.fn(),
-  clear: vi.fn(),
+  getItem: jest.fn(),
+  setItem: jest.fn(),
+  removeItem: jest.fn(),
+  clear: jest.fn(),
 };
-vi.stubGlobal('sessionStorage', sessionStorageMock);
-
-// Mock crypto
-const cryptoMock = {
-  randomUUID: vi.fn(() => 'mock-uuid'),
-  getRandomValues: vi.fn((arr) => arr),
-};
-vi.stubGlobal('crypto', cryptoMock);
+Object.defineProperty(window, 'sessionStorage', {
+  value: sessionStorageMock,
+});
 
 // Mock fetch
-global.fetch = vi.fn();
+global.fetch = jest.fn();
 
 // Mock console methods to reduce noise in tests
-global.console = {
-  ...console,
-  log: vi.fn(),
-  debug: vi.fn(),
-  info: vi.fn(),
-  warn: vi.fn(),
-  error: vi.fn(),
-};
+const originalConsoleError = console.error;
+const originalConsoleWarn = console.warn;
+
+beforeAll(() => {
+  console.error = (...args: any[]) => {
+    if (
+      typeof args[0] === 'string' &&
+      args[0].includes('Warning: ReactDOM.render is no longer supported')
+    ) {
+      return;
+    }
+    originalConsoleError.call(console, ...args);
+  };
+
+  console.warn = (...args: any[]) => {
+    if (
+      typeof args[0] === 'string' &&
+      (args[0].includes('componentWillReceiveProps') ||
+        args[0].includes('componentWillMount'))
+    ) {
+      return;
+    }
+    originalConsoleWarn.call(console, ...args);
+  };
+});
+
+afterAll(() => {
+  console.error = originalConsoleError;
+  console.warn = originalConsoleWarn;
+});
+
+// Clean up after each test
+afterEach(() => {
+  jest.clearAllMocks();
+  localStorageMock.clear();
+  sessionStorageMock.clear();
+});
 
 // Mock environment variables
-vi.stubEnv('NODE_ENV', 'test');
-vi.stubEnv('VITE_API_BASE_URL', 'http://localhost:1337');
-vi.stubEnv('VITE_FRONTEND_URL', 'http://localhost:3000');
-
-// Global test utilities
-declare global {
-  var testUtils: {
-    createMockProps: (overrides?: Record<string, any>) => Record<string, any>;
-    createMockUser: (overrides?: Record<string, any>) => any;
-    createMockEvent: (overrides?: Record<string, any>) => Event;
-  };
-}
-
-global.testUtils = {
-  createMockProps: (overrides = {}) => ({
-    className: 'test-class',
-    ...overrides,
-  }),
-  
-  createMockUser: (overrides = {}) => ({
-    id: '1',
-    email: 'test@example.com',
-    name: 'Test User',
-    ...overrides,
-  }),
-  
-  createMockEvent: (overrides = {}) => ({
-    preventDefault: vi.fn(),
-    stopPropagation: vi.fn(),
-    target: { value: 'test' },
-    ...overrides,
-  }) as Event,
-};
+process.env.VITE_API_BASE_URL = 'http://localhost:1337';
+process.env.VITE_ENCRYPTION_KEY = 'test-encryption-key-32-characters';
+process.env.NODE_ENV = 'test';

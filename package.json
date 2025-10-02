@@ -44,7 +44,12 @@
     "deploy:all": "bash scripts/deploy-northflank.sh",
     "deploy:backend": "bash scripts/deploy-northflank.sh backend",
     "deploy:frontend": "bash scripts/deploy-northflank.sh frontend",
-    "migration:verify": "node migration-complete.js"
+    "migration:verify": "node migration-complete.js",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:debug": "playwright test --debug",
+    "test:e2e:install": "playwright install"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
@@ -54,7 +59,9 @@
     "pnpm": "^10.18.0",
     "prettier": "^3.3.3",
     "rimraf": "^6.0.1",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "@playwright/test": "^1.48.0",
+    "playwright": "^1.48.0"
   },
   "engines": {
     "node": ">=20.0.0",
