@@ -128,7 +128,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
       
       - name: INSTALL-PNPM
         run: npm install -g pnpm@10.18.0
@@ -475,7 +474,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
       
       - name: INSTALL-PNPM
         run: npm install -g pnpm@10.18.0
@@ -634,8 +632,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
-          cache-dependency-path: 'backend/package.json'
       
       - name: INSTALL-PNPM
         run: npm install -g pnpm@10.18.0
@@ -695,8 +691,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
-          cache-dependency-path: 'frontend/package.json'
       
       - name: INSTALL-PNPM
         run: npm install -g pnpm@10.18.0
@@ -771,7 +765,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
       
       - name: INSTALL-PNPM
         run: npm install -g pnpm@10.18.0
@@ -914,10 +907,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
-          cache-dependency-path: |
-            backend/package.json
-            frontend/package.json
       
       - name: INSTALL-PNPM
         run: npm install -g pnpm@10.18.0
