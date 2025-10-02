@@ -76,6 +76,20 @@ export default [
         // Vite globals
         import: 'readonly',
         importMeta: 'readonly',
+        // Service Worker globals
+        self: 'readonly',
+        caches: 'readonly',
+        clients: 'readonly',
+        // Additional browser globals
+        HTMLElement: 'readonly',
+        KeyboardEvent: 'readonly',
+        MediaQueryListEvent: 'readonly',
+        Response: 'readonly',
+        Headers: 'readonly',
+        AbortController: 'readonly',
+        // Development/Production globals
+        __DEV__: 'readonly',
+        __PROD__: 'readonly',
       },
     },
     plugins: {
@@ -213,10 +227,44 @@ export default [
     },
   },
   {
+    // Service Worker specific configuration
+    files: ['**/sw.js', '**/service-worker.js', '**/public/sw.js'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'script',
+      globals: {
+        self: 'readonly',
+        caches: 'readonly',
+        clients: 'readonly',
+        Response: 'readonly',
+        Headers: 'readonly',
+        AbortController: 'readonly',
+        console: 'readonly',
+        fetch: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearInterval: 'readonly',
+      },
+    },
+    rules: {
+      'no-console': 'off',
+      'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+    },
+  },
+  {
     files: ['**/*.test.{js,jsx,ts,tsx}', '**/*.spec.{js,jsx,ts,tsx}'],
     rules: {
       'no-console': 'off',
       '@typescript-eslint/no-explicit-any': 'off',
+    },
+  },
+  {
+    // Script files configuration
+    files: ['**/scripts/**/*.js'],
+    rules: {
+      'no-console': 'off',
+      'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
     },
   },
 ];

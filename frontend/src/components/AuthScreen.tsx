@@ -3,8 +3,8 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../contexts/AuthContext';
-import { errorMonitoring, handleAuthError, handleValidationError } from '../lib/errorMonitoring';
-import { debounce, throttle } from '../lib/performanceOptimization';
+import { errorMonitoring } from '../lib/errorMonitoring';
+import { debounce } from '../lib/performanceOptimization';
 
 import { Alert, AlertDescription } from './ui/alert';
 import { Button } from './ui/button';
@@ -65,7 +65,7 @@ export default function AuthScreen() {
     const sanitizedValue = value.trim().replace(/[<>]/g, '');
 
     switch (field) {
-      case 'email':
+      case 'email': {
         const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
         const isValidEmail = emailRegex.test(sanitizedValue);
         result = {
@@ -74,8 +74,9 @@ export default function AuthScreen() {
           error: !isValidEmail ? 'Please enter a valid email address' : undefined,
         };
         break;
+      }
 
-      case 'password':
+      case 'password': {
         const passwordErrors = [];
         if (sanitizedValue.length < 8) passwordErrors.push('at least 8 characters');
         if (!/[a-z]/.test(sanitizedValue)) passwordErrors.push('one lowercase letter');
@@ -93,9 +94,10 @@ export default function AuthScreen() {
         // Update password strength
         setPasswordStrength(calculatePasswordStrength(sanitizedValue));
         break;
+      }
 
-      case 'mobile':
-        const mobileRegex = /^[\+]?[1-9][\d]{9,14}$/;
+      case 'mobile': {
+        const mobileRegex = /^[+]?[1-9][\d]{9,14}$/;
         const isValidMobile = mobileRegex.test(sanitizedValue);
         result = {
           isValid: isValidMobile,
@@ -103,8 +105,9 @@ export default function AuthScreen() {
           error: !isValidMobile ? 'Please enter a valid mobile number' : undefined,
         };
         break;
+      }
 
-      case 'confirmPassword':
+      case 'confirmPassword': {
         const passwordsMatch = sanitizedValue === password;
         result = {
           isValid: passwordsMatch,
@@ -112,6 +115,7 @@ export default function AuthScreen() {
           error: !passwordsMatch ? 'Passwords do not match' : undefined,
         };
         break;
+      }
 
       default:
         result = { isValid: true, sanitizedValue };
