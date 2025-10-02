@@ -103,6 +103,7 @@ jobs:
             git push origin HEAD:${GITHUB_REF_NAME} || echo "Push failed, branch protection may be enabled"
           else
             echo "No autofixes to commit"
+          fi
 
   test-and-build:
     runs-on: ubuntu-latest
