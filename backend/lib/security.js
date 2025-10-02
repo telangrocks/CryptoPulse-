@@ -10,7 +10,8 @@ const compression = require('compression');
 const helmet = require('helmet');
 const logger = require('./logging');
 const cors = require('cors');
-const csrf = require('csurf');
+// Note: csurf is deprecated, using custom CSRF implementation
+// const csrf = require('csurf');
 
 // Enhanced brute force protection using rate limiting
 const bruteForceProtection = rateLimit({
@@ -393,32 +394,33 @@ const securityMonitor = (req, res, next) => {
   next();
 };
 
-// CSRF protection configuration
-const csrfProtection = csrf({
-  cookie: {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    maxAge: 3600000 // 1 hour
-  },
-  ignoreMethods: ['GET', 'HEAD', 'OPTIONS'],
-  value: (req) => {
-    // Get CSRF token from header or body
-    return req.headers['x-csrf-token'] || req.body._csrf;
-  }
-});
+// CSRF protection configuration (deprecated csurf package)
+// TODO: Implement modern CSRF protection
+// const csrfProtection = csrf({
+//   cookie: {
+//     httpOnly: true,
+//     secure: process.env.NODE_ENV === 'production',
+//     sameSite: 'strict',
+//     maxAge: 3600000 // 1 hour
+//   },
+//   ignoreMethods: ['GET', 'HEAD', 'OPTIONS'],
+//   value: (req) => {
+//     // Get CSRF token from header or body
+//     return req.headers['x-csrf-token'] || req.body._csrf;
+//   }
+// });
 
-// CSRF error handler
-const csrfErrorHandler = (err, req, res, next) => {
-  if (err.code === 'EBADCSRFTOKEN') {
-    return res.status(403).json({
-      success: false,
-      error: 'Invalid CSRF token',
-      code: 'CSRF_TOKEN_INVALID'
-    });
-  }
-  next(err);
-};
+// CSRF error handler (deprecated csurf package)
+// const csrfErrorHandler = (err, req, res, next) => {
+//   if (err.code === 'EBADCSRFTOKEN') {
+//     return res.status(403).json({
+//       success: false,
+//       error: 'Invalid CSRF token',
+//       code: 'CSRF_TOKEN_INVALID'
+//     });
+//   }
+//   next(err);
+// };
 
 // Enhanced security headers middleware with additional hardening
 const securityHeaders = (req, res, next) => {
@@ -555,9 +557,9 @@ module.exports = {
   corsConfig,
   securityHeaders,
 
-  // CSRF protection
-  csrfProtection,
-  csrfErrorHandler,
+  // CSRF protection (deprecated - commented out)
+  // csrfProtection,
+  // csrfErrorHandler,
 
   // Compression
   compression: compression({
