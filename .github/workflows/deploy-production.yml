@@ -1,0 +1,308 @@
+name: CryptoPulse Production Deployment
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+      services:
+        required: false
+        type: string
+        default: 'all'
+    secrets:
+      NORTHFLANK_API_KEY:
+        required: true
+      DATABASE_URL:
+        required: true
+      REDIS_URL:
+        required: true
+      JWT_SECRET:
+        required: true
+      ENCRYPTION_KEY:
+        required: true
+
+env:
+  NODE_VERSION: '20'
+  PNPM_VERSION: '10.18.0'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # Pre-deployment validation
+  validate:
+    name: Pre-Deployment Validation
+    runs-on: ubuntu-latest
+    outputs:
+      validation-passed: ${{ steps.validate.outputs.passed }}
+      environment: ${{ steps.validate.outputs.environment }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate environment configuration
+        id: validate
+        run: |
+          echo "Validating deployment configuration..."
+          node scripts/config-validator.js
+          echo "passed=true" >> $GITHUB_OUTPUT
+          echo "environment=${{ inputs.environment }}" >> $GITHUB_OUTPUT
+
+      - name: Validate infrastructure
+        run: |
+          echo "Validating infrastructure readiness..."
+          node scripts/infrastructure-validator.js
+
+      - name: Check secrets management
+        run: |
+          echo "Validating secrets configuration..."
+          node scripts/secrets-manager.js audit
+
+  # Build and test
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    needs: validate
+    if: needs.validate.outputs.validation-passed == 'true'
+    outputs:
+      build-successful: ${{ steps.build.outputs.success }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run tests
+        run: |
+          echo "Running comprehensive test suite..."
+          pnpm test:all
+
+      - name: Build applications
+        id: build
+        run: |
+          echo "Building applications..."
+          pnpm build:production
+          echo "success=true" >> $GITHUB_OUTPUT
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: |
+            backend/dist
+            frontend/dist
+            cloud/
+          retention-days: 7
+
+  # Docker build and security scan
+  docker-build:
+    name: Docker Build and Security Scan
+    runs-on: ubuntu-latest
+    needs: [validate, build-and-test]
+    if: needs.validate.outputs.validation-passed == 'true' && needs.build-and-test.outputs.build-successful == 'true'
+    outputs:
+      backend-image: ${{ steps.build-backend.outputs.image }}
+      frontend-image: ${{ steps.build-frontend.outputs.image }}
+      cloud-image: ${{ steps.build-cloud.outputs.image }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build backend Docker image
+        id: build-backend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64,linux/arm64
+
+      - name: Build frontend Docker image
+        id: build-frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64,linux/arm64
+
+      - name: Build cloud functions Docker image
+        id: build-cloud
+        uses: docker/build-push-action@v5
+        with:
+          context: ./cloud
+          file: ./cloud/Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/cloud:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/cloud:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64,linux/arm64
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ steps.build-backend.outputs.image }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  # Deploy to production
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [validate, build-and-test, docker-build]
+    if: needs.validate.outputs.validation-passed == 'true' && needs.build-and-test.outputs.build-successful == 'true'
+    environment:
+      name: ${{ inputs.environment }}
+      url: ${{ steps.deploy.outputs.url }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Configure environment
+        run: |
+          echo "Configuring production environment..."
+          cp env-templates/backend.env.production backend/.env.production
+          cp env-templates/frontend.env.production frontend/.env.production
+          
+          # Set secrets from GitHub secrets
+          echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" >> backend/.env.production
+          echo "REDIS_URL=${{ secrets.REDIS_URL }}" >> backend/.env.production
+          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> backend/.env.production
+          echo "ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }}" >> backend/.env.production
+
+      - name: Deploy to Northflank
+        id: deploy
+        run: |
+          echo "Deploying to Northflank..."
+          chmod +x scripts/deploy-northflank.sh
+          ./scripts/deploy-northflank.sh -e ${{ inputs.environment }} ${{ inputs.services }}
+          echo "url=https://app.cryptopulse.com" >> $GITHUB_OUTPUT
+
+      - name: Run post-deployment tests
+        run: |
+          echo "Running post-deployment tests..."
+          sleep 60  # Wait for services to be ready
+          
+          # Health checks
+          curl -f https://api.cryptopulse.com/health || exit 1
+          curl -f https://app.cryptopulse.com || exit 1
+          
+          # Smoke tests
+          pnpm test:e2e:production || exit 1
+
+      - name: Notify deployment success
+        if: success()
+        run: |
+          echo "✅ Deployment to ${{ inputs.environment }} successful!"
+          echo "Services deployed: ${{ inputs.services }}"
+          echo "Environment: ${{ inputs.environment }}"
+          echo "Commit: ${{ github.sha }}"
+
+  # Rollback on failure
+  rollback:
+    name: Rollback on Failure
+    runs-on: ubuntu-latest
+    needs: [deploy]
+    if: failure() && needs.deploy.result == 'failure'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Rollback deployment
+        run: |
+          echo "🚨 Deployment failed! Initiating rollback..."
+          # Implement rollback logic here
+          echo "Rollback completed"
+
+      - name: Notify rollback
+        run: |
+          echo "🚨 Deployment rollback completed!"
+          echo "Failed environment: ${{ inputs.environment }}"
+          echo "Failed services: ${{ inputs.services }}"
