@@ -46,8 +46,14 @@ const {
   User,
   Trade,
   ExchangeConfig,
+  TradingStrategy,
   Cache: _Cache
 } = require('./lib/database');
+
+// Import trading services
+const marketDataService = require('./lib/marketDataService');
+const exchangeService = require('./lib/exchangeService');
+const TradingBot = require('./lib/tradingBot');
 
 // Load environment variables with fallback strategy
 const fs = require('fs');
@@ -546,13 +552,13 @@ app.post('/api/v1/trades/execute',
         });
       }
 
-      // Execute trade on exchange (mock implementation)
-      const tradeResult = await executeExchangeTrade({
+      // Execute trade on exchange using real exchange service
+      const tradeResult = await exchangeService.executeTrade({
         exchange,
         symbol,
         side,
         amount: parseFloat(amount),
-        price: price ? parseFloat(price) : null,
+        price: price ? parseFloat(price) : undefined,
         apiKey: _apiKey,
         secretKey: _secretKey
       });
@@ -818,6 +824,284 @@ app.use((req, res) => {
   });
 });
 
+// =============================================================================
+// MARKET DATA ENDPOINTS
+// =============================================================================
+
+// Get real-time market data
+app.get('/api/v1/market-data/ticker/:symbol', async (req, res) => {
+  try {
+    const { symbol } = req.params;
+    const { exchange = 'binance' } = req.query;
+    
+    const ticker = await marketDataService.getTickerData(exchange, symbol);
+    
+    if (!ticker) {
+      return res.status(404).json({
+        success: false,
+        error: 'Ticker data not found'
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: ticker
+    });
+  } catch (error) {
+    logger.error('Failed to fetch ticker data:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch ticker data'
+    });
+  }
+});
+
+// Get kline/candlestick data
+app.get('/api/v1/market-data/klines/:symbol', async (req, res) => {
+  try {
+    const { symbol } = req.params;
+    const { exchange = 'binance', interval = '1h', limit = 100 } = req.query;
+    
+    const klines = await marketDataService.getKlineData(exchange, symbol, interval, parseInt(limit));
+    
+    res.json({
+      success: true,
+      data: klines
+    });
+  } catch (error) {
+    logger.error('Failed to fetch kline data:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch kline data'
+    });
+  }
+});
+
+// Get order book data
+app.get('/api/v1/market-data/orderbook/:symbol', async (req, res) => {
+  try {
+    const { symbol } = req.params;
+    const { exchange = 'binance', limit = 100 } = req.query;
+    
+    const orderBook = await marketDataService.getOrderBookData(exchange, symbol, parseInt(limit));
+    
+    res.json({
+      success: true,
+      data: orderBook
+    });
+  } catch (error) {
+    logger.error('Failed to fetch order book data:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch order book data'
+    });
+  }
+});
+
+// =============================================================================
+// TRADING STRATEGY ENDPOINTS
+// =============================================================================
+
+// Create trading strategy
+app.post('/api/v1/strategies', authenticateToken, [
+  body('name').notEmpty().withMessage('Strategy name is required'),
+  body('description').optional().isString(),
+  body('strategyType').isIn(['SCALPING', 'DAY_TRADING', 'SWING_TRADING', 'GRID_TRADING', 'DCA', 'ARBITRAGE', 'MOMENTUM', 'MEAN_REVERSION']).withMessage('Invalid strategy type'),
+  body('parameters').isObject().withMessage('Parameters must be an object'),
+  body('isActive').optional().isBoolean()
+], validateInput, async (req, res) => {
+  try {
+    const { name, description, strategyType, parameters, isActive = true } = req.body;
+    const userId = req.user.userId;
+    
+    const strategy = await TradingStrategy.create({
+      userId,
+      name,
+      description,
+      strategyType,
+      parameters,
+      isActive,
+      createdAt: new Date()
+    });
+    
+    res.status(201).json({
+      success: true,
+      data: strategy
+    });
+  } catch (error) {
+    logger.error('Failed to create strategy:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to create strategy'
+    });
+  }
+});
+
+// Get user strategies
+app.get('/api/v1/strategies', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const strategies = await TradingStrategy.findByUserId(userId);
+    
+    res.json({
+      success: true,
+      data: strategies
+    });
+  } catch (error) {
+    logger.error('Failed to fetch strategies:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch strategies'
+    });
+  }
+});
+
+// Update strategy
+app.put('/api/v1/strategies/:id', authenticateToken, [
+  body('name').optional().notEmpty().withMessage('Strategy name cannot be empty'),
+  body('description').optional().isString(),
+  body('strategyType').optional().isIn(['SCALPING', 'DAY_TRADING', 'SWING_TRADING', 'GRID_TRADING', 'DCA', 'ARBITRAGE', 'MOMENTUM', 'MEAN_REVERSION']).withMessage('Invalid strategy type'),
+  body('parameters').optional().isObject().withMessage('Parameters must be an object'),
+  body('isActive').optional().isBoolean()
+], validateInput, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.userId;
+    const updates = req.body;
+    
+    const strategy = await TradingStrategy.findByIdAndUpdate(
+      { _id: id, userId },
+      { ...updates, updatedAt: new Date() },
+      { new: true }
+    );
+    
+    if (!strategy) {
+      return res.status(404).json({
+        success: false,
+        error: 'Strategy not found'
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: strategy
+    });
+  } catch (error) {
+    logger.error('Failed to update strategy:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update strategy'
+    });
+  }
+});
+
+// Delete strategy
+app.delete('/api/v1/strategies/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.userId;
+    
+    const strategy = await TradingStrategy.findOneAndDelete({ _id: id, userId });
+    
+    if (!strategy) {
+      return res.status(404).json({
+        success: false,
+        error: 'Strategy not found'
+      });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Strategy deleted successfully'
+    });
+  } catch (error) {
+    logger.error('Failed to delete strategy:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to delete strategy'
+    });
+  }
+});
+
+// =============================================================================
+// TRADING BOT ENDPOINTS
+// =============================================================================
+
+// Get bot status
+app.get('/api/v1/bot/status', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    
+    // Get user's active strategies
+    const strategies = await TradingStrategy.find({ userId, isActive: true });
+    
+    // Get recent trades
+    const recentTrades = await Trade.find({ userId })
+      .sort({ createdAt: -1 })
+      .limit(10);
+    
+    // Get bot performance stats
+    const totalTrades = await Trade.countDocuments({ userId });
+    const winningTrades = await Trade.countDocuments({ userId, profit: { $gt: 0 } });
+    const totalProfit = await Trade.aggregate([
+      { $match: { userId } },
+      { $group: { _id: null, total: { $sum: '$profit' } } }
+    ]);
+    
+    res.json({
+      success: true,
+      data: {
+        activeStrategies: strategies.length,
+        totalTrades,
+        winningTrades,
+        winRate: totalTrades > 0 ? (winningTrades / totalTrades) * 100 : 0,
+        totalProfit: totalProfit[0]?.total || 0,
+        recentTrades
+      }
+    });
+  } catch (error) {
+    logger.error('Failed to get bot status:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get bot status'
+    });
+  }
+});
+
+// Get account balance from exchange
+app.get('/api/v1/exchanges/:exchange/balance', authenticateToken, async (req, res) => {
+  try {
+    const { exchange } = req.params;
+    const userId = req.user.userId;
+    
+    // Get user's exchange credentials
+    const exchangeConfig = await ExchangeConfig.findOne({ userId, exchange });
+    if (!exchangeConfig) {
+      return res.status(404).json({
+        success: false,
+        error: 'Exchange not configured'
+      });
+    }
+    
+    const balance = await exchangeService.getBalance(
+      exchange,
+      exchangeConfig.apiKey,
+      exchangeConfig.secretKey
+    );
+    
+    res.json({
+      success: true,
+      data: balance
+    });
+  } catch (error) {
+    logger.error('Failed to get balance:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get balance'
+    });
+  }
+});
+
 // Global error handler
 app.use(errorHandler);
 
@@ -929,6 +1213,14 @@ const startServer = async() => {
       logger.info(`📊 Environment: ${env.NODE_ENV}`);
       logger.info('🔒 Security features enabled');
       logger.info(`📈 Health check available at http://${env.HOST}:${env.PORT}/health`);
+      
+      // Initialize trading bot
+      const tradingBot = new TradingBot();
+      tradingBot.start().then(() => {
+        logger.info('🤖 Trading bot started successfully');
+      }).catch(error => {
+        logger.error('❌ Failed to start trading bot:', error);
+      });
     });
 
     // Handle server errors

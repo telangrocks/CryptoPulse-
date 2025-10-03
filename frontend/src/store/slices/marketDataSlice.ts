@@ -442,50 +442,23 @@ export const fetchMarketData = createAsyncThunk<
   'marketData/fetchMarketData',
   async ({ symbols, filters }, { rejectWithValue }) => {
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Mock market data
-      const mockData: MarketData[] = (symbols || ['BTCUSDT', 'ETHUSDT', 'BNBUSDT']).map(symbol => ({
-        symbol,
-        price: (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 100000 + 1000,
-        volume: (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 1000000 + 10000,
-        change: ((crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) - 0.5) * 1000,
-        changePercent: ((crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) - 0.5) * 20,
-        high: (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 100000 + 1000,
-        low: (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 100000 + 1000,
-        open: (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 100000 + 1000,
-        close: (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 100000 + 1000,
-        timestamp: Date.now(),
-        bid: (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 100000 + 1000,
-        ask: (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 100000 + 1000,
-        spread: (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 10,
-        marketCap: (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 1000000000 + 100000000,
-        circulatingSupply: (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 1000000000 + 100000000,
-        totalSupply: (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 1000000000 + 100000000,
-        high24h: (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 100000 + 1000,
-        low24h: (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 100000 + 1000,
-        volume24h: (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 1000000 + 10000,
-        priceChange24h: ((crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) - 0.5) * 1000,
-        priceChangePercent24h: ((crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) - 0.5) * 20,
-        lastPrice: (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 100000 + 1000,
-        lastQuantity: (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 100 + 1,
-        lastTradeTime: Date.now(),
-        isActive: true,
-        exchange: 'binance',
-        baseAsset: symbol.replace('USDT', ''),
-        quoteAsset: 'USDT',
-        filters: {
-          minPrice: 0.01,
-          maxPrice: 1000000,
-          tickSize: 0.01,
-          minQty: 0.001,
-          maxQty: 1000000,
-          stepSize: 0.001,
-        },
-      }));
-
-      return mockData;
+      // Fetch real market data from backend
+      const symbolList = symbols || ['BTCUSDT', 'ETHUSDT', 'BNBUSDT'];
+      const promises = symbolList.map(symbol => 
+        fetch(`/api/v1/market-data/ticker/${symbol}?exchange=binance`)
+          .then(res => res.json())
+          .then(data => data.success ? data.data : null)
+          .catch(() => null)
+      );
+      
+      const results = await Promise.all(promises);
+      const marketData = results.filter(data => data !== null);
+      
+      if (marketData.length === 0) {
+        throw new Error('No market data available');
+      }
+      
+      return marketData;
     } catch (error) {
       return rejectWithValue({
         code: 'MARKET_DATA_FETCH_FAILED',
@@ -509,34 +482,15 @@ export const fetchKlineData = createAsyncThunk<
   'marketData/fetchKlineData',
   async ({ symbol, interval, limit = 100 }, { rejectWithValue }) => {
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 800));
-
-      // Mock kline data
-      const klineData: KlineData[] = Array.from({ length: limit }, (_, index) => {
-        const basePrice = (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 100000 + 1000;
-        const openTime = Date.now() - (limit - index) * 60000; // 1 minute intervals
-        const closeTime = openTime + 60000;
-
-        return {
-          symbol,
-          interval,
-          openTime,
-          closeTime,
-          open: basePrice,
-          high: basePrice + (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 100,
-          low: basePrice - (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 100,
-          close: basePrice + ((crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) - 0.5) * 200,
-          volume: (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 1000 + 100,
-          quoteVolume: (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 1000000 + 100000,
-          trades: Math.floor((crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 1000) + 100,
-          takerBuyBaseVolume: (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 500 + 50,
-          takerBuyQuoteVolume: (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 500000 + 50000,
-          ignore: 0,
-        };
-      });
-
-      return { symbol, interval, data: klineData };
+      // Fetch real kline data from backend
+      const response = await fetch(`/api/v1/market-data/klines/${symbol}?exchange=binance&interval=${interval}&limit=${limit}`);
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to fetch kline data');
+      }
+      
+      return { symbol, interval, data: result.data };
     } catch (error) {
       return rejectWithValue({
         code: 'KLINE_DATA_FETCH_FAILED',
@@ -561,27 +515,15 @@ export const fetchOrderBookData = createAsyncThunk<
   'marketData/fetchOrderBookData',
   async ({ symbol, limit = 100 }, { rejectWithValue }) => {
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // Mock order book data
-      const basePrice = (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 100000 + 1000;
-      const bids: [number, number][] = Array.from({ length: limit }, (_, index) => [
-        basePrice - (index * 0.01),
-        (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 100 + 1,
-      ]);
-      const asks: [number, number][] = Array.from({ length: limit }, (_, index) => [
-        basePrice + (index * 0.01),
-        (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 100 + 1,
-      ]);
-
-      return {
-        symbol,
-        bids,
-        asks,
-        timestamp: Date.now(),
-        lastUpdateId: Date.now(),
-      };
+      // Fetch real order book data from backend
+      const response = await fetch(`/api/v1/market-data/orderbook/${symbol}?exchange=binance&limit=${limit}`);
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to fetch order book data');
+      }
+      
+      return result.data;
     } catch (error) {
       return rejectWithValue({
         code: 'ORDER_BOOK_FETCH_FAILED',
@@ -606,36 +548,15 @@ export const fetchTickerData = createAsyncThunk<
   'marketData/fetchTickerData',
   async ({ symbol }, { rejectWithValue }) => {
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 300));
-
-      // Mock ticker data
-      const basePrice = (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 100000 + 1000;
-      const priceChange = ((crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) - 0.5) * 1000;
-      const priceChangePercent = ((crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) - 0.5) * 20;
-
-      return {
-        symbol,
-        price: basePrice,
-        priceChange,
-        priceChangePercent,
-        weightedAvgPrice: basePrice + ((crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) - 0.5) * 100,
-        prevClosePrice: basePrice - priceChange,
-        lastPrice: basePrice,
-        lastQty: (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 100 + 1,
-        bidPrice: basePrice - (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 10,
-        askPrice: basePrice + (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 10,
-        openPrice: basePrice - priceChange,
-        highPrice: basePrice + (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 100,
-        lowPrice: basePrice - (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 100,
-        volume: (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 1000000 + 10000,
-        quoteVolume: (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 1000000000 + 10000000,
-        openTime: Date.now() - 24 * 60 * 60 * 1000,
-        closeTime: Date.now(),
-        firstId: Math.floor((crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 1000000),
-        lastId: Math.floor((crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 1000000) + 1000000,
-        count: Math.floor((crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 100000) + 10000,
-      };
+      // Fetch real ticker data from backend
+      const response = await fetch(`/api/v1/market-data/ticker/${symbol}?exchange=binance`);
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to fetch ticker data');
+      }
+      
+      return result.data;
     } catch (error) {
       return rejectWithValue({
         code: 'TICKER_DATA_FETCH_FAILED',

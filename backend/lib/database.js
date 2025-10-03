@@ -497,6 +497,108 @@ const ExchangeConfig = {
   }
 };
 
+const TradingStrategy = {
+  async create(strategyData) {
+    const { userId, name, description, strategyType, parameters, isActive } = strategyData;
+    const queryText = `
+      INSERT INTO trading_strategies (user_id, name, description, strategy_type, parameters, is_active, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+      RETURNING *
+    `;
+    const values = [userId, name, description, strategyType, JSON.stringify(parameters), isActive];
+    const result = await query(queryText, values);
+    return result.rows[0];
+  },
+
+  async findByUserId(userId) {
+    const queryText = 'SELECT * FROM trading_strategies WHERE user_id = $1 ORDER BY created_at DESC';
+    const result = await query(queryText, [userId]);
+    return result.rows.map(row => ({
+      ...row,
+      parameters: JSON.parse(row.parameters)
+    }));
+  },
+
+  async findByIdAndUpdate(filter, updates, options = {}) {
+    const { _id, userId } = filter;
+    const setClause = Object.keys(updates)
+      .map((key, index) => `${key} = $${index + 3}`)
+      .join(', ');
+    
+    const queryText = `
+      UPDATE trading_strategies 
+      SET ${setClause}, updated_at = NOW()
+      WHERE id = $1 AND user_id = $2
+      RETURNING *
+    `;
+    
+    const values = [_id, userId, ...Object.values(updates)];
+    const result = await query(queryText, values);
+    
+    if (result.rows.length === 0) {
+      return null;
+    }
+    
+    const row = result.rows[0];
+    return {
+      ...row,
+      parameters: JSON.parse(row.parameters)
+    };
+  },
+
+  async findOneAndDelete(filter) {
+    const { _id, userId } = filter;
+    const queryText = 'DELETE FROM trading_strategies WHERE id = $1 AND user_id = $2 RETURNING *';
+    const result = await query(queryText, [_id, userId]);
+    
+    if (result.rows.length === 0) {
+      return null;
+    }
+    
+    const row = result.rows[0];
+    return {
+      ...row,
+      parameters: JSON.parse(row.parameters)
+    };
+  },
+
+  async findActive() {
+    const queryText = 'SELECT * FROM trading_strategies WHERE is_active = true ORDER BY created_at DESC';
+    const result = await query(queryText);
+    return result.rows.map(row => ({
+      ...row,
+      parameters: JSON.parse(row.parameters)
+    }));
+  },
+
+  async find(filter) {
+    const { userId, isActive } = filter;
+    let queryText = 'SELECT * FROM trading_strategies WHERE 1=1';
+    const values = [];
+    let paramCount = 0;
+
+    if (userId) {
+      paramCount++;
+      queryText += ` AND user_id = $${paramCount}`;
+      values.push(userId);
+    }
+
+    if (isActive !== undefined) {
+      paramCount++;
+      queryText += ` AND is_active = $${paramCount}`;
+      values.push(isActive);
+    }
+
+    queryText += ' ORDER BY created_at DESC';
+
+    const result = await query(queryText, values);
+    return result.rows.map(row => ({
+      ...row,
+      parameters: JSON.parse(row.parameters)
+    }));
+  }
+};
+
 // Cache helpers
 const Cache = {
   async get(key) {
@@ -724,6 +826,7 @@ module.exports = {
   User,
   Trade,
   ExchangeConfig,
+  TradingStrategy,
   Cache,
   healthCheck,
   reconnectOnFailure,
