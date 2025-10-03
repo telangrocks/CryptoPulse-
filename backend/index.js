@@ -805,6 +805,18 @@ app.get('/api/v1/exchanges/configured', authenticateToken, async(req, res) => {
 // STATIC FILE SERVING
 // =============================================================================
 
+// =============================================================================
+// API ROUTES
+// =============================================================================
+
+// Import API routes
+const riskRoutes = require('./routes/risk');
+const backtestingRoutes = require('./routes/backtesting');
+
+// Mount API routes
+app.use('/api/risk', riskRoutes);
+app.use('/api/backtesting', backtestingRoutes);
+
 // Serve static files from the public directory
 app.use(express.static(path.join(__dirname, 'public')));
 

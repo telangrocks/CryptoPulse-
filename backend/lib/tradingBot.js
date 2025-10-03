@@ -6,6 +6,8 @@
 const marketDataService = require('./marketDataService');
 const { logger } = require('./logging');
 const { User: _User, Trade, TradingStrategy, ExchangeConfig: _ExchangeConfig } = require('./database');
+const { riskManager } = require('./riskManager');
+const { backtestingEngine } = require('./backtestingEngine');
 
 class TradingBot {
   constructor() {
@@ -13,9 +15,9 @@ class TradingBot {
     this.activeStrategies = new Map();
     this.signalQueue = [];
     this.processedSignals = [];
-    this.riskManager = new RiskManager();
+    this.riskManager = riskManager; // Use the singleton risk manager
     this.signalGenerator = new SignalGenerator();
-    this.backtester = new Backtester();
+    this.backtestingEngine = backtestingEngine; // Use the singleton backtesting engine
 
     // Bot configuration
     this.config = {
@@ -171,37 +173,58 @@ class TradingBot {
   // Process a trading signal
   async processSignal(signal) {
     try {
-      // Validate signal
-      if (!this.validateSignal(signal)) {
-        logger.warn('Invalid signal rejected:', signal);
+      // Validate signal using enhanced risk manager
+      const validation = await this.validateSignal(signal, signal.userId, signal.portfolioValue);
+      if (!validation.valid) {
+        logger.warn('Signal rejected by risk validation:', {
+          signalId: signal.id,
+          errors: validation.errors,
+          warnings: validation.warnings,
+        });
         return;
       }
 
-      // Risk management check
-      if (!await this.riskManager.validateSignal(signal)) {
-        logger.warn('Signal rejected by risk management:', signal);
-        return;
-      }
+      // Use adjusted signal if validation made changes
+      const finalSignal = validation.adjustedSignal || signal;
 
-      // Backtest the signal
-      const backtestResult = await this.backtester.testSignal(signal);
+      // Backtest the signal using the enhanced backtesting engine
+      const backtestResult = await this.backtestingEngine.runBacktest(
+        {
+          name: finalSignal.strategy || 'Signal Strategy',
+          parameters: finalSignal.parameters || {},
+          entryConditions: finalSignal.entryConditions || [],
+          exitConditions: finalSignal.exitConditions || [],
+        },
+        {
+          symbol: finalSignal.symbol,
+          startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+          endDate: new Date().toISOString(),
+          initialCapital: signal.portfolioValue || 10000,
+        }
+      );
+      
       if (!backtestResult.success) {
-        logger.warn('Signal failed backtest:', signal);
+        logger.warn('Signal failed backtest:', {
+          signalId: finalSignal.id,
+          error: backtestResult.error,
+        });
         return;
       }
 
       // Create trade record
-      const trade = await this.createTradeRecord(signal, backtestResult);
+      const trade = await this.createTradeRecord(finalSignal, backtestResult);
 
       // Send notification to user
-      await this.sendTradeNotification(signal, trade);
+      await this.sendTradeNotification(finalSignal, trade);
 
-      // Add to processed signals
+      // Add to processed signals with validation data
       this.processedSignals.push({
-        ...signal,
+        ...finalSignal,
         tradeId: trade.id,
         processedAt: Date.now(),
-        status: 'processed'
+        status: 'processed',
+        validation,
+        riskScore: validation.riskScore,
       });
 
       logger.info(`Signal processed successfully: ${signal.symbol} ${signal.action}`, {
@@ -216,24 +239,44 @@ class TradingBot {
   }
 
   // Validate trading signal
-  validateSignal(signal) {
-    if (!signal.symbol || !signal.action || !signal.entry || !signal.stopLoss || !signal.takeProfit) {
-      return false;
-    }
+  // Validate trading signal using the enhanced risk manager
+  async validateSignal(signal, userId, portfolioValue) {
+    try {
+      const validation = await this.riskManager.validateSignal(signal, userId, portfolioValue);
+      
+      if (!validation.valid) {
+        logger.warn('Signal validation failed', {
+          signalId: signal.id,
+          userId,
+          errors: validation.errors,
+          warnings: validation.warnings,
+        });
+      } else if (validation.warnings.length > 0) {
+        logger.info('Signal validation passed with warnings', {
+          signalId: signal.id,
+          userId,
+          warnings: validation.warnings,
+          riskScore: validation.riskScore,
+        });
+      } else {
+        logger.info('Signal validation passed', {
+          signalId: signal.id,
+          userId,
+          riskScore: validation.riskScore,
+        });
+      }
 
-    if (!['BUY', 'SELL'].includes(signal.action)) {
-      return false;
+      return validation;
+    } catch (error) {
+      logger.error('Signal validation error:', error);
+      return {
+        valid: false,
+        errors: ['Signal validation failed'],
+        warnings: [],
+        riskScore: 100,
+        adjustedSignal: signal,
+      };
     }
-
-    if (signal.confidence < 0 || signal.confidence > 100) {
-      return false;
-    }
-
-    if (signal.entry <= 0 || signal.stopLoss <= 0 || signal.takeProfit <= 0) {
-      return false;
-    }
-
-    return true;
   }
 
   // Create trade record
@@ -523,32 +566,9 @@ class SignalGenerator {
   }
 }
 
-// Risk Manager Class
-class RiskManager {
-  constructor() {
-    this.maxRiskPerTrade = 0.02; // 2%
-    this.maxDailyLoss = 0.05; // 5%
-    this.maxDrawdown = 0.1; // 10%
-  }
+// RiskManager class is now imported from './riskManager.js'
 
-  async validateSignal(_signal) {
-    // Implement risk validation logic
-    return true; // Simplified for now
-  }
-}
-
-// Backtester Class
-class Backtester {
-  async testSignal(_signal) {
-    // Implement backtesting logic
-    return {
-      success: true,
-      expectedReturn: 0.02,
-      maxDrawdown: 0.01,
-      riskRewardRatio: 2.0
-    };
-  }
-}
+// Backtester class is now imported from './backtestingEngine.js'
 
 // Technical Indicators Class
 class TechnicalIndicators {

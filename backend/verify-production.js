@@ -167,6 +167,30 @@ if (fileExists('.env.backend') || fileExists('env.backend')) {
   }
 }
 
+// Run additional validation checks
+logger.info('\n🔧 Additional Validation Checks:');
+
+// Check for configuration validation script
+check('Configuration validator exists', () => fileExists('../scripts/config-validator.js'), 1);
+
+// Check for secrets manager
+check('Secrets manager exists', () => fileExists('../scripts/secrets-manager.js'), 1);
+
+// Check for configuration guide
+check('Configuration guide exists', () => fileExists('../CONFIGURATION_GUIDE.md'), 1);
+
+// Run configuration validation if script exists
+if (fileExists('../scripts/config-validator.js')) {
+  try {
+    const { execSync } = require('child_process');
+    execSync('node ../scripts/config-validator.js', { stdio: 'pipe' });
+    check('Configuration validation passed', () => true, 2);
+  } catch (error) {
+    check('Configuration validation passed', () => false, 2);
+    issues.push('Configuration validation failed - run: node scripts/config-validator.js');
+  }
+}
+
 // Calculate final score
 const percentage = Math.round((score / maxScore) * 100);
 
@@ -199,14 +223,18 @@ if (warnings.length > 0) {
 logger.info('\n💡 Recommendations:');
 if (percentage < 90) {
   logger.info('   - Fix all issues above before production deployment');
-  logger.info('   - Run security audit: npm run audit:security');
-  logger.info('   - Test all endpoints: npm run test');
-  logger.info('   - Verify environment configuration');
+  logger.info('   - Run configuration validation: node scripts/config-validator.js');
+  logger.info('   - Run secrets audit: node scripts/secrets-manager.js audit');
+  logger.info('   - Run security audit: pnpm run audit:security');
+  logger.info('   - Test all endpoints: pnpm run test');
+  logger.info('   - Review configuration guide: CONFIGURATION_GUIDE.md');
 } else {
-  logger.info('   - Run final security audit: npm run audit:security');
+  logger.info('   - Configuration is production-ready!');
+  logger.info('   - Run final security audit: pnpm run audit:security');
   logger.info('   - Test in staging environment');
   logger.info('   - Set up monitoring and alerting');
   logger.info('   - Configure backup and disaster recovery');
+  logger.info('   - Schedule regular secret rotation (every 90 days)');
 }
 
 logger.info('\n🚀 Production readiness check complete!');

@@ -28,7 +28,12 @@
     "audit:security": "node ../scripts/security-audit.js",
     "audit:deps": "pnpm audit --audit-level=moderate",
     "precommit": "pnpm lint && pnpm test && pnpm audit:security",
-    "production:check": "pnpm verify:production && pnpm audit:deps && pnpm test:ci"
+    "production:check": "pnpm verify:production && pnpm audit:deps && pnpm test:ci",
+    "config:validate": "node ../scripts/config-validator.js",
+    "config:secrets": "node ../scripts/secrets-manager.js audit",
+    "config:secrets:generate": "node ../scripts/secrets-manager.js generate",
+    "config:secrets:audit": "node ../scripts/secrets-manager.js audit",
+    "config:secrets:rotate": "node ../scripts/secrets-manager.js rotate"
   },
   "dependencies": {
     "axios": "1.12.0",

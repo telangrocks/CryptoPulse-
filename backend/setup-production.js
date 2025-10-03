@@ -188,11 +188,32 @@ async function setupProduction() {
     // Create production environment
     const prodEnvPath = createProductionEnv();
 
+    // Run configuration validation
+    logger.info('\n🔍 Running configuration validation...');
+    try {
+      const { execSync } = require('child_process');
+      execSync('node scripts/config-validator.js', { stdio: 'inherit' });
+      logger.info('✅ Configuration validation passed');
+    } catch (validationError) {
+      logger.warn('⚠️  Configuration validation failed - please review and fix issues');
+    }
+
+    // Run secrets audit
+    logger.info('\n🔐 Running secrets audit...');
+    try {
+      const { execSync } = require('child_process');
+      execSync('node scripts/secrets-manager.js audit', { stdio: 'inherit' });
+      logger.info('✅ Secrets audit completed');
+    } catch (auditError) {
+      logger.warn('⚠️  Secrets audit found issues - please review');
+    }
+
     logger.info('\n🔒 Security Notes:');
     logger.info('   - Production secrets have been generated securely');
     logger.info('   - Never commit .env files to version control');
     logger.info('   - Store production secrets in a secure secret management system');
-    logger.info('   - Rotate secrets regularly in production');
+    logger.info('   - Rotate secrets regularly in production (every 90 days)');
+    logger.info('   - Use HTTPS and SSL certificates in production');
 
     logger.info('\n📋 Next Steps:');
     logger.info('   1. Update DATABASE_URL with your production database');
@@ -200,9 +221,12 @@ async function setupProduction() {
     logger.info('   3. Set up payment configuration (Cashfree)');
     logger.info('   4. Configure monitoring and alerting');
     logger.info('   5. Set up SSL certificates for HTTPS');
+    logger.info('   6. Run production readiness check: pnpm run verify:production');
+    logger.info('   7. Deploy to production environment');
 
     logger.info('\n✅ Production setup complete!');
     logger.info(`   Environment file: ${prodEnvPath}`);
+    logger.info('   Configuration guide: CONFIGURATION_GUIDE.md');
 
   } catch (error) {
     logger.error('❌ Setup failed:', error.message);
