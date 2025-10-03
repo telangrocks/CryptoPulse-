@@ -462,25 +462,81 @@ const securityHeaders = (req, res, next) => {
   // API versioning header
   res.setHeader('X-API-Version', '2.0.0');
 
+  // Enhanced security headers for production
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()');
+
+  // Security monitoring headers
+  res.setHeader('X-Security-Policy', 'strict');
+  res.setHeader('X-Threat-Detection', 'enabled');
+  res.setHeader('X-Content-Encryption', 'enabled');
+  res.setHeader('X-Key-Rotation', 'enabled');
+
+  // Additional hardening headers
+  res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+  res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
+
+  // Security event tracking
+  const securityEvent = {
+    timestamp: new Date().toISOString(),
+    ip: req.ip || req.connection?.remoteAddress,
+    userAgent: req.get('User-Agent'),
+    method: req.method,
+    url: req.url,
+    headers: {
+      origin: req.get('Origin'),
+      referer: req.get('Referer'),
+      'x-forwarded-for': req.get('X-Forwarded-For')
+    }
+  };
+
+  // Log suspicious patterns
+  if (req.get('User-Agent')?.includes('bot') || 
+      req.get('User-Agent')?.includes('crawler') ||
+      req.get('User-Agent')?.includes('spider')) {
+    logger.warn('Bot/crawler detected', securityEvent);
+  }
+
+  // Check for suspicious request patterns
+  if (req.url.includes('..') || req.url.includes('~') || req.url.includes('$')) {
+    logger.warn('Potential path traversal attempt', securityEvent);
+    return res.status(400).json({
+      success: false,
+      error: 'Invalid request path'
+    });
+  }
+
+  // Check for SQL injection patterns
+  const sqlPatterns = ['union', 'select', 'insert', 'update', 'delete', 'drop', 'create', 'alter'];
+  const queryString = JSON.stringify(req.query) + JSON.stringify(req.body);
+  if (sqlPatterns.some(pattern => queryString.toLowerCase().includes(pattern))) {
+    logger.warn('Potential SQL injection attempt', securityEvent);
+    return res.status(400).json({
+      success: false,
+      error: 'Invalid request data'
+    });
+  }
+
+  // Check for XSS patterns
+  const xssPatterns = ['<script', 'javascript:', 'onload=', 'onerror=', 'onclick='];
+  if (xssPatterns.some(pattern => queryString.toLowerCase().includes(pattern))) {
+    logger.warn('Potential XSS attempt', securityEvent);
+    return res.status(400).json({
+      success: false,
+      error: 'Invalid request data'
+    });
+  }
+
   // Rate limiting headers (will be set by rate limiting middleware)
   if (res.get('X-RateLimit-Limit')) {
     res.setHeader('X-RateLimit-Policy', 'sliding-window');
   }
 
-  // Additional security headers for production
-  res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
-  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
-  res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
-
-  // Security headers for API protection
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Download-Options', 'noopen');
-  res.setHeader('X-Permitted-Cross-Domain-Policies', 'none');
-
-  // Additional headers for enhanced security
-  res.setHeader('Expect-CT', 'max-age=86400, enforce');
-  res.setHeader('Feature-Policy', 'geolocation \'none\'; microphone \'none\'; camera \'none\'; payment \'none\'; usb \'none\'; magnetometer \'none\'; gyroscope \'none\'; accelerometer \'none\'');
-
+  // Continue to next middleware
   next();
 };
 

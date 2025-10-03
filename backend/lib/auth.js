@@ -30,35 +30,137 @@ if (uniqueChars < 16) {
   throw new Error('JWT_SECRET has insufficient entropy - use a more random secret');
 }
 
-// Password hashing
+// Additional security checks for JWT_SECRET
+const jwtSecretValidation = {
+  // Check for dictionary words
+  hasDictionaryWords: /password|secret|key|token|jwt|auth|login|admin/i.test(JWT_SECRET),
+  
+  // Check for sequential characters
+  hasSequentialChars: /(.)\1{2,}/.test(JWT_SECRET),
+  
+  // Check for common patterns
+  hasCommonPatterns: /123|abc|qwe|asd|zxc/i.test(JWT_SECRET),
+  
+  // Check for base64-like patterns (too structured)
+  isBase64Like: /^[A-Za-z0-9+/=]+$/.test(JWT_SECRET) && JWT_SECRET.length % 4 === 0
+};
+
+// Validate JWT_SECRET against security criteria
+if (jwtSecretValidation.hasDictionaryWords) {
+  throw new Error('JWT_SECRET contains dictionary words - use cryptographically random values');
+}
+
+if (jwtSecretValidation.hasSequentialChars) {
+  throw new Error('JWT_SECRET contains sequential characters - use more random values');
+}
+
+if (jwtSecretValidation.hasCommonPatterns) {
+  throw new Error('JWT_SECRET contains common patterns - use more random values');
+}
+
+if (jwtSecretValidation.isBase64Like) {
+  logger.warn('JWT_SECRET appears to be base64-like - ensure it is cryptographically random');
+}
+
+// Log JWT_SECRET validation success
+logger.info('JWT_SECRET validation passed', {
+  length: JWT_SECRET.length,
+  uniqueChars,
+  entropy: Math.log2(uniqueChars).toFixed(2)
+});
+
+// Enhanced password hashing with additional security
 const hashPassword = async(password) => {
-  const saltRounds = 12;
+  if (!password || typeof password !== 'string') {
+    throw new Error('Password must be a non-empty string');
+  }
+  
+  if (password.length < 8) {
+    throw new Error('Password must be at least 8 characters long');
+  }
+  
+  // Check for weak passwords
+  const weakPasswordPatterns = [
+    /password/i,
+    /123456/,
+    /qwerty/i,
+    /admin/i,
+    /user/i,
+    /test/i,
+    /demo/i
+  ];
+  
+  if (weakPasswordPatterns.some(pattern => pattern.test(password))) {
+    throw new Error('Password appears to be weak - choose a stronger password');
+  }
+  
+  const saltRounds = 14; // Increased from 12 for better security
   return await hash(password, saltRounds);
 };
 
 const comparePassword = async(password, hashedPassword) => {
-  return await compare(password, hashedPassword);
+  if (!password || !hashedPassword) {
+    throw new Error('Both password and hashed password are required');
+  }
+  
+  try {
+    return await compare(password, hashedPassword);
+  } catch (error) {
+    logger.error('Password comparison failed:', error);
+    throw new Error('Password comparison failed');
+  }
 };
 
-// JWT token generation
+// Enhanced JWT token generation with additional security
 const generateTokens = (payload) => {
-  const accessToken = jwt.sign(payload, JWT_SECRET, {
+  if (!payload || !payload.userId) {
+    throw new Error('Valid payload with userId is required');
+  }
+  
+  // Add additional security claims
+  const enhancedPayload = {
+    ...payload,
+    iat: Math.floor(Date.now() / 1000),
+    jti: require('crypto').randomUUID(), // Unique token identifier
+    iss: 'cryptopulse-api',
+    aud: 'cryptopulse-client',
+    version: '2.0.0'
+  };
+  
+  const accessToken = jwt.sign(enhancedPayload, JWT_SECRET, {
     expiresIn: JWT_EXPIRES_IN,
     issuer: 'cryptopulse-api',
-    audience: 'cryptopulse-client'
+    audience: 'cryptopulse-client',
+    algorithm: 'HS256'
   });
 
   const refreshToken = jwt.sign(
-    { userId: payload.userId, type: 'refresh' },
+    { 
+      ...enhancedPayload, 
+      type: 'refresh' 
+    },
     JWT_SECRET,
     {
       expiresIn: JWT_REFRESH_EXPIRES_IN,
       issuer: 'cryptopulse-api',
-      audience: 'cryptopulse-client'
+      audience: 'cryptopulse-client',
+      algorithm: 'HS256'
     }
   );
 
-  return { accessToken, refreshToken };
+  logger.info('JWT tokens generated', {
+    userId: payload.userId,
+    jti: enhancedPayload.jti,
+    expiresIn: JWT_EXPIRES_IN
+  });
+
+  return {
+    accessToken,
+    refreshToken,
+    tokenType: 'Bearer',
+    expiresIn: JWT_EXPIRES_IN,
+    jti: enhancedPayload.jti
+  };
 };
 
 // JWT token verification with enhanced security
