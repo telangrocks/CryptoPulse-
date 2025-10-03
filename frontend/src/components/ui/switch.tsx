@@ -1,9 +1,7 @@
 import * as SwitchPrimitives from '@radix-ui/react-switch';
 import React from 'react';
 
-import { cn } from '@/lib/utils';
-
-import { generateRandomId } from '../../lib/utils';
+import { cn , generateRandomId } from '@/lib/utils';
 
 export interface SwitchProps
   extends React.ComponentPropsWithoutRef<typeof SwitchPrimitives.Root> {

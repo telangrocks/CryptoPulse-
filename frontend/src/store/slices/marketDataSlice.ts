@@ -11,9 +11,8 @@
 
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 
-import { RootState } from '../index';
-
 import { generateRandomId } from '../../lib/utils';
+import { RootState } from '../index';
 
 // ============================================================================
 // TYPES AND INTERFACES
@@ -444,20 +443,20 @@ export const fetchMarketData = createAsyncThunk<
     try {
       // Fetch real market data from backend
       const symbolList = symbols || ['BTCUSDT', 'ETHUSDT', 'BNBUSDT'];
-      const promises = symbolList.map(symbol => 
+      const promises = symbolList.map(symbol =>
         fetch(`/api/v1/market-data/ticker/${symbol}?exchange=binance`)
           .then(res => res.json())
           .then(data => data.success ? data.data : null)
-          .catch(() => null)
+          .catch(() => null),
       );
-      
+
       const results = await Promise.all(promises);
       const marketData = results.filter(data => data !== null);
-      
+
       if (marketData.length === 0) {
         throw new Error('No market data available');
       }
-      
+
       return marketData;
     } catch (error) {
       return rejectWithValue({
@@ -485,11 +484,11 @@ export const fetchKlineData = createAsyncThunk<
       // Fetch real kline data from backend
       const response = await fetch(`/api/v1/market-data/klines/${symbol}?exchange=binance&interval=${interval}&limit=${limit}`);
       const result = await response.json();
-      
+
       if (!result.success) {
         throw new Error(result.error || 'Failed to fetch kline data');
       }
-      
+
       return { symbol, interval, data: result.data };
     } catch (error) {
       return rejectWithValue({
@@ -518,11 +517,11 @@ export const fetchOrderBookData = createAsyncThunk<
       // Fetch real order book data from backend
       const response = await fetch(`/api/v1/market-data/orderbook/${symbol}?exchange=binance&limit=${limit}`);
       const result = await response.json();
-      
+
       if (!result.success) {
         throw new Error(result.error || 'Failed to fetch order book data');
       }
-      
+
       return result.data;
     } catch (error) {
       return rejectWithValue({
@@ -551,11 +550,11 @@ export const fetchTickerData = createAsyncThunk<
       // Fetch real ticker data from backend
       const response = await fetch(`/api/v1/market-data/ticker/${symbol}?exchange=binance`);
       const result = await response.json();
-      
+
       if (!result.success) {
         throw new Error(result.error || 'Failed to fetch ticker data');
       }
-      
+
       return result.data;
     } catch (error) {
       return rejectWithValue({

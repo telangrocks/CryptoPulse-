@@ -1,8 +1,6 @@
 import React from 'react';
 
-import { cn } from '@/lib/utils';
-
-import { generateRandomId } from '../../lib/utils';
+import { cn , generateRandomId } from '@/lib/utils';
 
 export interface InputProps extends React.ComponentProps<'input'> {
   /**

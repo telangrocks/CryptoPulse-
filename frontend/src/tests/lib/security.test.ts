@@ -15,7 +15,7 @@ import {
   generateCSRFToken,
   validateCSRFToken,
   secureStorage,
-  securityMonitor
+  securityMonitor,
 } from '../../lib/security';
 
 describe('Security Utilities', () => {
@@ -318,21 +318,21 @@ describe('Security Utilities', () => {
         'Suspicious activity detected:',
         expect.objectContaining({
           activity: 'test-activity',
-          details: { details: 'test' }
-        })
+          details: { details: 'test' },
+        }),
       );
     });
 
     it('should log security events', () => {
       const consoleInfoSpy = jest.spyOn(console, 'info').mockImplementation(() => {});
-      
+
       securityMonitor.logSecurityEvent('test-event', { details: 'test' });
       expect(consoleInfoSpy).toHaveBeenCalledWith(
         'Security event:',
         expect.objectContaining({
           event: 'test-event',
-          details: { details: 'test' }
-        })
+          details: { details: 'test' },
+        }),
       );
 
       consoleInfoSpy.mockRestore();

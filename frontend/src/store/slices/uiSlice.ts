@@ -11,9 +11,8 @@
 
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 
-import { RootState } from '../index';
-
 import { generateRandomId } from '../../lib/utils';
+import { RootState } from '../index';
 
 // ============================================================================
 // TYPES AND INTERFACES

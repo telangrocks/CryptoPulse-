@@ -403,7 +403,7 @@ const PerformanceAnalytics = memo(function PerformanceAnalytics() {
                         className={`text-sm font-semibold ${
                           trade.pnl >= 0 ? 'text-green-400' : 'text-red-400'
                         }`}
-  >
+                      >
                         {formatCurrency(trade.pnl)} ({formatPercentage(trade.pnlPercent)})
                       </p>
                     </div>

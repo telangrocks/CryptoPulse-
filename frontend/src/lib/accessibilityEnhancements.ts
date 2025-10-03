@@ -18,7 +18,7 @@ export function createAriaAttributes(options: {
   disabled?: boolean;
 }): Record<string, string | boolean | number> {
   const attrs: Record<string, string | boolean | number> = {};
-  
+
   if (options.label) attrs['aria-label'] = options.label;
   if (options.describedBy) attrs['aria-describedby'] = options.describedBy;
   if (typeof options.expanded === 'boolean') attrs['aria-expanded'] = options.expanded;
@@ -30,7 +30,7 @@ export function createAriaAttributes(options: {
   if (typeof options.selected === 'boolean') attrs['aria-selected'] = options.selected;
   if (typeof options.checked === 'boolean') attrs['aria-checked'] = options.checked;
   if (typeof options.disabled === 'boolean') attrs['aria-disabled'] = options.disabled;
-  
+
   return attrs;
 }
 
@@ -39,14 +39,14 @@ export const focusManager = {
   // Trap focus within an element
   trapFocus(container: HTMLElement): () => void {
     const focusableElements = container.querySelectorAll(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
     );
     const firstFocusable = focusableElements[0] as HTMLElement;
     const lastFocusable = focusableElements[focusableElements.length - 1] as HTMLElement;
-    
+
     const handleTabKey = (e: KeyboardEvent) => {
       if (e.key !== 'Tab') return;
-      
+
       if (e.shiftKey) {
         if (document.activeElement === firstFocusable) {
           lastFocusable.focus();
@@ -59,17 +59,17 @@ export const focusManager = {
         }
       }
     };
-    
+
     container.addEventListener('keydown', handleTabKey);
     firstFocusable?.focus();
-    
+
     return () => container.removeEventListener('keydown', handleTabKey);
   },
-  
+
   // Store and restore focus
   createFocusManager() {
     let previousFocus: HTMLElement | null = null;
-    
+
     return {
       store() {
         previousFocus = document.activeElement as HTMLElement;
@@ -81,7 +81,7 @@ export const focusManager = {
       },
     };
   },
-  
+
   // Focus first error element
   focusFirstError(container: HTMLElement = document.body) {
     const errorElement = container.querySelector('[aria-invalid="true"], .error') as HTMLElement;
@@ -104,14 +104,14 @@ export const announcer = {
     document.body.appendChild(liveRegion);
     return liveRegion;
   },
-  
+
   // Announce message to screen readers
   announce(message: string, priority: 'polite' | 'assertive' = 'polite') {
     const liveRegion = document.getElementById('sr-live-region') || this.createLiveRegion();
     liveRegion.id = 'sr-live-region';
     liveRegion.setAttribute('aria-live', priority);
     liveRegion.textContent = message;
-    
+
     // Clear after announcement
     setTimeout(() => {
       liveRegion.textContent = '';
@@ -125,11 +125,11 @@ export const keyboardNav = {
   handleArrowKeys(
     elements: HTMLElement[],
     currentIndex: number,
-    orientation: 'horizontal' | 'vertical' = 'vertical'
+    orientation: 'horizontal' | 'vertical' = 'vertical',
   ) {
     return (e: KeyboardEvent) => {
       let newIndex = currentIndex;
-      
+
       if (orientation === 'vertical') {
         if (e.key === 'ArrowDown') {
           newIndex = (currentIndex + 1) % elements.length;
@@ -143,14 +143,14 @@ export const keyboardNav = {
           newIndex = currentIndex === 0 ? elements.length - 1 : currentIndex - 1;
         }
       }
-      
+
       if (newIndex !== currentIndex) {
         elements[newIndex].focus();
         e.preventDefault();
       }
     };
   },
-  
+
   // Handle escape key
   handleEscape(callback: () => void) {
     return (e: KeyboardEvent) => {
@@ -160,7 +160,7 @@ export const keyboardNav = {
       }
     };
   },
-  
+
   // Handle enter/space activation
   handleActivation(callback: () => void) {
     return (e: KeyboardEvent) => {
@@ -178,15 +178,15 @@ export const colorContrast = {
   getLuminance(hex: string): number {
     const rgb = this.hexToRgb(hex);
     if (!rgb) return 0;
-    
+
     const [r, g, b] = [rgb.r, rgb.g, rgb.b].map(c => {
       c = c / 255;
       return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
     });
-    
+
     return 0.2126 * r + 0.7152 * g + 0.0722 * b;
   },
-  
+
   // Convert hex to RGB
   hexToRgb(hex: string): { r: number; g: number; b: number } | null {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -196,7 +196,7 @@ export const colorContrast = {
       b: parseInt(result[3], 16),
     } : null;
   },
-  
+
   // Calculate contrast ratio
   getContrastRatio(color1: string, color2: string): number {
     const lum1 = this.getLuminance(color1);
@@ -205,7 +205,7 @@ export const colorContrast = {
     const darkest = Math.min(lum1, lum2);
     return (brightest + 0.05) / (darkest + 0.05);
   },
-  
+
   // Check if contrast meets WCAG standards
   meetsWCAG(color1: string, color2: string, level: 'AA' | 'AAA' = 'AA'): boolean {
     const ratio = this.getContrastRatio(color1, color2);
@@ -219,7 +219,7 @@ export const motionPreferences = {
   prefersReducedMotion(): boolean {
     return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   },
-  
+
   // Apply animation only if user doesn't prefer reduced motion
   conditionalAnimation(element: HTMLElement, animation: () => void) {
     if (!this.prefersReducedMotion()) {
@@ -234,7 +234,7 @@ export const highContrast = {
   isHighContrastMode(): boolean {
     return window.matchMedia('(prefers-contrast: high)').matches;
   },
-  
+
   // Apply high contrast styles
   applyHighContrastStyles(element: HTMLElement) {
     if (this.isHighContrastMode()) {
@@ -252,12 +252,12 @@ export const formA11y = {
     input.id = id;
     label.setAttribute('for', id);
   },
-  
+
   // Add error message
   addErrorMessage(input: HTMLInputElement, message: string) {
     const errorId = `${input.id}-error`;
     let errorElement = document.getElementById(errorId);
-    
+
     if (!errorElement) {
       errorElement = document.createElement('div');
       errorElement.id = errorId;
@@ -265,21 +265,21 @@ export const formA11y = {
       errorElement.setAttribute('aria-live', 'polite');
       input.parentNode?.insertBefore(errorElement, input.nextSibling);
     }
-    
+
     errorElement.textContent = message;
     input.setAttribute('aria-invalid', 'true');
     input.setAttribute('aria-describedby', errorId);
   },
-  
+
   // Clear error message
   clearErrorMessage(input: HTMLInputElement) {
     const errorId = `${input.id}-error`;
     const errorElement = document.getElementById(errorId);
-    
+
     if (errorElement) {
       errorElement.remove();
     }
-    
+
     input.removeAttribute('aria-invalid');
     input.removeAttribute('aria-describedby');
   },

@@ -3,13 +3,14 @@
 // =============================================================================
 // Comprehensive tests for the main Dashboard component
 
-import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import React from 'react';
 import { Provider } from 'react-redux';
-import { store } from '../../store';
+import { BrowserRouter } from 'react-router-dom';
+
 import Dashboard from '../../components/Dashboard';
+import { store } from '../../store';
 
 // Mock the authentication context
 jest.mock('../../contexts/AuthContext', () => ({
@@ -18,12 +19,12 @@ jest.mock('../../contexts/AuthContext', () => ({
       id: 'user123',
       email: 'test@example.com',
       firstName: 'John',
-      lastName: 'Doe'
+      lastName: 'Doe',
     },
     isAuthenticated: true,
     login: jest.fn(),
-    logout: jest.fn()
-  })
+    logout: jest.fn(),
+  }),
 }));
 
 // Mock the API hooks
@@ -32,8 +33,8 @@ jest.mock('../../hooks/useAuthenticatedAPI', () => ({
     get: jest.fn(),
     post: jest.fn(),
     put: jest.fn(),
-    delete: jest.fn()
-  })
+    delete: jest.fn(),
+  }),
 }));
 
 // Mock the trading components
@@ -86,7 +87,7 @@ describe('Dashboard Component', () => {
     render(
       <TestWrapper>
         <Dashboard />
-      </TestWrapper>
+      </TestWrapper>,
     );
 
     expect(screen.getByTestId('trade-execution')).toBeInTheDocument();
@@ -98,7 +99,7 @@ describe('Dashboard Component', () => {
     render(
       <TestWrapper>
         <Dashboard />
-      </TestWrapper>
+      </TestWrapper>,
     );
 
     // Check if user information is displayed
@@ -110,7 +111,7 @@ describe('Dashboard Component', () => {
     render(
       <TestWrapper>
         <Dashboard />
-      </TestWrapper>
+      </TestWrapper>,
     );
 
     // Test that all main components are rendered
@@ -134,7 +135,7 @@ describe('Dashboard Component', () => {
     render(
       <TestWrapper>
         <Dashboard />
-      </TestWrapper>
+      </TestWrapper>,
     );
 
     // Test that components are still rendered on mobile
@@ -150,7 +151,7 @@ describe('Dashboard Component', () => {
     render(
       <TestWrapper>
         <Dashboard />
-      </TestWrapper>
+      </TestWrapper>,
     );
 
     // Verify components are still rendered even if there are errors

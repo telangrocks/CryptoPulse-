@@ -4,7 +4,22 @@
  * @author CryptoPulse Team
  */
 
-import { createSelector, createSelectorCreator, defaultMemoize } from '@reduxjs/toolkit';
+import { createSelector, createSelectorCreator } from '@reduxjs/toolkit';
+
+// Simple memoize function for performance optimization
+const defaultMemoize = (fn: Function) => {
+  let lastArgs: any[] = [];
+  let lastResult: any;
+  
+  return (...args: any[]) => {
+    if (args.length !== lastArgs.length || 
+        !args.every((arg, i) => arg === lastArgs[i])) {
+      lastArgs = args;
+      lastResult = fn(...args);
+    }
+    return lastResult;
+  };
+};
 
 import { RootState } from '../types';
 

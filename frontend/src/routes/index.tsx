@@ -20,11 +20,11 @@ const MonitoringDashboard = lazy(() => import('../components/MonitoringDashboard
 const PerformanceAnalytics = lazy(() => import('../components/PerformanceAnalytics'));
 const EndToEndAutomation = lazy(() => import('../components/EndToEndAutomation'));
 const ExchangeIntegration = lazy(() => import('../components/ExchangeIntegration'));
-// const AIAssistant = lazy(() => import('../components/AIAssistant'));
-// const AutomationDashboard = lazy(() => import('../components/AutomationDashboard'));
-// const EnhancedTradeConfirmation = lazy(() => import('../components/EnhancedTradeConfirmation'));
-// const EnhancedNotificationCenter = lazy(() => import('../components/EnhancedNotificationCenter'));
-// const BalanceDashboard = lazy(() => import('../components/BalanceDashboard'));
+const AIAssistant = lazy(() => import('../components/AIAssistant'));
+const AutomationDashboard = lazy(() => import('../components/AutomationDashboard'));
+const EnhancedTradeConfirmation = lazy(() => import('../components/EnhancedTradeConfirmation'));
+const EnhancedNotificationCenter = lazy(() => import('../components/EnhancedNotificationCenter'));
+const BalanceDashboard = lazy(() => import('../components/BalanceDashboard'));
 const SubscriptionManagement = lazy(() => import('../components/SubscriptionManagement'));
 const CashfreePayment = lazy(() => import('../components/CashfreePayment'));
 const PaymentSuccess = lazy(() => import('../components/PaymentSuccess'));
@@ -68,7 +68,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 // Wrapper components for components that need props
 function AIAssistantWrapper() {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
   return (
     <AIAssistant
       isOpen={isOpen}
@@ -96,17 +96,31 @@ function TradeConfirmationWrapper() {
     exchange: import.meta.env.VITE_DEFAULT_EXCHANGE || 'wazirx',
   };
   const handleConfirm = (confirmed: boolean, tradeData?: unknown) => {
-    // Trade confirmation logic
+    console.log('Trade confirmed:', confirmed, tradeData);
   };
   const handleClose = () => {
-    // Trade confirmation close logic
+    console.log('Trade confirmation closed');
   };
   return (
     <EnhancedTradeConfirmation
-      onClose={handleClose}
+      onCancel={handleClose}
       onConfirm={handleConfirm}
-      signal={mockSignal}
-      userApiKeys={apiKeys}
+      signal={{
+        id: 'test_signal',
+        symbol: mockSignal.pair,
+        action: mockSignal.action,
+        entry: mockSignal.entry,
+        stopLoss: mockSignal.stopLoss,
+        takeProfit: mockSignal.takeProfit,
+        confidence: mockSignal.confidence,
+        riskReward: 2.0,
+        timeframe: '1h',
+        strategy: 'Momentum',
+        timestamp: new Date(mockSignal.timestamp),
+        expectedReturn: 5.0,
+        maxDrawdown: 2.5
+      }}
+      isVisible={false}
     />
   );
 }
@@ -289,7 +303,7 @@ export function AppRoutes() {
               </ProtectedRoute>
             }
             path="/payment-success"
-  />
+          />
           {/* Catch all route */}
           <Route element={<Navigate replace to="/" />} path="*" />
         </Routes>

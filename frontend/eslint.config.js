@@ -233,14 +233,14 @@ export default [
   {
     // Service Worker specific configuration - try multiple patterns
     files: [
-      '**/sw.js', 
-      '**/service-worker.js', 
-      'public/sw.js', 
+      '**/sw.js',
+      '**/service-worker.js',
+      'public/sw.js',
       '**/public/sw.js',
       'frontend/public/sw.js',
       './public/sw.js',
       'public/**/*.js',
-      '**/public/**/*.js'
+      '**/public/**/*.js',
     ],
     languageOptions: {
       ecmaVersion: 2022,

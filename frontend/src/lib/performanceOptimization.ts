@@ -146,7 +146,7 @@ export function usePerformanceOptimization() {
  */
 export function createMemoizedCallback<T extends (...args: any[]) => any>(
   fn: T,
-  deps: React.DependencyList = []
+  deps: React.DependencyList = [],
 ): T {
   return useCallback(fn, deps) as T;
 }
@@ -156,7 +156,7 @@ export function createMemoizedCallback<T extends (...args: any[]) => any>(
  */
 export function createMemoizedValue<T>(
   factory: () => T,
-  deps: React.DependencyList = []
+  deps: React.DependencyList = [],
 ): T {
   return useMemo(factory, deps);
 }

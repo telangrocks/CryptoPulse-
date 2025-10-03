@@ -3,22 +3,23 @@
 // =============================================================================
 // Production-ready Vitest configuration
 
-import { defineConfig } from 'vitest/config';
-import react from '@vitejs/plugin-react';
 import path from 'path';
+
+import react from '@vitejs/plugin-react';
+import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   plugins: [react()],
   test: {
     // Test environment
     environment: 'jsdom',
-    
+
     // Setup files
     setupFiles: ['./src/tests/setup.ts'],
-    
+
     // Global test configuration
     globals: true,
-    
+
     // Coverage configuration
     coverage: {
       provider: 'v8',
@@ -40,12 +41,12 @@ export default defineConfig({
         },
       },
     },
-    
+
     // Test file patterns
     include: [
       'src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
     ],
-    
+
     // Exclude patterns
     exclude: [
       'node_modules/',
@@ -55,13 +56,13 @@ export default defineConfig({
       'coverage/',
       'src/tests/setup.ts',
     ],
-    
+
     // Test timeout
     testTimeout: 10000,
-    
+
     // Hooks timeout
     hookTimeout: 10000,
-    
+
     // Concurrent tests
     pool: 'threads',
     poolOptions: {
@@ -70,7 +71,7 @@ export default defineConfig({
       },
     },
   },
-  
+
   // Resolve aliases
   resolve: {
     alias: {
@@ -82,7 +83,7 @@ export default defineConfig({
       '@/types': path.resolve(__dirname, './src/types'),
     },
   },
-  
+
   // Define global variables
   define: {
     __DEV__: true,
