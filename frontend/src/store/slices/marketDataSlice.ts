@@ -13,7 +13,7 @@ import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 
 import { RootState } from '../index';
 
-const crypto = require('crypto');
+import { generateRandomId } from '../../lib/utils';
 
 // ============================================================================
 // TYPES AND INTERFACES
@@ -584,7 +584,7 @@ export const subscribeToMarketData = createAsyncThunk<
       // Simulate WebSocket subscription
       await new Promise(resolve => setTimeout(resolve, 200));
 
-      const subscriptionId = `sub_${Date.now()}_${(crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff).toString(36).substr(2, 9)}`;
+      const subscriptionId = `sub_${Date.now()}_${generateRandomId()}`;
 
       return {
         subscriptionId,

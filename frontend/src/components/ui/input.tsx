@@ -2,7 +2,7 @@ import React from 'react';
 
 import { cn } from '@/lib/utils';
 
-const crypto = require('crypto');
+import { generateRandomId } from '../../lib/utils';
 
 export interface InputProps extends React.ComponentProps<'input'> {
   /**
@@ -59,7 +59,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
     id,
     ...props
   }, ref) => {
-    const inputId = id || `input-${(crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff).toString(36).substr(2, 9)}`;
+    const inputId = id || `input-${generateRandomId()}`;
     const descriptionId = `${inputId}-description`;
     const errorId = `${inputId}-error`;
 

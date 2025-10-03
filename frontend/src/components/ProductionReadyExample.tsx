@@ -32,6 +32,7 @@ import {
   throttle,
 } from '../lib/performanceOptimization';
 import { secureStorage, validateAPIKey, apiRateLimiter } from '../lib/secureStorage';
+import { generateRandomId } from '../lib/utils';
 
 import { Alert, AlertDescription } from './ui/alert';
 import { Badge } from './ui/badge';
@@ -149,7 +150,7 @@ const ProductionReadyExample = memo(function ProductionReadyExample({
   const processedData = useMemo(() => {
     return data.map(item => ({
       ...item,
-      id: item.id || (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff).toString(36).substr(2, 9),
+      id: item.id || generateRandomId(),
       processedAt: Date.now(),
     }));
   }, [data]);

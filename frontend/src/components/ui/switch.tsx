@@ -3,7 +3,7 @@ import React from 'react';
 
 import { cn } from '@/lib/utils';
 
-const crypto = require('crypto');
+import { generateRandomId } from '../../lib/utils';
 
 export interface SwitchProps
   extends React.ComponentPropsWithoutRef<typeof SwitchPrimitives.Root> {
@@ -51,7 +51,7 @@ const Switch = React.forwardRef<
   id,
   ...props
 }, ref) => {
-  const switchId = id || `switch-${(crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff).toString(36).substr(2, 9)}`;
+  const switchId = id || `switch-${generateRandomId()}`;
   const descriptionId = `${switchId}-description`;
 
   const sizeClasses = {

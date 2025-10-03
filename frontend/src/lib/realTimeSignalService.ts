@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+import { generateRandomId } from './utils';
 
 interface TradeSignal {
   id: string;
@@ -45,7 +45,7 @@ export class RealTimeSignalService {
   }
 
   public subscribe(filter: SignalFilter, callback: (signal: TradeSignal) => void): string {
-    const subscriptionId = crypto.randomUUID();
+    const subscriptionId = generateRandomId();
 
     this.subscribers.set(subscriptionId, {
       id: subscriptionId,

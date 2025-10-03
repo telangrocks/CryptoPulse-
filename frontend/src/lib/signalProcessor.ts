@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+import { generateRandomId } from './utils';
 
 interface SignalProcessorConfig {
   minConfidence: number;
@@ -60,7 +60,7 @@ export class SignalProcessor {
 
     // Create processed signal
     const processedSignal: ProcessedSignal = {
-      id: crypto.randomUUID(),
+      id: generateRandomId(),
       ...rawSignal,
       priority: this.calculatePriority(rawSignal),
       timestamp: new Date(),

@@ -36,7 +36,7 @@
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
-    "e2e": "echo 'E2E tests placeholder - implement with Playwright or Cypress' && exit 0",
+    "e2e": "playwright test",
     "test:security": "node ../scripts/security-audit.js",
     "audit:security": "node ../scripts/security-audit.js",
     "audit:deps": "pnpm audit --audit-level=moderate",

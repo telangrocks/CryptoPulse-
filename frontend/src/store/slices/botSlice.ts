@@ -13,7 +13,7 @@ import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 
 import { RootState } from '../index';
 
-const crypto = require('crypto');
+import { generateRandomId } from '../../lib/utils';
 
 // ============================================================================
 // TYPES AND INTERFACES
@@ -345,7 +345,7 @@ export const createBot = createAsyncThunk<
 
       // Create bot configuration
       const bot: BotConfig = {
-        id: `bot_${Date.now()}_${(crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff).toString(36).substr(2, 9)}`,
+        id: `bot_${Date.now()}_${generateRandomId()}`,
         name: botData.name,
         description: botData.description,
         strategy: botData.strategy,
@@ -560,22 +560,22 @@ export const fetchBotPerformance = createAsyncThunk<
 
       // Mock performance data
       const performance: BotPerformance = {
-        totalTrades: Math.floor((crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 100) + 10,
-        winningTrades: Math.floor((crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 50) + 5,
-        losingTrades: Math.floor((crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 30) + 2,
-        winRate: (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 100,
-        totalProfit: (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 1000,
-        totalLoss: (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 200,
-        netProfit: (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 800,
-        profitFactor: (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 3 + 1,
-        sharpeRatio: (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 2 + 0.5,
-        maxDrawdown: (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 20,
-        averageWin: (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 50,
-        averageLoss: (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 20,
-        largestWin: (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 200,
-        largestLoss: (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 100,
-        consecutiveWins: Math.floor((crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 10),
-        consecutiveLosses: Math.floor((crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 5),
+        totalTrades: Math.floor(Math.random() * 100) + 10,
+        winningTrades: Math.floor(Math.random() * 50) + 5,
+        losingTrades: Math.floor(Math.random() * 30) + 2,
+        winRate: Math.random() * 100,
+        totalProfit: Math.random() * 1000,
+        totalLoss: Math.random() * 200,
+        netProfit: Math.random() * 800,
+        profitFactor: Math.random() * 3 + 1,
+        sharpeRatio: Math.random() * 2 + 0.5,
+        maxDrawdown: Math.random() * 20,
+        averageWin: Math.random() * 50,
+        averageLoss: Math.random() * 20,
+        largestWin: Math.random() * 200,
+        largestLoss: Math.random() * 100,
+        consecutiveWins: Math.floor(Math.random() * 10),
+        consecutiveLosses: Math.floor(Math.random() * 5),
         lastUpdated: Date.now(),
       };
 
@@ -611,10 +611,10 @@ export const fetchBotLogs = createAsyncThunk<
         id: `log_${Date.now()}_${index}`,
         botId,
         timestamp: Date.now() - (index * 1000),
-        level: ['INFO', 'WARN', 'ERROR', 'DEBUG'][Math.floor((crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) * 4)] as 'INFO' | 'WARN' | 'ERROR' | 'DEBUG',
+        level: ['INFO', 'WARN', 'ERROR', 'DEBUG'][Math.floor(Math.random() * 4)] as 'INFO' | 'WARN' | 'ERROR' | 'DEBUG',
         message: `Log entry ${index + 1}`,
         data: { index, timestamp: Date.now() - (index * 1000) },
-        tradeId: (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff) > 0.5 ? `trade_${(crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff).toString(36).substr(2, 9)}` : undefined,
+        tradeId: Math.random() > 0.5 ? `trade_${generateRandomId()}` : undefined,
       }));
 
       return logs;

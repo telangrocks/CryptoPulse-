@@ -124,3 +124,36 @@ export function deepClone<T>(obj: T): T {
   }
   return cloned;
 }
+
+/**
+ * Generate secure random bytes using Web Crypto API
+ * @param length - Number of bytes to generate
+ * @returns Uint8Array of random bytes
+ */
+export function generateSecureRandomBytes(length: number = 4): Uint8Array {
+  return crypto.getRandomValues(new Uint8Array(length));
+}
+
+/**
+ * Generate a secure random ID for errors and other purposes
+ * @returns Random ID string
+ */
+export function generateErrorId(): string {
+  const timestamp = Date.now().toString(36);
+  const randomBytes = generateSecureRandomBytes(4);
+  const randomPart = Array.from(randomBytes)
+    .map(byte => (byte / 255).toString(36).substring(2, 3))
+    .join('')
+    .substring(0, 9);
+  return `${timestamp}-${randomPart}`;
+}
+
+/**
+ * Generate a random ID using browser crypto
+ * @returns Random ID string
+ */
+export function generateRandomId(): string {
+  const timestamp = Date.now().toString(36);
+  const randomPart = Math.random().toString(36).substring(2, 11);
+  return `${timestamp}-${randomPart}`;
+}

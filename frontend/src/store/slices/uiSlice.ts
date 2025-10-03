@@ -13,7 +13,7 @@ import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 
 import { RootState } from '../index';
 
-const crypto = require('crypto');
+import { generateRandomId } from '../../lib/utils';
 
 // ============================================================================
 // TYPES AND INTERFACES
@@ -422,7 +422,7 @@ const createModalId = (): string => {
 /**
  * Updates viewport information
  */
-const updateViewport = (state: UIState) => {
+const updateViewportDimensions = (state: UIState) => {
   if (typeof window !== 'undefined') {
     state.viewport.width = window.innerWidth;
     state.viewport.height = window.innerHeight;
@@ -666,7 +666,7 @@ const uiSlice = createSlice({
      * Update viewport
      */
     updateViewport: (state) => {
-      updateViewport(state);
+      updateViewportDimensions(state);
     },
 
     /**

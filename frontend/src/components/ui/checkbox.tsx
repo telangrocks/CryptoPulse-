@@ -4,7 +4,7 @@ import React from 'react';
 
 import { cn } from '@/lib/utils';
 
-const crypto = require('crypto');
+import { generateRandomId } from '../../lib/utils';
 
 export interface CheckboxProps
   extends React.ComponentPropsWithoutRef<typeof CheckboxPrimitive.Root> {
@@ -39,7 +39,7 @@ const Checkbox = React.forwardRef<
   React.ElementRef<typeof CheckboxPrimitive.Root>,
   CheckboxProps
 >(({ className, label, description, error, required, id, ...props }, ref) => {
-  const checkboxId = id || `checkbox-${(crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff).toString(36).substr(2, 9)}`;
+  const checkboxId = id || `checkbox-${generateRandomId()}`;
   const descriptionId = `${checkboxId}-description`;
   const errorId = `${checkboxId}-error`;
 

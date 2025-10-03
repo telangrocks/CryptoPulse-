@@ -13,7 +13,7 @@ import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 
 import { RootState } from '../index';
 
-const crypto = require('crypto');
+import { generateRandomId } from '../../lib/utils';
 
 // ============================================================================
 // TYPES AND INTERFACES
@@ -426,7 +426,7 @@ const validateNotification = (notification: Partial<Notification>): { valid: boo
  * Creates a notification ID
  */
 const createNotificationId = (): string => {
-  return `notif_${Date.now()}_${(crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff).toString(36).substr(2, 9)}`;
+  return `notif_${Date.now()}_${generateRandomId()}`;
 };
 
 /**

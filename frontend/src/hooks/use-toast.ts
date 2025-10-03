@@ -1,11 +1,10 @@
-import React, { useCallback, useMemo } from 'react';
+import React from 'react';
 
-const crypto = require('crypto');
+import { generateRandomId } from '../lib/utils';
 
 // Production-ready toast configuration
 const TOAST_LIMIT = 5;
 const TOAST_REMOVE_DELAY = 5000; // 5 seconds instead of 1000000
-const MAX_TOAST_AGE = 10000; // 10 seconds max age
 
 // Enhanced type definitions for production
 type ToastVariant = 'default' | 'destructive' | 'success' | 'warning' | 'info';
@@ -46,7 +45,7 @@ let count = 0;
 const generateSecureId = (): string => {
   count = (count + 1) % Number.MAX_SAFE_INTEGER;
   const timestamp = Date.now().toString(36);
-  const random = (crypto.randomBytes(4).readUInt32BE(0) / 0xffffffff).toString(36).substring(2);
+  const random = generateRandomId();
   return `toast-${timestamp}-${random}-${count}`;
 };
 
@@ -220,13 +219,13 @@ function dispatch(action: Action) {
 type Toast = Omit<ToasterToast, 'id'>;
 
 function toast({ ...props }: Toast) {
-  const id = genId();
+  const id = generateSecureId();
   const update = (props: Partial<ToasterToast>) =>
     dispatch({
       type: 'UPDATE-TOAST',
       toast: { ...props, id },
     });
-  const dismiss = () => dispatch({ type: 'DISMISS-TOAST', toastId: id });
+  const dismiss = () => dispatch({ type: 'DISMISS-TOAST', toastId: id as string });
 
   dispatch({
     type: 'ADD-TOAST',
