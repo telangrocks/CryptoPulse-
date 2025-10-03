@@ -82,7 +82,7 @@ services:
     security_opt:
       - no-new-privileges:true
 
-  # Backend API
+  # Backend API - Primary Instance
   backend:
     build:
       context: ./backend
@@ -121,6 +121,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 40s
     security_opt:
       - no-new-privileges:true
     read_only: true
@@ -129,6 +130,7 @@ services:
       - /app/logs
       - /app/uploads
     deploy:
+      replicas: 2
       resources:
         limits:
           memory: 1G
@@ -136,6 +138,84 @@ services:
         reservations:
           memory: 512M
           cpus: '0.25'
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+        monitor: 60s
+        max_failure_ratio: 0.3
+      rollback_config:
+        parallelism: 1
+        delay: 5s
+        monitor: 60s
+        max_failure_ratio: 0.3
+
+  # Backend API - Secondary Instance (Auto-scaling)
+  backend-2:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        NODE_ENV: production
+    container_name: cryptopulse-backend-2
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 1337
+      HOST: 0.0.0.0
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/cryptopulse_prod
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      MONGODB_URL: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongodb:27017/cryptopulse_prod
+      JWT_SECRET: ${JWT_SECRET}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      CSRF_SECRET: ${CSRF_SECRET}
+      SESSION_SECRET: ${SESSION_SECRET}
+    ports:
+      - "1338:1337"
+    networks:
+      - cryptopulse-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
+      - ./uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:1337/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /app/logs
+      - /app/uploads
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
 
   # Frontend
   frontend:

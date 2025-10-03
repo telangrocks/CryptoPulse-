@@ -185,13 +185,46 @@ const errorUtils = {
 // Logging utilities
 const loggingUtils = {
   logInfo: (message, data = {}) => {
+    const logEntry = {
+      level: 'info',
+      message,
+      data,
+      timestamp: new Date().toISOString(),
+      service: 'cloud-functions'
+    };
+    console.log(JSON.stringify(logEntry));
   },
   logError: (message, error = {}) => {
+    const logEntry = {
+      level: 'error',
+      message,
+      error: error.message || error,
+      stack: error.stack,
+      timestamp: new Date().toISOString(),
+      service: 'cloud-functions'
+    };
+    console.error(JSON.stringify(logEntry));
   },
   logWarning: (message, data = {}) => {
+    const logEntry = {
+      level: 'warn',
+      message,
+      data,
+      timestamp: new Date().toISOString(),
+      service: 'cloud-functions'
+    };
+    console.warn(JSON.stringify(logEntry));
   },
   logDebug: (message, data = {}) => {
     if (process.env.NODE_ENV === 'development') {
+      const logEntry = {
+        level: 'debug',
+        message,
+        data,
+        timestamp: new Date().toISOString(),
+        service: 'cloud-functions'
+      };
+      console.debug(JSON.stringify(logEntry));
     }
   }
 };

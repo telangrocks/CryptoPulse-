@@ -1,0 +1,201 @@
+# =============================================================================
+# CryptoPulse Alert Rules - Production Ready
+# =============================================================================
+# Prometheus alerting rules for CryptoPulse infrastructure
+
+groups:
+  - name: cryptopulse.infrastructure
+    rules:
+      # Service Health Alerts
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: "{{ $labels.job }}"
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "Service {{ $labels.job }} on {{ $labels.instance }} has been down for more than 1 minute."
+          runbook_url: "https://docs.cryptopulse.com/runbooks/service-down"
+
+      # High Error Rate
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value }} errors per second for the last 5 minutes."
+          runbook_url: "https://docs.cryptopulse.com/runbooks/high-error-rate"
+
+      # High Response Time
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High response time detected"
+          description: "95th percentile response time is {{ $value }}s, which is above the 2s threshold."
+          runbook_url: "https://docs.cryptopulse.com/runbooks/high-response-time"
+
+      # Memory Usage
+      - alert: HighMemoryUsage
+        expr: (process_resident_memory_bytes / 1024 / 1024 / 1024) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is {{ $value }}GB, which is above 80% of available memory."
+          runbook_url: "https://docs.cryptopulse.com/runbooks/high-memory-usage"
+
+      # CPU Usage
+      - alert: HighCPUUsage
+        expr: rate(process_cpu_seconds_total[5m]) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage is {{ $value }}%, which is above 80%."
+          runbook_url: "https://docs.cryptopulse.com/runbooks/high-cpu-usage"
+
+      # Database Connection Pool
+      - alert: DatabaseConnectionPoolExhausted
+        expr: db_connections_active / db_connections_max > 0.9
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Database connection pool nearly exhausted"
+          description: "{{ $value }}% of database connections are in use."
+          runbook_url: "https://docs.cryptopulse.com/runbooks/db-connection-pool"
+
+      # Redis Memory Usage
+      - alert: RedisHighMemoryUsage
+        expr: redis_memory_used_bytes / redis_maxmemory_bytes > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis high memory usage"
+          description: "Redis memory usage is {{ $value }}% of max memory."
+          runbook_url: "https://docs.cryptopulse.com/runbooks/redis-memory"
+
+      # Disk Space
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) < 0.1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Disk space is low"
+          description: "Only {{ $value }}% disk space remaining on {{ $labels.mountpoint }}."
+          runbook_url: "https://docs.cryptopulse.com/runbooks/disk-space"
+
+  - name: cryptopulse.trading
+    rules:
+      # Trading Volume Anomaly
+      - alert: TradingVolumeAnomaly
+        expr: abs(trading_volume_usd - trading_volume_usd offset 1h) / trading_volume_usd offset 1h > 2
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Trading volume anomaly detected"
+          description: "Trading volume has changed by {{ $value }}% compared to the previous hour."
+          runbook_url: "https://docs.cryptopulse.com/runbooks/trading-anomaly"
+
+      # High Order Failure Rate
+      - alert: HighOrderFailureRate
+        expr: rate(trading_orders_failed_total[5m]) / rate(trading_orders_total[5m]) > 0.05
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High order failure rate"
+          description: "Order failure rate is {{ $value }}%, which is above 5%."
+          runbook_url: "https://docs.cryptopulse.com/runbooks/order-failures"
+
+      # Exchange API Errors
+      - alert: ExchangeAPIErrors
+        expr: rate(exchange_api_errors_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Exchange API errors detected"
+          description: "{{ $value }} API errors per second from {{ $labels.exchange }}."
+          runbook_url: "https://docs.cryptopulse.com/runbooks/exchange-api-errors"
+
+  - name: cryptopulse.security
+    rules:
+      # Failed Authentication Attempts
+      - alert: HighFailedAuthAttempts
+        expr: rate(auth_failed_attempts_total[5m]) > 10
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High number of failed authentication attempts"
+          description: "{{ $value }} failed authentication attempts per second."
+          runbook_url: "https://docs.cryptopulse.com/runbooks/failed-auth"
+
+      # Suspicious Activity
+      - alert: SuspiciousActivity
+        expr: rate(suspicious_requests_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Suspicious activity detected"
+          description: "{{ $value }} suspicious requests per second from {{ $labels.ip }}."
+          runbook_url: "https://docs.cryptopulse.com/runbooks/suspicious-activity"
+
+      # SSL Certificate Expiry
+      - alert: SSLCertificateExpiring
+        expr: (ssl_certificate_expiry_timestamp - time()) / 86400 < 30
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "SSL certificate expiring soon"
+          description: "SSL certificate for {{ $labels.domain }} expires in {{ $value }} days."
+          runbook_url: "https://docs.cryptopulse.com/runbooks/ssl-expiry"
+
+  - name: cryptopulse.business
+    rules:
+      # User Registration Anomaly
+      - alert: UserRegistrationAnomaly
+        expr: abs(user_registrations_total - user_registrations_total offset 1h) / user_registrations_total offset 1h > 3
+        for: 15m
+        labels:
+          severity: info
+        annotations:
+          summary: "User registration anomaly"
+          description: "User registrations have changed by {{ $value }}% compared to the previous hour."
+          runbook_url: "https://docs.cryptopulse.com/runbooks/registration-anomaly"
+
+      # Payment Processing Errors
+      - alert: PaymentProcessingErrors
+        expr: rate(payment_errors_total[5m]) > 0.01
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Payment processing errors detected"
+          description: "{{ $value }} payment errors per second."
+          runbook_url: "https://docs.cryptopulse.com/runbooks/payment-errors"
+
+      # API Rate Limit Exceeded
+      - alert: APIRateLimitExceeded
+        expr: rate(rate_limit_exceeded_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "API rate limit exceeded"
+          description: "Rate limit exceeded for {{ $labels.endpoint }}."
+          runbook_url: "https://docs.cryptopulse.com/runbooks/rate-limit"

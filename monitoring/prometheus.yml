@@ -1,7 +1,7 @@
 # =============================================================================
-# Prometheus Configuration for CryptoPulse
+# Prometheus Configuration for CryptoPulse - Production Ready
 # =============================================================================
-# Production-ready monitoring configuration
+# Production-ready monitoring configuration with comprehensive metrics collection
 
 global:
   scrape_interval: 15s
@@ -9,51 +9,192 @@ global:
   external_labels:
     cluster: 'cryptopulse-production'
     environment: 'production'
+    region: 'us-east-1'
+  scrape_timeout: 10s
+  rules:
+    alert_for_duration: 10m
+    alert_for_interval: 1m
 
 rule_files:
-  - "rules/*.yml"
+  - "/etc/prometheus/rules/*.yml"
+  - "/etc/prometheus/alerts.yml"
 
 alerting:
   alertmanagers:
     - static_configs:
         - targets:
           - alertmanager:9093
+      timeout: 10s
+      api_version: v2
 
 scrape_configs:
   # Prometheus itself
   - job_name: 'prometheus'
     static_configs:
       - targets: ['localhost:9090']
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    metrics_path: '/metrics'
+    honor_labels: true
 
-  # Backend API
+  # Backend API - Enhanced monitoring
   - job_name: 'cryptopulse-backend'
     static_configs:
       - targets: ['backend:1337']
     metrics_path: '/metrics'
     scrape_interval: 10s
     scrape_timeout: 5s
+    honor_labels: true
+    params:
+      format: ['prometheus']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        regex: '([^:]+):.*'
+        replacement: '${1}:1337'
+      - target_label: service
+        replacement: 'backend'
 
-  # Frontend (if metrics are exposed)
+  # Frontend - Static site monitoring
   - job_name: 'cryptopulse-frontend'
     static_configs:
       - targets: ['frontend:80']
     metrics_path: '/metrics'
     scrape_interval: 30s
+    scrape_timeout: 10s
+    honor_labels: true
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        regex: '([^:]+):.*'
+        replacement: '${1}:80'
+      - target_label: service
+        replacement: 'frontend'
 
-  # Cloud Services
+  # Cloud Functions - Serverless monitoring
   - job_name: 'cryptopulse-cloud'
     static_configs:
       - targets: ['cloud:3001']
     metrics_path: '/metrics'
     scrape_interval: 10s
+    scrape_timeout: 5s
+    honor_labels: true
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        regex: '([^:]+):.*'
+        replacement: '${1}:3001'
+      - target_label: service
+        replacement: 'cloud-functions'
 
-  # Node Exporter (if deployed)
+  # Node Exporter - System metrics
   - job_name: 'node-exporter'
     static_configs:
       - targets: ['node-exporter:9100']
     scrape_interval: 15s
+    scrape_timeout: 10s
+    honor_labels: true
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        regex: '([^:]+):.*'
+        replacement: '${1}:9100'
+      - target_label: service
+        replacement: 'system'
 
-  # PostgreSQL Exporter
+  # PostgreSQL Exporter - Database metrics
+  - job_name: 'postgres-exporter'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+    scrape_interval: 30s
+    scrape_timeout: 10s
+    honor_labels: true
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        regex: '([^:]+):.*'
+        replacement: '${1}:9187'
+      - target_label: service
+        replacement: 'postgres'
+
+  # Redis Exporter - Cache metrics
+  - job_name: 'redis-exporter'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+    scrape_interval: 30s
+    scrape_timeout: 10s
+    honor_labels: true
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        regex: '([^:]+):.*'
+        replacement: '${1}:9121'
+      - target_label: service
+        replacement: 'redis'
+
+  # MongoDB Exporter - Document store metrics
+  - job_name: 'mongodb-exporter'
+    static_configs:
+      - targets: ['mongodb-exporter:9216']
+    scrape_interval: 30s
+    scrape_timeout: 10s
+    honor_labels: true
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        regex: '([^:]+):.*'
+        replacement: '${1}:9216'
+      - target_label: service
+        replacement: 'mongodb'
+
+  # Nginx Exporter - Load balancer metrics
+  - job_name: 'nginx-exporter'
+    static_configs:
+      - targets: ['nginx-exporter:9113']
+    scrape_interval: 30s
+    scrape_timeout: 10s
+    honor_labels: true
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        regex: '([^:]+):.*'
+        replacement: '${1}:9113'
+      - target_label: service
+        replacement: 'nginx'
+
+  # Custom application metrics
+  - job_name: 'cryptopulse-app-metrics'
+    static_configs:
+      - targets: ['backend:1337']
+    metrics_path: '/metrics/app'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+    honor_labels: true
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        regex: '([^:]+):.*'
+        replacement: '${1}:1337'
+      - target_label: service
+        replacement: 'application'
+
+  # Blackbox exporter for external health checks
+  - job_name: 'blackbox'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+        - https://app.cryptopulse.com
+        - https://api.cryptopulse.com
+        - https://api.cryptopulse.com/health
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
   - job_name: 'postgres-exporter'
     static_configs:
       - targets: ['postgres-exporter:9187']

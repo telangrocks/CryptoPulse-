@@ -87,7 +87,44 @@ check_prerequisites() {
     # Check if project exists
     if ! northflank project list | grep -q "$PROJECT_NAME"; then
         print_warning "Project '$PROJECT_NAME' not found. Creating project..."
-        northflank project create "$PROJECT_NAME" --description "CryptoPulse Trading Platform"
+        northflank project create "$PROJECT_NAME" --description "CryptoPulse Trading Platform - Production Ready"
+    fi
+    
+    # Check if required environment files exist
+    if [ ! -f "backend/.env.production" ]; then
+        print_warning "Production environment file not found. Creating from template..."
+        cp env-templates/backend.env.production backend/.env.production 2>/dev/null || {
+            print_error "Failed to create production environment file"
+            print_error "Please ensure env-templates/backend.env.production exists"
+            exit 1
+        }
+    fi
+    
+    # Check if Docker is available
+    if ! command -v docker &> /dev/null; then
+        print_error "Docker is not installed. Please install Docker first."
+        exit 1
+    fi
+    
+    # Check if pnpm is available
+    if ! command -v pnpm &> /dev/null; then
+        print_error "pnpm is not installed. Please install pnpm first:"
+        print_error "  npm install -g pnpm"
+        exit 1
+    fi
+    
+    # Validate environment configuration
+    print_status "Validating environment configuration..."
+    if [ -f "backend/.env.production" ]; then
+        # Check for required environment variables
+        required_vars=("JWT_SECRET" "ENCRYPTION_KEY" "DATABASE_URL" "REDIS_URL")
+        for var in "${required_vars[@]}"; do
+            if ! grep -q "^${var}=" backend/.env.production; then
+                print_error "Required environment variable $var is missing from backend/.env.production"
+                exit 1
+            fi
+        done
+        print_success "Environment configuration validation passed"
     fi
     
     print_success "Prerequisites check passed"
