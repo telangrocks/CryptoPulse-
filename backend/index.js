@@ -55,6 +55,9 @@ const marketDataService = require('./lib/marketDataService');
 const exchangeService = require('./lib/exchangeService');
 const TradingBot = require('./lib/tradingBot');
 
+// Import WebSocket server
+const { createWebSocketServer } = require('./lib/websocketServer');
+
 // Load environment variables with fallback strategy
 const fs = require('fs');
 
@@ -1213,6 +1216,14 @@ const startServer = async() => {
       logger.info(`📊 Environment: ${env.NODE_ENV}`);
       logger.info('🔒 Security features enabled');
       logger.info(`📈 Health check available at http://${env.HOST}:${env.PORT}/health`);
+
+      // Initialize WebSocket server
+      const _wsServer = createWebSocketServer(server, {
+        maxConnections: 1000,
+        messageRateLimit: 100,
+        heartbeatInterval: 30000
+      });
+      logger.info('🔌 WebSocket server initialized on /ws');
 
       // Initialize trading bot
       const tradingBot = new TradingBot();

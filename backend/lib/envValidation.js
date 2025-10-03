@@ -117,6 +117,14 @@ const env = cleanEnv(process.env, {
   REDIS_URL: str({ default: '' }),
   MONGODB_URL: str({ default: '' }),
 
+  // WebSocket Configuration (Optional)
+  WEBSOCKET_ENABLED: bool({ default: true }),
+  WEBSOCKET_PORT: num({ default: 8080 }),
+  WEBSOCKET_MAX_CONNECTIONS: num({ default: 1000 }),
+  WEBSOCKET_MESSAGE_RATE_LIMIT: num({ default: 100 }),
+  WEBSOCKET_HEARTBEAT_INTERVAL: num({ default: 30000 }),
+  WEBSOCKET_MAX_MESSAGE_SIZE: num({ default: 1048576 }),
+
   // URLs (Required in production)
   FRONTEND_URL: str({ default: process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3000' }),
   BACKEND_URL: str({ default: process.env.NODE_ENV === 'production' ? '' : 'http://localhost:1337' }),
