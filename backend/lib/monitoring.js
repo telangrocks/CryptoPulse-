@@ -7,7 +7,7 @@ const logger = require('./logging');
 const { getQueryMetrics } = require('./database');
 const { memoryManager } = require('./performance');
 
-// System metrics collection
+// Enhanced system metrics collection with detailed tracking
 const systemMetrics = {
   startTime: Date.now(),
   requestCount: 0,
@@ -15,6 +15,10 @@ const systemMetrics = {
   averageResponseTime: 0,
   peakMemoryUsage: 0,
   peakCPUUsage: 0,
+  responseTimeHistory: [],
+  errorHistory: [],
+  endpointMetrics: new Map(),
+  userMetrics: new Map(),
 
   // Update metrics
   updateRequestCount: () => {
@@ -23,12 +27,68 @@ const systemMetrics = {
 
   updateErrorCount: () => {
     systemMetrics.errorCount++;
+    systemMetrics.errorHistory.push({
+      timestamp: Date.now(),
+      count: systemMetrics.errorCount
+    });
+    
+    // Keep only last 100 error entries
+    if (systemMetrics.errorHistory.length > 100) {
+      systemMetrics.errorHistory = systemMetrics.errorHistory.slice(-100);
+    }
   },
 
-  updateResponseTime: (responseTime) => {
+  updateResponseTime: (responseTime, endpoint = 'unknown', userId = null) => {
     const totalRequests = systemMetrics.requestCount;
     systemMetrics.averageResponseTime =
       (systemMetrics.averageResponseTime * (totalRequests - 1) + responseTime) / totalRequests;
+    
+    // Track response time history
+    systemMetrics.responseTimeHistory.push({
+      timestamp: Date.now(),
+      responseTime,
+      endpoint,
+      userId
+    });
+    
+    // Keep only last 1000 entries
+    if (systemMetrics.responseTimeHistory.length > 1000) {
+      systemMetrics.responseTimeHistory = systemMetrics.responseTimeHistory.slice(-1000);
+    }
+
+    // Track endpoint-specific metrics
+    if (!systemMetrics.endpointMetrics.has(endpoint)) {
+      systemMetrics.endpointMetrics.set(endpoint, {
+        requestCount: 0,
+        totalResponseTime: 0,
+        averageResponseTime: 0,
+        errorCount: 0
+      });
+    }
+    
+    const endpointMetric = systemMetrics.endpointMetrics.get(endpoint);
+    endpointMetric.requestCount++;
+    endpointMetric.totalResponseTime += responseTime;
+    endpointMetric.averageResponseTime = endpointMetric.totalResponseTime / endpointMetric.requestCount;
+
+    // Track user-specific metrics
+    if (userId) {
+      if (!systemMetrics.userMetrics.has(userId)) {
+        systemMetrics.userMetrics.set(userId, {
+          requestCount: 0,
+          totalResponseTime: 0,
+          averageResponseTime: 0,
+          errorCount: 0,
+          lastActivity: Date.now()
+        });
+      }
+      
+      const userMetric = systemMetrics.userMetrics.get(userId);
+      userMetric.requestCount++;
+      userMetric.totalResponseTime += responseTime;
+      userMetric.averageResponseTime = userMetric.totalResponseTime / userMetric.requestCount;
+      userMetric.lastActivity = Date.now();
+    }
   },
 
   updateMemoryUsage: () => {
@@ -42,32 +102,120 @@ const systemMetrics = {
     systemMetrics.peakCPUUsage = Math.max(systemMetrics.peakCPUUsage, totalCPU);
   },
 
+  updateEndpointError: (endpoint, userId = null) => {
+    if (systemMetrics.endpointMetrics.has(endpoint)) {
+      systemMetrics.endpointMetrics.get(endpoint).errorCount++;
+    }
+    
+    if (userId && systemMetrics.userMetrics.has(userId)) {
+      systemMetrics.userMetrics.get(userId).errorCount++;
+    }
+  },
+
   // Get current metrics
   getCurrentMetrics: () => {
     const memoryUsage = memoryManager.getCurrentMemoryUsage();
     const uptime = Date.now() - systemMetrics.startTime;
+    const cpuUsage = process.cpuUsage();
+
+    // Calculate recent error rate (last 100 requests)
+    const recentErrors = systemMetrics.errorHistory.slice(-100);
+    const recentErrorRate = recentErrors.length > 0 ? 
+      (recentErrors[recentErrors.length - 1].count - (recentErrors[0].count - recentErrors[0].count)) / Math.max(recentErrors.length, 1) * 100 : 0;
+
+    // Calculate recent average response time (last 100 requests)
+    const recentResponses = systemMetrics.responseTimeHistory.slice(-100);
+    const recentAvgResponseTime = recentResponses.length > 0 ?
+      recentResponses.reduce((sum, entry) => sum + entry.responseTime, 0) / recentResponses.length : 0;
 
     return {
       uptime: Math.floor(uptime / 1000), // seconds
+      uptimeHuman: formatUptime(uptime),
       requestCount: systemMetrics.requestCount,
       errorCount: systemMetrics.errorCount,
       errorRate: systemMetrics.requestCount > 0 ?
         (systemMetrics.errorCount / systemMetrics.requestCount * 100).toFixed(2) : 0,
+      recentErrorRate: recentErrorRate.toFixed(2),
       averageResponseTime: Math.round(systemMetrics.averageResponseTime),
+      recentAverageResponseTime: Math.round(recentAvgResponseTime),
       memoryUsage: {
         current: memoryUsage.heapUsedMB,
         peak: systemMetrics.peakMemoryUsage,
         total: memoryUsage.heapTotalMB,
-        rss: memoryUsage.rssMB
+        rss: memoryUsage.rssMB,
+        usagePercentage: ((memoryUsage.heapUsedMB / memoryUsage.heapTotalMB) * 100).toFixed(2)
       },
       cpuUsage: {
         peak: systemMetrics.peakCPUUsage,
-        current: process.cpuUsage()
+        current: cpuUsage,
+        usagePercentage: calculateCPUUsagePercentage(cpuUsage)
       },
+      endpointMetrics: Object.fromEntries(systemMetrics.endpointMetrics),
+      activeUsers: systemMetrics.userMetrics.size,
       timestamp: new Date().toISOString()
+    };
+  },
+
+  // Get performance trends
+  getPerformanceTrends: () => {
+    const now = Date.now();
+    const oneHourAgo = now - (60 * 60 * 1000);
+    const oneDayAgo = now - (24 * 60 * 60 * 1000);
+
+    const recentErrors = systemMetrics.errorHistory.filter(e => e.timestamp > oneHourAgo);
+    const recentResponses = systemMetrics.responseTimeHistory.filter(r => r.timestamp > oneHourAgo);
+
+    return {
+      lastHour: {
+        errorCount: recentErrors.length,
+        averageResponseTime: recentResponses.length > 0 ?
+          recentResponses.reduce((sum, r) => sum + r.responseTime, 0) / recentResponses.length : 0,
+        requestCount: recentResponses.length
+      },
+      trends: {
+        errorTrend: calculateTrend(systemMetrics.errorHistory),
+        responseTimeTrend: calculateTrend(systemMetrics.responseTimeHistory.map(r => ({ ...r, value: r.responseTime })))
+      }
     };
   }
 };
+
+// Helper functions for metrics
+function formatUptime(uptimeMs) {
+  const seconds = Math.floor(uptimeMs / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+
+  if (days > 0) return `${days}d ${hours % 24}h ${minutes % 60}m`;
+  if (hours > 0) return `${hours}h ${minutes % 60}m`;
+  if (minutes > 0) return `${minutes}m ${seconds % 60}s`;
+  return `${seconds}s`;
+}
+
+function calculateCPUUsagePercentage(cpuUsage) {
+  // This is a simplified calculation - in production you'd want more sophisticated CPU monitoring
+  const totalUsage = cpuUsage.user + cpuUsage.system;
+  return Math.min(totalUsage / 1000000, 100).toFixed(2); // Rough approximation
+}
+
+function calculateTrend(data) {
+  if (data.length < 2) return 'stable';
+  
+  const recent = data.slice(-10);
+  const older = data.slice(-20, -10);
+  
+  if (recent.length === 0 || older.length === 0) return 'stable';
+  
+  const recentAvg = recent.reduce((sum, item) => sum + (item.value || item.count || 0), 0) / recent.length;
+  const olderAvg = older.reduce((sum, item) => sum + (item.value || item.count || 0), 0) / older.length;
+  
+  const change = ((recentAvg - olderAvg) / olderAvg) * 100;
+  
+  if (change > 10) return 'increasing';
+  if (change < -10) return 'decreasing';
+  return 'stable';
+}
 
 // Health check system
 const healthChecks = {
@@ -360,52 +508,187 @@ const alerting = {
   }
 };
 
-// Performance monitoring
+// Enhanced performance monitoring with detailed analysis
 const performanceMonitoring = {
   // Track request metrics
   trackRequest: (req, res, responseTime) => {
+    const endpoint = `${req.method} ${req.route?.path || req.path}`;
+    const userId = req.user?.userId || null;
+    
     systemMetrics.updateRequestCount();
-    systemMetrics.updateResponseTime(responseTime);
+    systemMetrics.updateResponseTime(responseTime, endpoint, userId);
     systemMetrics.updateMemoryUsage();
     systemMetrics.updateCPUUsage();
 
-    // Log slow requests
+    // Log slow requests with detailed context
     if (responseTime > 1000) {
       logger.warn('Slow request detected', {
+        event: 'slow_request',
         method: req.method,
         url: req.url,
+        endpoint,
         responseTime: `${responseTime}ms`,
-        ip: req.ip,
+        responseTimeMs: responseTime,
+        ip: req.ip || req.connection?.remoteAddress,
         userAgent: req.get('User-Agent'),
+        userId,
+        correlationId: req.correlationId,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Log very slow requests
+    if (responseTime > 5000) {
+      logger.error('Very slow request detected', {
+        event: 'very_slow_request',
+        method: req.method,
+        url: req.url,
+        endpoint,
+        responseTime: `${responseTime}ms`,
+        responseTimeMs: responseTime,
+        ip: req.ip || req.connection?.remoteAddress,
+        userAgent: req.get('User-Agent'),
+        userId,
+        correlationId: req.correlationId,
         timestamp: new Date().toISOString()
       });
     }
   },
 
-  // Track errors
+  // Track errors with enhanced context
   trackError: (error, req) => {
+    const endpoint = req ? `${req.method} ${req.route?.path || req.path}` : 'unknown';
+    const userId = req?.user?.userId || null;
+    
     systemMetrics.updateErrorCount();
+    systemMetrics.updateEndpointError(endpoint, userId);
 
     logger.error('Request error tracked', {
+      event: 'request_error_tracked',
       error: error.message,
+      errorName: error.name,
+      errorCode: error.code,
       stack: error.stack,
       method: req?.method,
       url: req?.url,
-      ip: req?.ip,
+      endpoint,
+      ip: req?.ip || req?.connection?.remoteAddress,
+      userId,
+      correlationId: req?.correlationId,
       timestamp: new Date().toISOString()
     });
   },
 
-  // Get performance metrics
+  // Get comprehensive performance metrics
   getPerformanceMetrics: () => {
     return {
       system: systemMetrics.getCurrentMetrics(),
+      trends: systemMetrics.getPerformanceTrends(),
       database: getQueryMetrics(),
       cache: require('./performance').cache.getStats(),
-      memory: memoryManager.getCurrentMemoryUsage()
+      memory: memoryManager.getCurrentMemoryUsage(),
+      processes: {
+        node: {
+          pid: process.pid,
+          uptime: process.uptime(),
+          version: process.version,
+          platform: process.platform,
+          arch: process.arch
+        }
+      }
     };
+  },
+
+  // Get endpoint-specific performance analysis
+  getEndpointAnalysis: (endpoint) => {
+    const endpointMetric = systemMetrics.endpointMetrics.get(endpoint);
+    if (!endpointMetric) {
+      return null;
+    }
+
+    const endpointResponses = systemMetrics.responseTimeHistory.filter(r => r.endpoint === endpoint);
+    const recentResponses = endpointResponses.slice(-50); // Last 50 requests
+
+    return {
+      endpoint,
+      totalRequests: endpointMetric.requestCount,
+      totalErrors: endpointMetric.errorCount,
+      errorRate: endpointMetric.requestCount > 0 ? 
+        (endpointMetric.errorCount / endpointMetric.requestCount * 100).toFixed(2) : 0,
+      averageResponseTime: Math.round(endpointMetric.averageResponseTime),
+      recentAverageResponseTime: recentResponses.length > 0 ?
+        Math.round(recentResponses.reduce((sum, r) => sum + r.responseTime, 0) / recentResponses.length) : 0,
+      minResponseTime: recentResponses.length > 0 ? Math.min(...recentResponses.map(r => r.responseTime)) : 0,
+      maxResponseTime: recentResponses.length > 0 ? Math.max(...recentResponses.map(r => r.responseTime)) : 0,
+      percentile95: calculatePercentile(recentResponses.map(r => r.responseTime), 95),
+      percentile99: calculatePercentile(recentResponses.map(r => r.responseTime), 99)
+    };
+  },
+
+  // Get user-specific performance analysis
+  getUserAnalysis: (userId) => {
+    const userMetric = systemMetrics.userMetrics.get(userId);
+    if (!userMetric) {
+      return null;
+    }
+
+    const userResponses = systemMetrics.responseTimeHistory.filter(r => r.userId === userId);
+    const recentResponses = userResponses.slice(-50); // Last 50 requests
+
+    return {
+      userId,
+      totalRequests: userMetric.requestCount,
+      totalErrors: userMetric.errorCount,
+      errorRate: userMetric.requestCount > 0 ? 
+        (userMetric.errorCount / userMetric.requestCount * 100).toFixed(2) : 0,
+      averageResponseTime: Math.round(userMetric.averageResponseTime),
+      recentAverageResponseTime: recentResponses.length > 0 ?
+        Math.round(recentResponses.reduce((sum, r) => sum + r.responseTime, 0) / recentResponses.length) : 0,
+      lastActivity: new Date(userMetric.lastActivity).toISOString(),
+      inactiveTime: Date.now() - userMetric.lastActivity
+    };
+  },
+
+  // Get top slowest endpoints
+  getSlowestEndpoints: (limit = 10) => {
+    const endpointArray = Array.from(systemMetrics.endpointMetrics.entries())
+      .map(([endpoint, metrics]) => ({
+        endpoint,
+        averageResponseTime: metrics.averageResponseTime,
+        requestCount: metrics.requestCount,
+        errorCount: metrics.errorCount
+      }))
+      .sort((a, b) => b.averageResponseTime - a.averageResponseTime)
+      .slice(0, limit);
+
+    return endpointArray;
+  },
+
+  // Get most error-prone endpoints
+  getMostErrorProneEndpoints: (limit = 10) => {
+    const endpointArray = Array.from(systemMetrics.endpointMetrics.entries())
+      .map(([endpoint, metrics]) => ({
+        endpoint,
+        errorRate: metrics.requestCount > 0 ? (metrics.errorCount / metrics.requestCount * 100) : 0,
+        errorCount: metrics.errorCount,
+        requestCount: metrics.requestCount
+      }))
+      .filter(e => e.requestCount > 0) // Only endpoints with requests
+      .sort((a, b) => b.errorRate - a.errorRate)
+      .slice(0, limit);
+
+    return endpointArray;
   }
 };
+
+// Helper function to calculate percentiles
+function calculatePercentile(values, percentile) {
+  if (values.length === 0) return 0;
+  
+  values.sort((a, b) => a - b);
+  const index = Math.ceil((percentile / 100) * values.length) - 1;
+  return values[Math.max(0, index)];
+}
 
 // Monitoring middleware
 const monitoringMiddleware = (req, res, next) => {

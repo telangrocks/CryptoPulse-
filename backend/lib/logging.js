@@ -27,20 +27,41 @@ const ensureLogsDirectory = () => {
 // Initialize logs directory
 const logsDirExists = ensureLogsDirectory();
 
-// Custom log format
+// Enhanced structured log format for production
 const logFormat = winston.format.combine(
   winston.format.timestamp({
     format: 'YYYY-MM-DD HH:mm:ss.SSS'
   }),
   winston.format.errors({ stack: true }),
   winston.format.json(),
-  winston.format.printf(({ timestamp, level, message, ...meta }) => {
-    return JSON.stringify({
+  winston.format.printf(({ timestamp, level, message, service, version, environment, ...meta }) => {
+    const logEntry = {
       timestamp,
-      level,
+      level: level.toUpperCase(),
       message,
+      service: service || 'cryptopulse-backend',
+      version: version || '2.0.0',
+      environment: environment || process.env.NODE_ENV || 'development',
+      hostname: require('os').hostname(),
+      pid: process.pid,
       ...meta
-    });
+    };
+
+    // Add correlation ID if available
+    if (meta.correlationId) {
+      logEntry.correlationId = meta.correlationId;
+    }
+
+    // Add trace context if available
+    if (meta.traceId) {
+      logEntry.traceId = meta.traceId;
+    }
+
+    if (meta.spanId) {
+      logEntry.spanId = meta.spanId;
+    }
+
+    return JSON.stringify(logEntry);
   })
 );
 
@@ -68,12 +89,12 @@ const transports = [
 // Add file transports only if logs directory exists
 if (logsDirExists) {
   transports.push(
-  // Error log file with enhanced rotation
+    // Error log file with enhanced rotation
     new winston.transports.File({
       filename: path.join(logsDir, 'error.log'),
       level: 'error',
-      maxsize: 52428800, // 50MB - increased for production
-      maxFiles: 10, // Increased for production
+      maxsize: 104857600, // 100MB - increased for production
+      maxFiles: 20, // Increased for production
       tailable: true,
       zippedArchive: true, // Compress old logs
       format: logFormat
@@ -81,8 +102,8 @@ if (logsDirExists) {
     // Combined log file with enhanced rotation
     new winston.transports.File({
       filename: path.join(logsDir, 'combined.log'),
-      maxsize: 52428800, // 50MB - increased for production
-      maxFiles: 10, // Increased for production
+      maxsize: 104857600, // 100MB - increased for production
+      maxFiles: 20, // Increased for production
       tailable: true,
       zippedArchive: true, // Compress old logs
       format: logFormat
@@ -91,8 +112,38 @@ if (logsDirExists) {
     new winston.transports.File({
       filename: path.join(logsDir, 'production.log'),
       level: 'info',
-      maxsize: 104857600, // 100MB
-      maxFiles: 5,
+      maxsize: 209715200, // 200MB
+      maxFiles: 10,
+      tailable: true,
+      zippedArchive: true,
+      format: logFormat
+    }),
+    // Security events log file
+    new winston.transports.File({
+      filename: path.join(logsDir, 'security.log'),
+      level: 'warn',
+      maxsize: 52428800, // 50MB
+      maxFiles: 15,
+      tailable: true,
+      zippedArchive: true,
+      format: logFormat
+    }),
+    // Trading events log file
+    new winston.transports.File({
+      filename: path.join(logsDir, 'trading.log'),
+      level: 'info',
+      maxsize: 52428800, // 50MB
+      maxFiles: 15,
+      tailable: true,
+      zippedArchive: true,
+      format: logFormat
+    }),
+    // Audit trail log file
+    new winston.transports.File({
+      filename: path.join(logsDir, 'audit.log'),
+      level: 'info',
+      maxsize: 52428800, // 50MB
+      maxFiles: 30, // Keep audit logs longer
       tailable: true,
       zippedArchive: true,
       format: logFormat
@@ -280,31 +331,61 @@ process.on('unhandledRejection', (reason, promise) => {
   });
 });
 
-// Add request logging middleware
+// Enhanced request logging middleware with correlation IDs
 const requestLogger = (req, res, next) => {
   const start = Date.now();
+  const correlationId = req.headers['x-correlation-id'] || 
+                       req.headers['x-request-id'] || 
+                       require('crypto').randomUUID();
+  
+  // Add correlation ID to request for downstream tracing
+  req.correlationId = correlationId;
+  res.setHeader('x-correlation-id', correlationId);
 
   res.on('finish', () => {
     const duration = Date.now() - start;
     const logData = {
+      event: 'http_request',
       method: req.method,
       url: req.url,
       status: res.statusCode,
       duration: `${duration}ms`,
-      ip: req.ip || req.connection?.remoteAddress || 'unknown',
+      durationMs: duration,
+      ip: req.ip || req.connection?.remoteAddress || req.socket?.remoteAddress || 'unknown',
       userAgent: req.get('User-Agent') || 'unknown',
       contentLength: res.get('Content-Length'),
       referer: req.get('Referer'),
-      requestId: req.headers['x-request-id'] || 'unknown'
+      correlationId,
+      requestId: req.headers['x-request-id'] || 'unknown',
+      userId: req.user?.userId || req.user?.id || null,
+      sessionId: req.sessionID || null,
+      apiVersion: req.headers['x-api-version'] || 'v1'
     };
 
-    // Sanitize sensitive data
-    if (logData.url.includes('password') || logData.url.includes('token')) {
+    // Add performance categorization
+    if (duration > 5000) {
+      logData.performanceCategory = 'very_slow';
+    } else if (duration > 2000) {
+      logData.performanceCategory = 'slow';
+    } else if (duration > 500) {
+      logData.performanceCategory = 'moderate';
+    } else {
+      logData.performanceCategory = 'fast';
+    }
+
+    // Sanitize sensitive data from URL
+    if (logData.url.includes('password') || logData.url.includes('token') || 
+        logData.url.includes('secret') || logData.url.includes('key')) {
       logData.url = logData.url.replace(/[?&](password|token|secret|key)=[^&]*/gi, '&$1=***');
     }
 
-    if (res.statusCode >= 400) {
-      logger.warn('HTTP Request', logData);
+    // Log based on status code and performance
+    if (res.statusCode >= 500) {
+      logger.error('HTTP Request Error', logData);
+    } else if (res.statusCode >= 400) {
+      logger.warn('HTTP Request Client Error', logData);
+    } else if (logData.performanceCategory === 'very_slow' || logData.performanceCategory === 'slow') {
+      logger.warn('HTTP Request Performance Issue', logData);
     } else {
       logger.info('HTTP Request', logData);
     }
@@ -313,37 +394,83 @@ const requestLogger = (req, res, next) => {
   next();
 };
 
-// Add error logging middleware
+// Enhanced error logging middleware with detailed context
 const errorLogger = (err, req, res, next) => {
   const errorData = {
+    event: 'unhandled_error',
     error: err.message,
     stack: err.stack,
+    name: err.name,
+    code: err.code,
+    status: err.status || err.statusCode || 500,
     url: req.url,
     method: req.method,
-    ip: req.ip || req.connection?.remoteAddress || 'unknown',
+    ip: req.ip || req.connection?.remoteAddress || req.socket?.remoteAddress || 'unknown',
     userAgent: req.get('User-Agent') || 'unknown',
     requestId: req.headers['x-request-id'] || 'unknown',
+    correlationId: req.correlationId || 'unknown',
+    userId: req.user?.userId || req.user?.id || null,
+    sessionId: req.sessionID || null,
     timestamp: new Date().toISOString()
   };
+
+  // Add error classification
+  if (err.name === 'ValidationError') {
+    errorData.errorType = 'validation_error';
+  } else if (err.name === 'AuthenticationError') {
+    errorData.errorType = 'authentication_error';
+  } else if (err.name === 'AuthorizationError') {
+    errorData.errorType = 'authorization_error';
+  } else if (err.name === 'RateLimitError') {
+    errorData.errorType = 'rate_limit_error';
+  } else if (err.code === 'ECONNREFUSED' || err.code === 'ETIMEDOUT') {
+    errorData.errorType = 'network_error';
+  } else if (err.code && err.code.startsWith('23')) {
+    errorData.errorType = 'database_constraint_error';
+  } else {
+    errorData.errorType = 'system_error';
+  }
 
   // Sanitize sensitive data from request
   if (req.body) {
     const sanitizedBody = { ...req.body };
     Object.keys(sanitizedBody).forEach(key => {
       if (key.toLowerCase().includes('password') ||
-    key.toLowerCase().includes('token') ||
-    key.toLowerCase().includes('secret') ||
-    key.toLowerCase().includes('key')) {
+          key.toLowerCase().includes('token') ||
+          key.toLowerCase().includes('secret') ||
+          key.toLowerCase().includes('key') ||
+          key.toLowerCase().includes('auth') ||
+          key.toLowerCase().includes('credential')) {
         sanitizedBody[key] = '***';
       }
     });
     errorData.body = sanitizedBody;
   }
 
-  errorData.query = req.query;
+  // Sanitize query parameters
+  if (req.query) {
+    const sanitizedQuery = { ...req.query };
+    Object.keys(sanitizedQuery).forEach(key => {
+      if (key.toLowerCase().includes('password') ||
+          key.toLowerCase().includes('token') ||
+          key.toLowerCase().includes('secret') ||
+          key.toLowerCase().includes('key')) {
+        sanitizedQuery[key] = '***';
+      }
+    });
+    errorData.query = sanitizedQuery;
+  }
+
   errorData.params = req.params;
 
-  logger.error('Unhandled Error', errorData);
+  // Log error with appropriate level based on severity
+  if (errorData.status >= 500) {
+    logger.error('Server Error', errorData);
+  } else if (errorData.status >= 400) {
+    logger.warn('Client Error', errorData);
+  } else {
+    logger.info('Application Error', errorData);
+  }
 
   next(err);
 };
@@ -439,6 +566,82 @@ const tradingLogger = {
   }
 };
 
+// Enhanced audit trail logging for compliance
+const auditLogger = {
+  userAction: (userId, action, resource, details = {}) => {
+    logger.info('Audit: User Action', {
+      event: 'audit_user_action',
+      auditType: 'user_action',
+      userId,
+      action,
+      resource,
+      details,
+      timestamp: new Date().toISOString()
+    });
+  },
+
+  authentication: (userId, action, success, details = {}) => {
+    logger.info('Audit: Authentication', {
+      event: 'audit_authentication',
+      auditType: 'authentication',
+      userId,
+      action,
+      success,
+      details,
+      timestamp: new Date().toISOString()
+    });
+  },
+
+  authorization: (userId, resource, action, result, details = {}) => {
+    logger.info('Audit: Authorization', {
+      event: 'audit_authorization',
+      auditType: 'authorization',
+      userId,
+      resource,
+      action,
+      result,
+      details,
+      timestamp: new Date().toISOString()
+    });
+  },
+
+  dataAccess: (userId, action, table, recordId, details = {}) => {
+    logger.info('Audit: Data Access', {
+      event: 'audit_data_access',
+      auditType: 'data_access',
+      userId,
+      action,
+      table,
+      recordId,
+      details,
+      timestamp: new Date().toISOString()
+    });
+  },
+
+  configurationChange: (userId, component, change, details = {}) => {
+    logger.info('Audit: Configuration Change', {
+      event: 'audit_config_change',
+      auditType: 'configuration_change',
+      userId,
+      component,
+      change,
+      details,
+      timestamp: new Date().toISOString()
+    });
+  },
+
+  systemEvent: (event, component, details = {}) => {
+    logger.info('Audit: System Event', {
+      event: 'audit_system_event',
+      auditType: 'system_event',
+      systemEvent: event,
+      component,
+      details,
+      timestamp: new Date().toISOString()
+    });
+  }
+};
+
 // Health check logging
 const healthLogger = {
   systemHealth: (healthData) => {
@@ -468,6 +671,7 @@ module.exports = {
   performanceLogger,
   securityLogger,
   tradingLogger,
+  auditLogger,
   healthLogger,
   // Enhanced log management
   logMaintenance,
