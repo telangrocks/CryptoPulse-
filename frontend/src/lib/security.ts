@@ -3,8 +3,8 @@
 // =============================================================================
 // Comprehensive security utilities for CryptoPulse frontend
 
-import DOMPurify from 'dompurify';
 import CryptoJS from 'crypto-js';
+import DOMPurify from 'dompurify';
 
 // Security configuration
 const SECURITY_CONFIG = {
@@ -20,7 +20,7 @@ const SECURITY_CONFIG = {
       'https://api.wazirx.com',
       'https://api.coindcx.com',
       'https://api.coingecko.com',
-      process.env.VITE_API_BASE_URL || 'http://localhost:1337'
+      process.env.VITE_API_BASE_URL || 'http://localhost:1337',
     ],
     'font-src': ["'self'", 'https://fonts.gstatic.com'],
     'object-src': ["'none'"],
@@ -30,16 +30,16 @@ const SECURITY_CONFIG = {
     'child-src': ["'self'"],
     'form-action': ["'self'"],
     'base-uri': ["'self'"],
-    'manifest-src': ["'self'"]
+    'manifest-src': ["'self'"],
   },
-  
+
   // Rate limiting
   RATE_LIMITS: {
     API_CALLS: 30, // per minute
     AUTH_ATTEMPTS: 5, // per 15 minutes
-    GENERAL_REQUESTS: 50 // per 15 minutes
+    GENERAL_REQUESTS: 50, // per 15 minutes
   },
-  
+
   // Input validation
   VALIDATION: {
     EMAIL_REGEX: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
@@ -49,27 +49,27 @@ const SECURITY_CONFIG = {
     API_KEY_MAX_LENGTH: 200,
     SYMBOL_REGEX: /^[A-Z0-9]{3,10}$/,
     AMOUNT_MIN: 0.01,
-    AMOUNT_MAX: 1000000
+    AMOUNT_MAX: 1000000,
   },
-  
+
   // Security headers
   SECURITY_HEADERS: {
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'DENY',
     'X-XSS-Protection': '1; mode=block',
     'Referrer-Policy': 'strict-origin-when-cross-origin',
-    'Permissions-Policy': 'geolocation=(), microphone=(), camera=(), payment=(), usb=()'
-  }
+    'Permissions-Policy': 'geolocation=(), microphone=(), camera=(), payment=(), usb=()',
+  },
 };
 
 // Input sanitization
 export const sanitizeInput = (input: string): string => {
   if (typeof input !== 'string') return input;
-  
+
   return DOMPurify.sanitize(input, {
     ALLOWED_TAGS: [],
     ALLOWED_ATTR: [],
-    KEEP_CONTENT: true
+    KEEP_CONTENT: true,
   }).trim();
 };
 
@@ -77,7 +77,7 @@ export const sanitizeInput = (input: string): string => {
 export const sanitizeHTML = (html: string): string => {
   return DOMPurify.sanitize(html, {
     ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'p', 'br'],
-    ALLOWED_ATTR: []
+    ALLOWED_ATTR: [],
   });
 };
 
@@ -88,65 +88,65 @@ export const validateEmail = (email: string): boolean => {
 
 export const validatePassword = (password: string): { isValid: boolean; errors: string[] } => {
   const errors: string[] = [];
-  
+
   if (password.length < SECURITY_CONFIG.VALIDATION.PASSWORD_MIN_LENGTH) {
     errors.push(`Password must be at least ${SECURITY_CONFIG.VALIDATION.PASSWORD_MIN_LENGTH} characters`);
   }
-  
+
   if (password.length > SECURITY_CONFIG.VALIDATION.PASSWORD_MAX_LENGTH) {
     errors.push(`Password must be no more than ${SECURITY_CONFIG.VALIDATION.PASSWORD_MAX_LENGTH} characters`);
   }
-  
+
   if (!/(?=.*[a-z])/.test(password)) {
     errors.push('Password must contain at least one lowercase letter');
   }
-  
+
   if (!/(?=.*[A-Z])/.test(password)) {
     errors.push('Password must contain at least one uppercase letter');
   }
-  
+
   if (!/(?=.*\d)/.test(password)) {
     errors.push('Password must contain at least one number');
   }
-  
+
   if (!/(?=.*[@$!%*?&])/.test(password)) {
     errors.push('Password must contain at least one special character');
   }
-  
+
   // Check for common weak patterns
   const weakPatterns = ['password', '123456', 'qwerty', 'admin', 'user'];
   if (weakPatterns.some(pattern => password.toLowerCase().includes(pattern))) {
     errors.push('Password contains common weak patterns');
   }
-  
+
   return {
     isValid: errors.length === 0,
-    errors
+    errors,
   };
 };
 
 export const validateApiKey = (apiKey: string): { isValid: boolean; errors: string[] } => {
   const errors: string[] = [];
-  
+
   if (apiKey.length < SECURITY_CONFIG.VALIDATION.API_KEY_MIN_LENGTH) {
     errors.push(`API key must be at least ${SECURITY_CONFIG.VALIDATION.API_KEY_MIN_LENGTH} characters`);
   }
-  
+
   if (apiKey.length > SECURITY_CONFIG.VALIDATION.API_KEY_MAX_LENGTH) {
     errors.push(`API key must be no more than ${SECURITY_CONFIG.VALIDATION.API_KEY_MAX_LENGTH} characters`);
   }
-  
+
   if (!/^[a-zA-Z0-9_-]+$/.test(apiKey)) {
     errors.push('API key contains invalid characters');
   }
-  
+
   if (apiKey.includes('test') || apiKey.includes('demo') || apiKey.includes('example')) {
     errors.push('API key appears to be a test/demo key');
   }
-  
+
   return {
     isValid: errors.length === 0,
-    errors
+    errors,
   };
 };
 
@@ -156,62 +156,62 @@ export const validateSymbol = (symbol: string): boolean => {
 
 export const validateAmount = (amount: number): { isValid: boolean; errors: string[] } => {
   const errors: string[] = [];
-  
+
   if (amount < SECURITY_CONFIG.VALIDATION.AMOUNT_MIN) {
     errors.push(`Amount must be at least ${SECURITY_CONFIG.VALIDATION.AMOUNT_MIN}`);
   }
-  
+
   if (amount > SECURITY_CONFIG.VALIDATION.AMOUNT_MAX) {
     errors.push(`Amount must be no more than ${SECURITY_CONFIG.VALIDATION.AMOUNT_MAX}`);
   }
-  
+
   if (!Number.isFinite(amount)) {
     errors.push('Amount must be a valid number');
   }
-  
+
   return {
     isValid: errors.length === 0,
-    errors
+    errors,
   };
 };
 
 // Rate limiting
 class RateLimiter {
   private requests: Map<string, number[]> = new Map();
-  
+
   isAllowed(key: string, limit: number, windowMs: number): boolean {
     const now = Date.now();
     const requests = this.requests.get(key) || [];
-    
+
     // Remove old requests outside the window
     const validRequests = requests.filter(time => now - time < windowMs);
-    
+
     if (validRequests.length >= limit) {
       return false;
     }
-    
+
     // Add current request
     validRequests.push(now);
     this.requests.set(key, validRequests);
-    
+
     return true;
   }
-  
+
   getRemainingRequests(key: string, limit: number, windowMs: number): number {
     const now = Date.now();
     const requests = this.requests.get(key) || [];
     const validRequests = requests.filter(time => now - time < windowMs);
-    
+
     return Math.max(0, limit - validRequests.length);
   }
-  
+
   getResetTime(key: string, windowMs: number): number {
     const now = Date.now();
     const requests = this.requests.get(key) || [];
     const validRequests = requests.filter(time => now - time < windowMs);
-    
+
     if (validRequests.length === 0) return now;
-    
+
     return Math.min(...validRequests) + windowMs;
   }
 }
@@ -237,12 +237,12 @@ export const secureStorage = {
       console.error('Failed to store item securely:', error);
     }
   },
-  
+
   getItem: (key: string): string | null => {
     try {
       const encrypted = localStorage.getItem(key);
       if (!encrypted) return null;
-      
+
       const decrypted = CryptoJS.AES.decrypt(encrypted, process.env.VITE_ENCRYPTION_KEY || 'default-key');
       return decrypted.toString(CryptoJS.enc.Utf8);
     } catch (error) {
@@ -250,14 +250,14 @@ export const secureStorage = {
       return null;
     }
   },
-  
+
   removeItem: (key: string): void => {
     localStorage.removeItem(key);
   },
-  
+
   clear: (): void => {
     localStorage.clear();
-  }
+  },
 };
 
 // Security monitoring
@@ -268,17 +268,17 @@ export const securityMonitor = {
       details,
       timestamp: new Date().toISOString(),
       userAgent: navigator.userAgent,
-      url: window.location.href
+      url: window.location.href,
     });
   },
-  
+
   logSecurityEvent: (event: string, details: Record<string, any>): void => {
     console.info('Security event:', {
       event,
       details,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
-  }
+  },
 };
 
 // Content Security Policy
@@ -286,7 +286,7 @@ export const setCSP = (): void => {
   const cspHeader = Object.entries(SECURITY_CONFIG.CSP)
     .map(([directive, sources]) => `${directive} ${sources.join(' ')}`)
     .join('; ');
-  
+
   const meta = document.createElement('meta');
   meta.httpEquiv = 'Content-Security-Policy';
   meta.content = cspHeader;
@@ -306,15 +306,15 @@ export const setSecurityHeaders = (): void => {
 export const initializeSecurity = (): void => {
   setCSP();
   setSecurityHeaders();
-  
+
   // Monitor for suspicious activity
   window.addEventListener('beforeunload', () => {
     securityMonitor.logSecurityEvent('page_unload', {
       url: window.location.href,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   });
-  
+
   // Monitor for XSS attempts
   const originalConsoleError = console.error;
   console.error = (...args) => {
