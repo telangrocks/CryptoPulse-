@@ -5,11 +5,11 @@
 
 import { logError, logInfo, logWarn } from '../logger';
 
-import { BinanceExchange } from './binance';
-import { CoinbaseExchange } from './coinbase';
-import { CoinDCXExchange } from './coindcx';
-import { DeltaExchange } from './delta';
-import { WazirXExchange } from './wazirx';
+// import { BinanceExchange } from './binance';
+// import { CoinbaseExchange } from './coinbase';
+// import { CoinDCXExchange } from './coindcx';
+// import { DeltaExchange } from './delta';
+// import { WazirXExchange } from './wazirx';
 
 import {
   Exchange,
@@ -58,55 +58,51 @@ export class ExchangeManager {
   }
 
   private initializeExchanges(): void {
-    // Initialize Binance
-    if (this.credentials.binance) {
-      this.exchanges.set('binance', new BinanceExchange({
-        apiKey: this.credentials.binance.apiKey,
-        apiSecret: this.credentials.binance.apiSecret,
-        sandbox: this.credentials.binance.sandbox,
-        baseUrl: this.credentials.binance.baseUrl,
-      }));
-    }
+    // Initialize exchanges dynamically
+    const exchangeClasses = {
+      binance: () => import('./binance').then(m => new m.BinanceExchange({
+        apiKey: this.credentials.binance!.apiKey,
+        apiSecret: this.credentials.binance!.apiSecret,
+        sandbox: this.credentials.binance!.sandbox,
+        baseUrl: this.credentials.binance!.baseUrl,
+      })),
+      wazirx: () => import('./wazirx').then(m => new m.WazirXExchange({
+        apiKey: this.credentials.wazirx!.apiKey,
+        apiSecret: this.credentials.wazirx!.apiSecret,
+        sandbox: this.credentials.wazirx!.sandbox,
+        baseUrl: this.credentials.wazirx!.baseUrl,
+      })),
+      coindcx: () => import('./coindcx').then(m => new m.CoinDCXExchange({
+        apiKey: this.credentials.coindcx!.apiKey,
+        apiSecret: this.credentials.coindcx!.apiSecret,
+        sandbox: this.credentials.coindcx!.sandbox,
+        baseUrl: this.credentials.coindcx!.baseUrl,
+      })),
+      delta: () => import('./delta').then(m => new m.DeltaExchange({
+        apiKey: this.credentials.delta!.apiKey,
+        apiSecret: this.credentials.delta!.apiSecret,
+        sandbox: this.credentials.delta!.sandbox,
+        baseUrl: this.credentials.delta!.baseUrl,
+      })),
+      coinbase: () => import('./coinbase').then(m => new m.CoinbaseExchange({
+        apiKey: this.credentials.coinbase!.apiKey,
+        apiSecret: this.credentials.coinbase!.apiSecret,
+        sandbox: this.credentials.coinbase!.sandbox,
+        baseUrl: this.credentials.coinbase!.baseUrl,
+      })),
+    };
 
-    // Initialize WazirX (India approved)
-    if (this.credentials.wazirx) {
-      this.exchanges.set('wazirx', new WazirXExchange({
-        apiKey: this.credentials.wazirx.apiKey,
-        apiSecret: this.credentials.wazirx.apiSecret,
-        sandbox: this.credentials.wazirx.sandbox,
-        baseUrl: this.credentials.wazirx.baseUrl,
-      }));
-    }
-
-    // Initialize CoinDCX (India approved)
-    if (this.credentials.coindcx) {
-      this.exchanges.set('coindcx', new CoinDCXExchange({
-        apiKey: this.credentials.coindcx.apiKey,
-        apiSecret: this.credentials.coindcx.apiSecret,
-        sandbox: this.credentials.coindcx.sandbox,
-        baseUrl: this.credentials.coindcx.baseUrl,
-      }));
-    }
-
-    // Initialize Delta Exchange (India approved)
-    if (this.credentials.delta) {
-      this.exchanges.set('delta', new DeltaExchange({
-        apiKey: this.credentials.delta.apiKey,
-        apiSecret: this.credentials.delta.apiSecret,
-        sandbox: this.credentials.delta.sandbox,
-        baseUrl: this.credentials.delta.baseUrl,
-      }));
-    }
-
-    // Initialize Coinbase Pro
-    if (this.credentials.coinbase) {
-      this.exchanges.set('coinbase', new CoinbaseExchange({
-        apiKey: this.credentials.coinbase.apiKey,
-        apiSecret: this.credentials.coinbase.apiSecret,
-        sandbox: this.credentials.coinbase.sandbox,
-        baseUrl: this.credentials.coinbase.baseUrl,
-      }));
-    }
+    // Initialize exchanges
+    Object.entries(exchangeClasses).forEach(async ([name, initFn]) => {
+      if (this.credentials[name]) {
+        try {
+          const exchange = await initFn();
+          this.exchanges.set(name, exchange);
+        } catch (error) {
+          logError(`Failed to initialize ${name} exchange`, error);
+        }
+      }
+    });
 
     logInfo('Exchange Manager initialized', 'ExchangeManager', {
       exchanges: Array.from(this.exchanges.keys()),

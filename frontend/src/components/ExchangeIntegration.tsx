@@ -79,9 +79,9 @@ export default function ExchangeIntegration() {
     try {
       // Simulate API call to save credentials
       await new Promise(resolve => setTimeout(resolve, 1000));
-      console.log('Credentials saved:', credentials);
+      // console.log('Credentials saved:', credentials);
     } catch (error) {
-      console.error('Failed to save credentials:', error);
+      // console.error('Failed to save credentials:', error);
     } finally {
       setLoading(false);
     }
@@ -103,7 +103,7 @@ export default function ExchangeIntegration() {
         },
       });
     } catch (error) {
-      console.error('Failed to fetch balances:', error);
+      // console.error('Failed to fetch balances:', error);
     } finally {
       setLoading(false);
     }
@@ -119,10 +119,10 @@ export default function ExchangeIntegration() {
     try {
       // Simulate trade execution
       await new Promise(resolve => setTimeout(resolve, 2000));
-      console.log(`Executed ${side} ${amount} ${pair} on ${selectedExchange}`);
+      // console.log(`Executed ${side} ${amount} ${pair} on ${selectedExchange}`);
       alert(`Trade executed: ${side} ${amount} ${pair}`);
     } catch (error) {
-      console.error('Trade execution failed:', error);
+      // console.error('Trade execution failed:', error);
       alert('Trade failed');
     } finally {
       setLoading(false);

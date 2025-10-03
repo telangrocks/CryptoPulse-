@@ -1,392 +1,279 @@
 /**
- * Coinbase Pro Exchange Integration
- * US-based exchange with institutional-grade API
+ * Coinbase Exchange Adapter
+ * Production-ready Coinbase Pro API integration
  */
-
-import { logError } from '../logger';
 
 import { Exchange, ExchangeConfig, Ticker, Balance, OrderRequest, OrderResponse, ExchangeInfo } from './index';
 
-export class CoinbaseExchange implements Exchange {
-  name = 'Coinbase Pro';
-  config: ExchangeConfig;
-  private baseUrl: string;
+interface CoinbaseCredentials {
+  apiKey: string;
+  apiSecret: string;
+  passphrase?: string;
+  sandbox?: boolean;
+  baseUrl?: string;
+}
 
-  constructor(config: ExchangeConfig) {
-    this.config = config;
-    this.baseUrl = config.baseUrl || (config.sandbox ? 'https://api-public.sandbox.pro.coinbase.com' : 'https://api.pro.coinbase.com');
+export class CoinbaseExchange implements Exchange {
+  private credentials: CoinbaseCredentials;
+  private baseUrl: string;
+  private productionUrl = 'https://api.exchange.coinbase.com';
+  private sandboxUrl = 'https://api-public.sandbox.exchange.coinbase.com';
+
+  constructor(credentials: CoinbaseCredentials) {
+    this.credentials = credentials;
+    this.baseUrl = credentials.baseUrl || (credentials.sandbox ? this.sandboxUrl : this.productionUrl);
   }
 
-  async authenticate(): Promise<boolean> {
+  async getExchangeInfo(): Promise<ExchangeInfo> {
     try {
-      const response = await this.makeRequest('GET', '/accounts');
-      return response && Array.isArray(response);
+      const response = await fetch(`${this.baseUrl}/products`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch exchange info: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      return {
+        name: 'Coinbase Pro',
+        timezone: 'UTC',
+        serverTime: Date.now(),
+        rateLimits: [],
+        exchangeFilters: [],
+        symbols: data.map((product: any) => ({
+          symbol: product.id,
+          status: product.status === 'online' ? 'TRADING' : 'HALTED',
+          baseAsset: product.base_currency,
+          quoteAsset: product.quote_currency,
+          orderTypes: ['LIMIT', 'MARKET'],
+          filters: []
+        }))
+      };
     } catch (error) {
-      logError('Coinbase Pro authentication failed', 'CoinbaseExchange', error);
-      return false;
+      throw new Error(`Failed to get exchange info: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
   async getTicker(symbol: string): Promise<Ticker> {
     try {
-      const formattedSymbol = this.formatSymbol(symbol);
-      const response = await this.makeRequest('GET', `/products/${formattedSymbol}/ticker`);
-
+      const response = await fetch(`${this.baseUrl}/products/${symbol}/ticker`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch ticker: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
       return {
-        symbol: response.product_id,
-        price: response.price,
-        bidPrice: response.bid,
-        askPrice: response.ask,
-        volume: response.volume,
-        quoteVolume: response.volume,
-        openPrice: '0',
-        highPrice: '0',
-        lowPrice: '0',
-        closePrice: response.price,
-        priceChange: '0',
-        priceChangePercent: '0',
+        symbol: symbol,
+        price: parseFloat(data.price),
+        bidPrice: parseFloat(data.bid),
+        askPrice: parseFloat(data.ask),
+        volume: parseFloat(data.volume || '0'),
+        quoteVolume: parseFloat(data.volume || '0'),
+        openPrice: 0,
+        highPrice: 0,
+        lowPrice: 0,
+        priceChange: 0,
+        priceChangePercent: 0,
         count: 0,
-        timestamp: Date.now(),
+        timestamp: Date.now()
       };
     } catch (error) {
-      logError('Failed to get Coinbase Pro ticker', 'CoinbaseExchange', error);
-      throw error;
+      throw new Error(`Failed to get ticker: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
-  async getOrderBook(symbol: string, limit: number = 100): Promise<unknown> {
+  async getBalance(): Promise<Balance[]> {
     try {
-      const formattedSymbol = this.formatSymbol(symbol);
-      return await this.makeRequest('GET', `/products/${formattedSymbol}/book`, { level: 2 });
+      const timestamp = Date.now();
+      const signature = await this.createSignature('GET', '/accounts', '', timestamp);
+      
+      const url = `${this.baseUrl}/accounts`;
+      
+      const response = await fetch(url, {
+        headers: {
+          'CB-ACCESS-KEY': this.credentials.apiKey,
+          'CB-ACCESS-SIGN': signature,
+          'CB-ACCESS-TIMESTAMP': timestamp.toString(),
+          'CB-ACCESS-PASSPHRASE': this.credentials.passphrase || '',
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch balance: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      return data
+        .filter((account: any) => parseFloat(account.balance || '0') > 0)
+        .map((account: any) => ({
+          asset: account.currency,
+          free: parseFloat(account.available || '0'),
+          locked: parseFloat(account.hold || '0'),
+          total: parseFloat(account.balance || '0')
+        }));
     } catch (error) {
-      logError('Failed to get Coinbase Pro order book', 'CoinbaseExchange', error);
-      throw error;
+      throw new Error(`Failed to get balance: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
-  async getKlines(symbol: string, interval: string, limit: number = 100): Promise<any[]> {
+  async createOrder(orderRequest: OrderRequest): Promise<OrderResponse> {
     try {
-      const formattedSymbol = this.formatSymbol(symbol);
-      const response = await this.makeRequest('GET', `/products/${formattedSymbol}/candles`, {
-        granularity: this.mapInterval(interval),
-        limit,
+      const timestamp = Date.now();
+      const body = {
+        type: orderRequest.type?.toLowerCase() === 'market' ? 'market' : 'limit',
+        side: orderRequest.side.toLowerCase(),
+        product_id: orderRequest.symbol,
+        size: orderRequest.quantity.toString(),
+        time_in_force: 'GTC'
+      };
+
+      if (orderRequest.price && orderRequest.type?.toLowerCase() !== 'market') {
+        body.price = orderRequest.price.toString();
+      }
+
+      const bodyString = JSON.stringify(body);
+      const signature = await this.createSignature('POST', '/orders', bodyString, timestamp);
+      const url = `${this.baseUrl}/orders`;
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'CB-ACCESS-KEY': this.credentials.apiKey,
+          'CB-ACCESS-SIGN': signature,
+          'CB-ACCESS-TIMESTAMP': timestamp.toString(),
+          'CB-ACCESS-PASSPHRASE': this.credentials.passphrase || '',
+          'Content-Type': 'application/json'
+        },
+        body: bodyString
       });
 
-      return response.map((kline: any) => [
-        kline[0], // Time
-        kline[3], // Low
-        kline[2], // High
-        kline[1], // Open
-        kline[4], // Close
-        kline[5], // Volume
-        kline[0] + (this.mapInterval(interval) * 1000), // Close time
-        kline[5], // Quote asset volume
-        0,        // Number of trades
-        kline[5], // Taker buy base asset volume
-        kline[5], // Taker buy quote asset volume
-        0,         // Ignore
-      ]);
-    } catch (error) {
-      logError('Failed to get Coinbase Pro klines', 'CoinbaseExchange', error);
-      throw error;
-    }
-  }
-
-  async getAccountInfo(): Promise<unknown> {
-    try {
-      return await this.makeRequest('GET', '/accounts');
-    } catch (error) {
-      logError('Failed to get Coinbase Pro account info', 'CoinbaseExchange', error);
-      throw error;
-    }
-  }
-
-  async getBalances(): Promise<Balance[]> {
-    try {
-      const accounts = await this.getAccountInfo();
-      return accounts.map((account: any) => ({
-        asset: account.currency,
-        free: account.available,
-        locked: account.hold,
-        total: account.balance,
-      }));
-    } catch (error) {
-      logError('Failed to get Coinbase Pro balances', 'CoinbaseExchange', error);
-      throw error;
-    }
-  }
-
-  async getBalance(asset: string): Promise<Balance> {
-    try {
-      const balances = await this.getBalances();
-      const balance = balances.find(b => b.asset === asset);
-      if (!balance) {
-        return {
-          asset,
-          free: '0',
-          locked: '0',
-          total: '0',
-        };
+      if (!response.ok) {
+        throw new Error(`Failed to create order: ${response.statusText}`);
       }
-      return balance;
-    } catch (error) {
-      logError('Failed to get Coinbase Pro balance', 'CoinbaseExchange', error);
-      throw error;
-    }
-  }
 
-  async createOrder(order: OrderRequest): Promise<OrderResponse> {
-    try {
-      const formattedSymbol = this.formatSymbol(order.symbol);
-      const orderData = {
-        product: formattedSymbol,
-        side: order.side.toLowerCase(),
-        type: order.type.toLowerCase(),
-        size: order.quantity.toString(),
-        ...(order.price && { price: order.price.toString() }),
-        ...(order.stopPrice && { stop: order.stopPrice.toString() }),
-        ...(order.timeInForce && { time: order.timeInForce }),
-        post: order.type === 'LIMIT',
-      };
-
-      const response = await this.makeRequest('POST', '/orders', orderData);
+      const data = await response.json();
 
       return {
-        orderId: response.id,
-        symbol: response.product_id,
-        side: response.side.toUpperCase(),
-        type: response.type.toUpperCase(),
-        quantity: parseFloat(response.size),
-        price: parseFloat(response.price || '0'),
-        status: this.mapOrderStatus(response.status),
-        executedQty: parseFloat(response['filled-size'] || '0'),
-        cummulativeQuoteQty: parseFloat(response['filled-size'] || '0') * parseFloat(response.price || '0'),
+        orderId: data.id,
+        symbol: data.product_id,
+        status: data.status,
+        side: data.side,
+        type: data.type,
+        quantity: parseFloat(data.size || '0'),
+        price: parseFloat(data.price || '0'),
+        executedQuantity: parseFloat(data.filled_size || '0'),
         timestamp: Date.now(),
-        clientOrderId: response['client-oid'],
+        clientOrderId: data.client_oid || data.id
       };
     } catch (error) {
-      logError('Failed to create Coinbase Pro order', 'CoinbaseExchange', error);
-      throw error;
+      throw new Error(`Failed to create order: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
-  async cancelOrder(symbol: string, orderId: string): Promise<boolean> {
+  async cancelOrder(orderId: string, symbol: string): Promise<OrderResponse> {
     try {
-      await this.makeRequest('DELETE', `/orders/${orderId}`);
-      return true;
-    } catch (error) {
-      logError('Failed to cancel Coinbase Pro order', 'CoinbaseExchange', error);
-      return false;
-    }
-  }
+      const timestamp = Date.now();
+      const signature = await this.createSignature('DELETE', `/orders/${orderId}`, '', timestamp);
+      const url = `${this.baseUrl}/orders/${orderId}`;
 
-  async getOrder(symbol: string, orderId: string): Promise<OrderResponse> {
-    try {
-      const response = await this.makeRequest('GET', `/orders/${orderId}`);
+      const response = await fetch(url, {
+        method: 'DELETE',
+        headers: {
+          'CB-ACCESS-KEY': this.credentials.apiKey,
+          'CB-ACCESS-SIGN': signature,
+          'CB-ACCESS-TIMESTAMP': timestamp.toString(),
+          'CB-ACCESS-PASSPHRASE': this.credentials.passphrase || '',
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to cancel order: ${response.statusText}`);
+      }
+
+      const data = await response.json();
 
       return {
-        orderId: response.id,
-        symbol: response.product_id,
-        side: response.side.toUpperCase(),
-        type: response.type.toUpperCase(),
-        quantity: parseFloat(response.size),
-        price: parseFloat(response.price || '0'),
-        status: this.mapOrderStatus(response.status),
-        executedQty: parseFloat(response['filled-size'] || '0'),
-        cummulativeQuoteQty: parseFloat(response['filled-size'] || '0') * parseFloat(response.price || '0'),
+        orderId: data.id,
+        symbol: symbol,
+        status: data.status,
+        side: data.side,
+        type: data.type,
+        quantity: parseFloat(data.size || '0'),
+        price: parseFloat(data.price || '0'),
+        executedQuantity: parseFloat(data.filled_size || '0'),
         timestamp: Date.now(),
-        clientOrderId: response['client-oid'],
+        clientOrderId: data.client_oid || data.id
       };
     } catch (error) {
-      logError('Failed to get Coinbase Pro order', 'CoinbaseExchange', error);
-      throw error;
+      throw new Error(`Failed to cancel order: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
-  async getOpenOrders(symbol?: string): Promise<OrderResponse[]> {
+  async getOrderStatus(orderId: string, symbol: string): Promise<OrderResponse> {
     try {
-      const params: any = { status: 'open' };
-      if (symbol) {
-        params.productId = this.formatSymbol(symbol);
+      const timestamp = Date.now();
+      const signature = await this.createSignature('GET', `/orders/${orderId}`, '', timestamp);
+      const url = `${this.baseUrl}/orders/${orderId}`;
+
+      const response = await fetch(url, {
+        headers: {
+          'CB-ACCESS-KEY': this.credentials.apiKey,
+          'CB-ACCESS-SIGN': signature,
+          'CB-ACCESS-TIMESTAMP': timestamp.toString(),
+          'CB-ACCESS-PASSPHRASE': this.credentials.passphrase || '',
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to get order status: ${response.statusText}`);
       }
 
-      const response = await this.makeRequest('GET', '/orders', params);
+      const data = await response.json();
 
-      return response.map((order: any) => ({
-        orderId: order.id,
-        symbol: order.product_id,
-        side: order.side.toUpperCase(),
-        type: order.type.toUpperCase(),
-        quantity: parseFloat(order.size),
-        price: parseFloat(order.price || '0'),
-        status: this.mapOrderStatus(order.status),
-        executedQty: parseFloat(order['filled-size'] || '0'),
-        cummulativeQuoteQty: parseFloat(order['filled-size'] || '0') * parseFloat(order.price || '0'),
+      return {
+        orderId: data.id,
+        symbol: data.product_id,
+        status: data.status,
+        side: data.side,
+        type: data.type,
+        quantity: parseFloat(data.size || '0'),
+        price: parseFloat(data.price || '0'),
+        executedQuantity: parseFloat(data.filled_size || '0'),
         timestamp: Date.now(),
-        clientOrderId: order['client-oid'],
-      }));
+        clientOrderId: data.client_oid || data.id
+      };
     } catch (error) {
-      logError('Failed to get Coinbase Pro open orders', 'CoinbaseExchange', error);
-      throw error;
+      throw new Error(`Failed to get order status: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-  }
-
-  async getOrderHistory(symbol?: string, limit: number = 50): Promise<OrderResponse[]> {
-    try {
-      const params: any = { limit };
-      if (symbol) {
-        params.productId = this.formatSymbol(symbol);
-      }
-
-      const response = await this.makeRequest('GET', '/orders', params);
-
-      return response.map((order: any) => ({
-        orderId: order.id,
-        symbol: order.product_id,
-        side: order.side.toUpperCase(),
-        type: order.type.toUpperCase(),
-        quantity: parseFloat(order.size),
-        price: parseFloat(order.price || '0'),
-        status: this.mapOrderStatus(order.status),
-        executedQty: parseFloat(order['filled-size'] || '0'),
-        cummulativeQuoteQty: parseFloat(order['filled-size'] || '0') * parseFloat(order.price || '0'),
-        timestamp: Date.now(),
-        clientOrderId: order['client-oid'],
-      }));
-    } catch (error) {
-      logError('Failed to get Coinbase Pro order history', 'CoinbaseExchange', error);
-      throw error;
-    }
-  }
-
-  getExchangeInfo(): ExchangeInfo {
-    return {
-      name: 'Coinbase Pro',
-      country: 'United States',
-      isIndiaApproved: false,
-      supportedPairs: [
-        'BTC-USD', 'ETH-USD', 'LTC-USD', 'BCH-USD', 'XRP-USD',
-        'ADA-USD', 'DOT-USD', 'LINK-USD', 'UNI-USD', 'AAVE-USD',
-      ],
-      tradingFees: {
-        maker: 0.5,
-        taker: 0.5,
-      },
-      withdrawalFees: {
-        'BTC': 0.5,
-        'ETH': 0.1,
-        'USD': 0,
-      },
-      minOrderSize: {
-        'BTC-USD': 0.1,
-        'ETH-USD': 0.1,
-      },
-      maxOrderSize: {
-        'BTC-USD': 100,
-        'ETH-USD': 1000,
-      },
-      supportedOrderTypes: ['MARKET', 'LIMIT', 'STOP-LOSS'],
-      apiLimits: {
-        requestsPerMinute: 1000,
-        ordersPerSecond: 5,
-      },
-    };
-  }
-
-  validateSymbol(symbol: string): boolean {
-    const formattedSymbol = this.formatSymbol(symbol);
-    const supportedPairs = this.getExchangeInfo().supportedPairs;
-    return supportedPairs.includes(formattedSymbol);
   }
 
   formatSymbol(symbol: string): string {
+    // Coinbase Pro uses format like "BTC-USD", "ETH-USD"
     return symbol.replace('/', '-').toUpperCase();
   }
 
-  private mapInterval(interval: string): number {
-    const intervalMap: { [key: string]: number } = {
-      '1m': 60,
-      '5m': 300,
-      '15m': 900,
-      '1h': 3600,
-      '6h': 21600,
-      '1d': 86400,
-    };
-    return intervalMap[interval] || 3600;
-  }
-
-  private mapOrderStatus(status: string): 'NEW' | 'PARTIALLY-FILLED' | 'FILLED' | 'CANCELED' | 'REJECTED' | 'EXPIRED' {
-    const statusMap: { [key: string]: 'NEW' | 'PARTIALLY-FILLED' | 'FILLED' | 'CANCELED' | 'REJECTED' | 'EXPIRED' } = {
-      'open': 'NEW',
-      'pending': 'NEW',
-      'active': 'NEW',
-      'partially-filled': 'PARTIALLY-FILLED',
-      'filled': 'FILLED',
-      'cancelled': 'CANCELED',
-      'rejected': 'REJECTED',
-      'expired': 'EXPIRED',
-    };
-    return statusMap[status.toLowerCase()] || 'NEW';
-  }
-
-  private async makeRequest(method: string, endpoint: string, params: any = {}): Promise<any> {
-    const url = new URL(this.baseUrl + endpoint);
-
-    // Add query parameters for GET requests
-    if (method === 'GET') {
-      Object.keys(params).forEach(key => {
-        url.searchParams.append(key, params[key]);
-      });
-    }
-
-    const headers: any = {
-      'CB-ACCESS-KEY': this.config.apiKey,
-      'Content-Type': 'application/json',
-    };
-
-    // Add signature for authenticated requests
-    if (endpoint.includes('/orders') || endpoint.includes('/accounts')) {
-      const queryString = new URLSearchParams(params).toString();
-      const signature = await this.generateSignature(queryString);
-      headers['CB-ACCESS-SIGN'] = signature;
-      headers['CB-ACCESS-TIMESTAMP'] = Date.now().toString();
-    }
-
-    const requestOptions: RequestInit = {
-      method,
-      headers,
-    };
-
-    if (method === 'POST' && Object.keys(params).length > 0) {
-      requestOptions.body = JSON.stringify(params);
-    }
-
-    const response = await fetch(url.toString(), requestOptions);
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`Coinbase Pro API Error: ${errorData.message || response.statusText}`);
-    }
-
-    return await response.json();
-  }
-
-  private async generateSignature(queryString: string): Promise<string> {
-    // Use Web Crypto API for frontend compatibility
+  private async createSignature(method: string, path: string, body: string, timestamp: number): Promise<string> {
+    const message = `${timestamp}${method}${path}${body}`;
+    
+    // Use Web Crypto API for HMAC-SHA256 in browser environment
     const encoder = new TextEncoder();
-    const keyData = encoder.encode(this.config.apiSecret);
-    const messageData = encoder.encode(queryString);
+    const keyData = encoder.encode(this.credentials.apiSecret);
+    const messageData = encoder.encode(message);
 
-    const key = await crypto.subtle.importKey(
+    const cryptoKey = await crypto.subtle.importKey(
       'raw',
       keyData,
       { name: 'HMAC', hash: 'SHA-256' },
       false,
-      ['sign'],
+      ['sign']
     );
 
-    const signature = await crypto.subtle.sign('HMAC', key, messageData);
+    const signature = await crypto.subtle.sign('HMAC', cryptoKey, messageData);
     const hashArray = Array.from(new Uint8Array(signature));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    return btoa(String.fromCharCode(...hashArray));
   }
 }

@@ -1,422 +1,292 @@
 /**
- * CoinDCX Exchange Integration
- * India-approved exchange with advanced trading features
+ * CoinDCX Exchange Adapter
+ * Production-ready CoinDCX API integration for Indian market
  */
-
-import { logError, logInfo, logWarn } from '../logger';
 
 import { Exchange, ExchangeConfig, Ticker, Balance, OrderRequest, OrderResponse, ExchangeInfo } from './index';
 
-export class CoinDCXExchange implements Exchange {
-  name = 'CoinDCX';
-  config: ExchangeConfig;
-  private baseUrl: string;
-  private rateLimiter: Map<string, number> = new Map();
-  private readonly RATE_LIMIT_WINDOW = 60000; // 1 minute
-  private readonly MAX_REQUESTS_PER_MINUTE = 1000;
+interface CoinDCXCredentials {
+  apiKey: string;
+  apiSecret: string;
+  sandbox?: boolean;
+  baseUrl?: string;
+}
 
-  constructor(config: ExchangeConfig) {
-    this.config = config;
-    this.baseUrl = config.baseUrl || 'https://api.coindcx.com';
+export class CoinDCXExchange implements Exchange {
+  private credentials: CoinDCXCredentials;
+  private baseUrl: string;
+  private productionUrl = 'https://api.coindcx.com/exchange/v1';
+  private sandboxUrl = 'https://api.sandbox.coindcx.com/exchange/v1';
+
+  constructor(credentials: CoinDCXCredentials) {
+    this.credentials = credentials;
+    this.baseUrl = credentials.baseUrl || (credentials.sandbox ? this.sandboxUrl : this.productionUrl);
   }
 
-  async authenticate(): Promise<boolean> {
+  async getExchangeInfo(): Promise<ExchangeInfo> {
     try {
-      const response = await this.makeRequest('GET', '/exchange/v1/users/balances');
-      return response && Array.isArray(response);
+      const response = await fetch(`${this.baseUrl}/markets`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch exchange info: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      return {
+        name: 'CoinDCX',
+        timezone: 'Asia/Kolkata',
+        serverTime: Date.now(),
+        rateLimits: [],
+        exchangeFilters: [],
+        symbols: data.map((market: any) => ({
+          symbol: market.market,
+          status: 'TRADING',
+          baseAsset: market.base_currency_short_name,
+          quoteAsset: market.target_currency_short_name,
+          orderTypes: ['LIMIT', 'MARKET'],
+          filters: []
+        }))
+      };
     } catch (error) {
-      logError('CoinDCX authentication failed', 'CoinDCXExchange', error);
-      return false;
+      throw new Error(`Failed to get exchange info: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
   async getTicker(symbol: string): Promise<Ticker> {
     try {
-      const formattedSymbol = this.formatSymbol(symbol);
-      const response = await this.makeRequest('GET', '/exchange/ticker', { market: formattedSymbol });
-
+      const response = await fetch(`${this.baseUrl}/ticker`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch ticker: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      const ticker = data.find((t: any) => t.market === symbol);
+      
+      if (!ticker) {
+        throw new Error(`Ticker not found for symbol: ${symbol}`);
+      }
+      
       return {
-        symbol: response.market,
-        price: response.last_price,
-        bidPrice: response.bid,
-        askPrice: response.ask,
-        volume: response.volume24h,
-        quoteVolume: response.volume24h,
-        openPrice: response.open,
-        highPrice: response.high,
-        lowPrice: response.low,
-        closePrice: response.last_price,
-        priceChange: response.change24h,
-        priceChangePercent: response.change24h_percent,
+        symbol: ticker.market,
+        price: parseFloat(ticker.last_price),
+        bidPrice: parseFloat(ticker.bid || '0'),
+        askPrice: parseFloat(ticker.ask || '0'),
+        volume: parseFloat(ticker.volume || '0'),
+        quoteVolume: parseFloat(ticker.target_volume || '0'),
+        openPrice: parseFloat(ticker.open || '0'),
+        highPrice: parseFloat(ticker.high || '0'),
+        lowPrice: parseFloat(ticker.low || '0'),
+        priceChange: parseFloat(ticker.change || '0'),
+        priceChangePercent: parseFloat(ticker.change_24_hour || '0'),
         count: 0,
-        timestamp: Date.now(),
+        timestamp: Date.now()
       };
     } catch (error) {
-      logError('Failed to get CoinDCX ticker', 'CoinDCXExchange', error);
-      throw error;
+      throw new Error(`Failed to get ticker: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
-  async getOrderBook(symbol: string, limit: number = 100): Promise<any> {
+  async getBalance(): Promise<Balance[]> {
     try {
-      const formattedSymbol = this.formatSymbol(symbol);
-      return await this.makeRequest('GET', '/exchange/v1/orders/depth', { market: formattedSymbol, limit });
+      const timestamp = Date.now();
+      const body = { timestamp };
+      const payload = JSON.stringify(body);
+      const signature = await this.createSignature(payload);
+      
+      const url = `${this.baseUrl}/users/balances`;
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'X-AUTH-APIKEY': this.credentials.apiKey,
+          'X-AUTH-SIGNATURE': signature,
+          'Content-Type': 'application/json'
+        },
+        body: payload
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch balance: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      return data
+        .filter((balance: any) => parseFloat(balance.balance) > 0)
+        .map((balance: any) => ({
+          asset: balance.currency,
+          free: parseFloat(balance.balance),
+          locked: 0,
+          total: parseFloat(balance.balance)
+        }));
     } catch (error) {
-      logError('Failed to get CoinDCX order book', 'CoinDCXExchange', error);
-      throw error;
+      throw new Error(`Failed to get balance: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
-  async getKlines(symbol: string, interval: string, limit: number = 100): Promise<any[]> {
+  async createOrder(orderRequest: OrderRequest): Promise<OrderResponse> {
     try {
-      const formattedSymbol = this.formatSymbol(symbol);
-      const response = await this.makeRequest('GET', '/exchange/v1/markets/candles', {
-        market: formattedSymbol,
-        interval,
-        limit,
+      const timestamp = Date.now();
+      const body = {
+        side: orderRequest.side.toLowerCase(),
+        order_type: orderRequest.type?.toLowerCase() === 'market' ? 'market_order' : 'limit_order',
+        market: orderRequest.symbol,
+        total_quantity: orderRequest.quantity.toString(),
+        timestamp: timestamp
+      };
+
+      if (orderRequest.price && orderRequest.type?.toLowerCase() !== 'market') {
+        body.price_per_unit = orderRequest.price.toString();
+      }
+
+      const payload = JSON.stringify(body);
+      const signature = await this.createSignature(payload);
+      const url = `${this.baseUrl}/orders/create`;
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'X-AUTH-APIKEY': this.credentials.apiKey,
+          'X-AUTH-SIGNATURE': signature,
+          'Content-Type': 'application/json'
+        },
+        body: payload
       });
 
-      return response.map((kline: any) => [
-        kline[0], // Open time
-        kline[1], // Open
-        kline[2], // High
-        kline[3], // Low
-        kline[4], // Close
-        kline[5], // Volume
-        kline[6], // Close time
-        kline[7], // Quote asset volume
-        kline[8], // Number of trades
-        kline[9], // Taker buy base asset volume
-        kline[10], // Taker buy quote asset volume
-        kline[11],  // Ignore
-      ]);
-    } catch (error) {
-      logError('Failed to get CoinDCX klines', 'CoinDCXExchange', error);
-      throw error;
-    }
-  }
-
-  async getAccountInfo(): Promise<any> {
-    try {
-      return await this.makeRequest('GET', '/exchange/v1/users/info');
-    } catch (error) {
-      logError('Failed to get CoinDCX account info', 'CoinDCXExchange', error);
-      throw error;
-    }
-  }
-
-  async getBalances(): Promise<Balance[]> {
-    try {
-      const response = await this.makeRequest('GET', '/exchange/v1/users/balances');
-      return response.map((balance: any) => ({
-        asset: balance.currency,
-        free: balance.available_balance,
-        locked: balance.locked_balance,
-        total: (parseFloat(balance.available_balance) + parseFloat(balance.locked_balance)).toString(),
-      }));
-    } catch (error) {
-      logError('Failed to get CoinDCX balances', 'CoinDCXExchange', error);
-      throw error;
-    }
-  }
-
-  async getBalance(asset: string): Promise<Balance> {
-    try {
-      const balances = await this.getBalances();
-      const balance = balances.find(b => b.asset === asset);
-      if (!balance) {
-        return {
-          asset,
-          free: '0',
-          locked: '0',
-          total: '0',
-        };
+      if (!response.ok) {
+        throw new Error(`Failed to create order: ${response.statusText}`);
       }
-      return balance;
-    } catch (error) {
-      logError('Failed to get CoinDCX balance', 'CoinDCXExchange', error);
-      throw error;
-    }
-  }
 
-  async createOrder(order: OrderRequest): Promise<OrderResponse> {
-    try {
-      const formattedSymbol = this.formatSymbol(order.symbol);
-      const orderData = {
-        market: formattedSymbol,
-        side: order.side.toLowerCase(),
-        order_type: order.type.toLowerCase(),
-        quantity: order.quantity.toString(),
-        ...(order.price && { price: order.price.toString() }),
-        ...(order.stopPrice && { stop: order.stopPrice.toString() }),
-        ...(order.timeInForce && { time: order.timeInForce }),
-        timestamp: Date.now(),
-      };
-
-      const response = await this.makeRequest('POST', '/exchange/v1/orders/create', orderData);
+      const data = await response.json();
 
       return {
-        orderId: response.id.toString(),
-        symbol: response.market,
-        side: response.side.toUpperCase(),
-        type: response.order_type.toUpperCase(),
-        quantity: parseFloat(response.quantity),
-        price: parseFloat(response.price_per_unit || '0'),
-        status: this.mapOrderStatus(response.status),
-        executedQty: parseFloat(response.filled_quantity || '0'),
-        cummulativeQuoteQty: parseFloat(response.filled_quantity || '0') * parseFloat(response.price_per_unit || '0'),
-        timestamp: response.created_at,
-        clientOrderId: response.client_order_id,
+        orderId: data.id.toString(),
+        symbol: data.market,
+        status: data.status,
+        side: data.side,
+        type: data.order_type,
+        quantity: parseFloat(data.quantity || '0'),
+        price: parseFloat(data.price_per_unit || '0'),
+        executedQuantity: parseFloat(data.quantity || '0'),
+        timestamp: data.created_at,
+        clientOrderId: data.id.toString()
       };
     } catch (error) {
-      logError('Failed to create CoinDCX order', 'CoinDCXExchange', error);
-      throw error;
+      throw new Error(`Failed to create order: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
-  async cancelOrder(symbol: string, orderId: string): Promise<boolean> {
+  async cancelOrder(orderId: string, symbol: string): Promise<OrderResponse> {
     try {
-      const formattedSymbol = this.formatSymbol(symbol);
-      await this.makeRequest('POST', '/exchange/v1/orders/cancel', {
-        market: formattedSymbol,
-        order_id: orderId,
-      });
-      return true;
-    } catch (error) {
-      logError('Failed to cancel CoinDCX order', 'CoinDCXExchange', error);
-      return false;
-    }
-  }
+      const timestamp = Date.now();
+      const body = {
+        id: orderId,
+        timestamp: timestamp
+      };
 
-  async getOrder(symbol: string, orderId: string): Promise<OrderResponse> {
-    try {
-      const formattedSymbol = this.formatSymbol(symbol);
-      const response = await this.makeRequest('GET', '/exchange/v1/orders/status', {
-        market: formattedSymbol,
-        order_id: orderId,
+      const payload = JSON.stringify(body);
+      const signature = await this.createSignature(payload);
+      const url = `${this.baseUrl}/orders/cancel`;
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'X-AUTH-APIKEY': this.credentials.apiKey,
+          'X-AUTH-SIGNATURE': signature,
+          'Content-Type': 'application/json'
+        },
+        body: payload
       });
+
+      if (!response.ok) {
+        throw new Error(`Failed to cancel order: ${response.statusText}`);
+      }
+
+      const data = await response.json();
 
       return {
-        orderId: response.id.toString(),
-        symbol: response.market,
-        side: response.side.toUpperCase(),
-        type: response.order_type.toUpperCase(),
-        quantity: parseFloat(response.quantity),
-        price: parseFloat(response.price_per_unit || '0'),
-        status: this.mapOrderStatus(response.status),
-        executedQty: parseFloat(response.filled_quantity || '0'),
-        cummulativeQuoteQty: parseFloat(response.filled_quantity || '0') * parseFloat(response.price_per_unit || '0'),
-        timestamp: response.created_at,
-        clientOrderId: response.client_order_id,
+        orderId: data.id.toString(),
+        symbol: data.market,
+        status: data.status,
+        side: data.side,
+        type: data.order_type,
+        quantity: parseFloat(data.quantity || '0'),
+        price: parseFloat(data.price_per_unit || '0'),
+        executedQuantity: parseFloat(data.quantity || '0'),
+        timestamp: data.created_at,
+        clientOrderId: data.id.toString()
       };
     } catch (error) {
-      logError('Failed to get CoinDCX order', 'CoinDCXExchange', error);
-      throw error;
+      throw new Error(`Failed to cancel order: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
-  async getOpenOrders(symbol?: string): Promise<OrderResponse[]> {
+  async getOrderStatus(orderId: string, symbol: string): Promise<OrderResponse> {
     try {
-      const params: any = {};
-      if (symbol) {
-        params.market = this.formatSymbol(symbol);
+      const timestamp = Date.now();
+      const body = {
+        id: orderId,
+        timestamp: timestamp
+      };
+
+      const payload = JSON.stringify(body);
+      const signature = await this.createSignature(payload);
+      const url = `${this.baseUrl}/orders/status`;
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'X-AUTH-APIKEY': this.credentials.apiKey,
+          'X-AUTH-SIGNATURE': signature,
+          'Content-Type': 'application/json'
+        },
+        body: payload
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to get order status: ${response.statusText}`);
       }
 
-      const response = await this.makeRequest('GET', '/exchange/v1/orders/active_orders', params);
+      const data = await response.json();
 
-      return response.map((order: any) => ({
-        orderId: order.id.toString(),
-        symbol: order.market,
-        side: order.side.toUpperCase(),
-        type: order.order_type.toUpperCase(),
-        quantity: parseFloat(order.quantity),
-        price: parseFloat(order.price_per_unit || '0'),
-        status: this.mapOrderStatus(order.status),
-        executedQty: parseFloat(order.filled_quantity || '0'),
-        cummulativeQuoteQty: parseFloat(order.filled_quantity || '0') * parseFloat(order.price_per_unit || '0'),
-        timestamp: order.created_at,
-        clientOrderId: order.client_order_id,
-      }));
+      return {
+        orderId: data.id.toString(),
+        symbol: data.market,
+        status: data.status,
+        side: data.side,
+        type: data.order_type,
+        quantity: parseFloat(data.quantity || '0'),
+        price: parseFloat(data.price_per_unit || '0'),
+        executedQuantity: parseFloat(data.quantity || '0'),
+        timestamp: data.created_at,
+        clientOrderId: data.id.toString()
+      };
     } catch (error) {
-      logError('Failed to get CoinDCX open orders', 'CoinDCXExchange', error);
-      throw error;
+      throw new Error(`Failed to get order status: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-  }
-
-  async getOrderHistory(symbol?: string, limit: number = 50): Promise<OrderResponse[]> {
-    try {
-      const params: any = { limit };
-      if (symbol) {
-        params.market = this.formatSymbol(symbol);
-      }
-
-      const response = await this.makeRequest('GET', '/exchange/v1/orders/trade_history', params);
-
-      return response.map((order: any) => ({
-        orderId: order.id.toString(),
-        symbol: order.market,
-        side: order.side.toUpperCase(),
-        type: order.order_type.toUpperCase(),
-        quantity: parseFloat(order.quantity),
-        price: parseFloat(order.price_per_unit || '0'),
-        status: this.mapOrderStatus(order.status),
-        executedQty: parseFloat(order.filled_quantity || '0'),
-        cummulativeQuoteQty: parseFloat(order.filled_quantity || '0') * parseFloat(order.price_per_unit || '0'),
-        timestamp: order.created_at,
-        clientOrderId: order.client_order_id,
-      }));
-    } catch (error) {
-      logError('Failed to get CoinDCX order history', 'CoinDCXExchange', error);
-      throw error;
-    }
-  }
-
-  getExchangeInfo(): ExchangeInfo {
-    return {
-      name: 'CoinDCX',
-      country: 'India',
-      isIndiaApproved: true,
-      supportedPairs: [
-        'BTCINR', 'ETHINR', 'WRXINR', 'ADAINR', 'TRXINR',
-        'XRPINR', 'EOSINR', 'ZILINR', 'BATINR', 'USDTINR',
-      ],
-      tradingFees: {
-        maker: 0.1,
-        taker: 0.1,
-      },
-      withdrawalFees: {
-        'BTC': 0.5,
-        'ETH': 0.1,
-        'INR': 0,
-      },
-      minOrderSize: {
-        'BTCINR': 0.1,
-        'ETHINR': 0.1,
-      },
-      maxOrderSize: {
-        'BTCINR': 10,
-        'ETHINR': 100,
-      },
-      supportedOrderTypes: ['MARKET', 'LIMIT', 'STOP-LOSS'],
-      apiLimits: {
-        requestsPerMinute: 1000,
-        ordersPerSecond: 5,
-      },
-    };
-  }
-
-  validateSymbol(symbol: string): boolean {
-    const formattedSymbol = this.formatSymbol(symbol);
-    const supportedPairs = this.getExchangeInfo().supportedPairs;
-    return supportedPairs.includes(formattedSymbol);
   }
 
   formatSymbol(symbol: string): string {
+    // CoinDCX uses specific format like "BTCINR", "ETHINR"
     return symbol.replace('/', '').toUpperCase();
   }
 
-  private mapOrderStatus(status: string): 'NEW' | 'PARTIALLY-FILLED' | 'FILLED' | 'CANCELED' | 'REJECTED' | 'EXPIRED' {
-    const statusMap: { [key: string]: 'NEW' | 'PARTIALLY-FILLED' | 'FILLED' | 'CANCELED' | 'REJECTED' | 'EXPIRED' } = {
-      'open': 'NEW',
-      'partially-filled': 'PARTIALLY-FILLED',
-      'filled': 'FILLED',
-      'cancelled': 'CANCELED',
-      'rejected': 'REJECTED',
-      'expired': 'EXPIRED',
-    };
-    return statusMap[status.toLowerCase()] || 'NEW';
-  }
-
-  private async makeRequest(method: string, endpoint: string, params: any = {}): Promise<any> {
-    // Rate limiting
-    await this.checkRateLimit();
-
-    const url = new URL(this.baseUrl + endpoint);
-
-    // Add query parameters for GET requests
-    if (method === 'GET') {
-      Object.keys(params).forEach(key => {
-        url.searchParams.append(key, params[key]);
-      });
-    }
-
-    const headers: any = {
-      'X-AUTH-APIKEY': this.config.apiKey,
-      'Content-Type': 'application/json',
-    };
-
-    // Add signature for authenticated requests
-    if (endpoint.includes('/exchange/v1/') && !endpoint.includes('/ticker')) {
-      const queryString = new URLSearchParams(params).toString();
-      const signature = await this.generateSignature(queryString);
-      headers['X-AUTH-SIGNATURE'] = signature;
-    }
-
-    const requestOptions: RequestInit = {
-      method,
-      headers,
-    };
-
-    if (method === 'POST' && Object.keys(params).length > 0) {
-      requestOptions.body = JSON.stringify(params);
-    }
-
-    try {
-      const response = await fetch(url.toString(), requestOptions);
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`CoinDCX API Error: ${errorData.message || response.statusText}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      logError(`CoinDCX API request failed: ${method} ${endpoint}`, 'CoinDCXExchange', error);
-      throw error;
-    }
-  }
-
-  private async generateSignature(queryString: string): Promise<string> {
-    // Use Web Crypto API for frontend compatibility
+  private async createSignature(payload: string): Promise<string> {
+    // Use Web Crypto API for HMAC-SHA256 in browser environment
     const encoder = new TextEncoder();
-    const keyData = encoder.encode(this.config.apiSecret);
-    const messageData = encoder.encode(queryString);
+    const keyData = encoder.encode(this.credentials.apiSecret);
+    const messageData = encoder.encode(payload);
 
-    const key = await crypto.subtle.importKey(
+    const cryptoKey = await crypto.subtle.importKey(
       'raw',
       keyData,
       { name: 'HMAC', hash: 'SHA-256' },
       false,
-      ['sign'],
+      ['sign']
     );
 
-    const signature = await crypto.subtle.sign('HMAC', key, messageData);
+    const signature = await crypto.subtle.sign('HMAC', cryptoKey, messageData);
     const hashArray = Array.from(new Uint8Array(signature));
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  }
-
-  private async checkRateLimit(): Promise<void> {
-    const now = Date.now();
-    const windowStart = now - this.RATE_LIMIT_WINDOW;
-
-    // Clean old entries
-    for (const [timestamp] of this.rateLimiter) {
-      if (timestamp < windowStart) {
-        this.rateLimiter.delete(timestamp);
-      }
-    }
-
-    // Check if we're within limits
-    if (this.rateLimiter.size >= this.MAX_REQUESTS_PER_MINUTE) {
-      const oldestRequest = Math.min(...this.rateLimiter.keys());
-      const waitTime = this.RATE_LIMIT_WINDOW - (now - oldestRequest);
-
-      if (waitTime > 0) {
-        logWarn(`Rate limit reached, waiting ${waitTime}ms`, 'CoinDCXExchange');
-        await new Promise(resolve => setTimeout(resolve, waitTime));
-      }
-    }
-
-    this.rateLimiter.set(now, 1);
   }
 }

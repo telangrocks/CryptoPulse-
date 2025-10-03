@@ -1,428 +1,294 @@
 /**
- * Delta Exchange Integration
- * India-approved derivatives exchange with spot and futures trading
+ * Delta Exchange Adapter
+ * Production-ready Delta Exchange API integration for Indian market
  */
-
-import { logError, logInfo, logWarn } from '../logger';
 
 import { Exchange, ExchangeConfig, Ticker, Balance, OrderRequest, OrderResponse, ExchangeInfo } from './index';
 
-export class DeltaExchange implements Exchange {
-  name = 'Delta Exchange';
-  config: ExchangeConfig;
-  private baseUrl: string;
-  private rateLimiter: Map<string, number> = new Map();
-  private readonly RATE_LIMIT_WINDOW = 60000; // 1 minute
-  private readonly MAX_REQUESTS_PER_MINUTE = 1000;
+interface DeltaExchangeCredentials {
+  apiKey: string;
+  apiSecret: string;
+  sandbox?: boolean;
+  baseUrl?: string;
+}
 
-  constructor(config: ExchangeConfig) {
-    this.config = config;
-    this.baseUrl = config.baseUrl || 'https://api.delta.exchange';
+export class DeltaExchange implements Exchange {
+  private credentials: DeltaExchangeCredentials;
+  private baseUrl: string;
+  private productionUrl = 'https://api.delta.exchange';
+  private sandboxUrl = 'https://sandbox.delta.exchange';
+
+  constructor(credentials: DeltaExchangeCredentials) {
+    this.credentials = credentials;
+    this.baseUrl = credentials.baseUrl || (credentials.sandbox ? this.sandboxUrl : this.productionUrl);
   }
 
-  async authenticate(): Promise<boolean> {
+  async getExchangeInfo(): Promise<ExchangeInfo> {
     try {
-      const response = await this.makeRequest('GET', '/v2/portfolio/balances');
-      return response && response.meta && response.meta.success;
+      const response = await fetch(`${this.baseUrl}/v2/products`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch exchange info: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      return {
+        name: 'Delta Exchange',
+        timezone: 'UTC',
+        serverTime: Date.now(),
+        rateLimits: [],
+        exchangeFilters: [],
+        symbols: data.result.map((product: any) => ({
+          symbol: product.symbol,
+          status: product.state === 'live' ? 'TRADING' : 'HALTED',
+          baseAsset: product.base_currency?.symbol || '',
+          quoteAsset: product.quote_currency?.symbol || '',
+          orderTypes: ['LIMIT', 'MARKET'],
+          filters: []
+        }))
+      };
     } catch (error) {
-      logError('Delta Exchange authentication failed', 'DeltaExchange', error);
-      return false;
+      throw new Error(`Failed to get exchange info: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
   async getTicker(symbol: string): Promise<Ticker> {
     try {
-      const formattedSymbol = this.formatSymbol(symbol);
-      const response = await this.makeRequest('GET', '/v2/tickers', { symbols: formattedSymbol });
-
-      if (!response.result || response.result.length === 0) {
-        throw new Error('Symbol not found');
+      const response = await fetch(`${this.baseUrl}/v2/tickers/${symbol}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch ticker: ${response.statusText}`);
       }
-
-      const ticker = response.result[0];
+      
+      const data = await response.json();
+      const ticker = data.result;
+      
       return {
         symbol: ticker.symbol,
-        price: ticker.close,
-        bidPrice: ticker.best_bid_price,
-        askPrice: ticker.best_ask_price,
-        volume: ticker.volume,
-        quoteVolume: ticker.volume,
-        openPrice: ticker.open,
-        highPrice: ticker.high,
-        lowPrice: ticker.low,
-        closePrice: ticker.close,
-        priceChange: ticker.change,
-        priceChangePercent: ticker.change_percent,
+        price: parseFloat(ticker.close),
+        bidPrice: parseFloat(ticker.best_bid_price || '0'),
+        askPrice: parseFloat(ticker.best_ask_price || '0'),
+        volume: parseFloat(ticker.volume || '0'),
+        quoteVolume: parseFloat(ticker.volume || '0'),
+        openPrice: parseFloat(ticker.open || '0'),
+        highPrice: parseFloat(ticker.high || '0'),
+        lowPrice: parseFloat(ticker.low || '0'),
+        priceChange: parseFloat(ticker.change || '0'),
+        priceChangePercent: parseFloat(ticker.change_percentage || '0'),
         count: 0,
-        timestamp: ticker.timestamp,
+        timestamp: Date.now()
       };
     } catch (error) {
-      logError('Failed to get Delta Exchange ticker', 'DeltaExchange', error);
-      throw error;
+      throw new Error(`Failed to get ticker: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
-  async getOrderBook(symbol: string, limit: number = 100): Promise<any> {
+  async getBalance(): Promise<Balance[]> {
     try {
-      const formattedSymbol = this.formatSymbol(symbol);
-      return await this.makeRequest('GET', '/v2/l2/snapshot', { symbol: formattedSymbol, depth: limit });
+      const timestamp = Date.now();
+      const signature = await this.createSignature('GET', '/v2/accounts', '', timestamp);
+      
+      const url = `${this.baseUrl}/v2/accounts?timestamp=${timestamp}`;
+      
+      const response = await fetch(url, {
+        headers: {
+          'api-key': this.credentials.apiKey,
+          'signature': signature,
+          'timestamp': timestamp.toString(),
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch balance: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      return data.result.map((balance: any) => ({
+        asset: balance.currency,
+        free: parseFloat(balance.available_balance || '0'),
+        locked: parseFloat(balance.balance) - parseFloat(balance.available_balance || '0'),
+        total: parseFloat(balance.balance || '0')
+      })).filter((balance: Balance) => balance.total > 0);
     } catch (error) {
-      logError('Failed to get Delta Exchange order book', 'DeltaExchange', error);
-      throw error;
+      throw new Error(`Failed to get balance: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
-  async getKlines(symbol: string, interval: string, limit: number = 100): Promise<any[]> {
+  async createOrder(orderRequest: OrderRequest): Promise<OrderResponse> {
     try {
-      const formattedSymbol = this.formatSymbol(symbol);
-      const response = await this.makeRequest('GET', '/v2/history/candles', {
-        symbol: formattedSymbol,
-        resolution: interval,
-        size: limit,
+      const timestamp = Date.now();
+      const body = {
+        product_id: await this.getProductId(orderRequest.symbol),
+        side: orderRequest.side.toLowerCase(),
+        order_type: orderRequest.type?.toLowerCase() === 'market' ? 'market_order' : 'limit_order',
+        size: orderRequest.quantity,
+        time_in_force: 'gtc'
+      };
+
+      if (orderRequest.price && orderRequest.type?.toLowerCase() !== 'market') {
+        body.limit_price = orderRequest.price;
+      }
+
+      const bodyString = JSON.stringify(body);
+      const signature = await this.createSignature('POST', '/v2/orders', bodyString, timestamp);
+      const url = `${this.baseUrl}/v2/orders`;
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'api-key': this.credentials.apiKey,
+          'signature': signature,
+          'timestamp': timestamp.toString(),
+          'Content-Type': 'application/json'
+        },
+        body: bodyString
       });
 
-      return response.result.map((kline: any) => [
-        kline.start, // Open time
-        kline.open,  // Open
-        kline.high,  // High
-        kline.low,   // Low
-        kline.close, // Close
-        kline.volume, // Volume
-        kline.end,   // Close time
-        kline.volume, // Quote asset volume
-        0,           // Number of trades
-        kline.volume, // Taker buy base asset volume
-        kline.volume, // Taker buy quote asset volume
-        0,            // Ignore
-      ]);
-    } catch (error) {
-      logError('Failed to get Delta Exchange klines', 'DeltaExchange', error);
-      throw error;
-    }
-  }
-
-  async getAccountInfo(): Promise<any> {
-    try {
-      return await this.makeRequest('GET', '/v2/portfolio/account_summary');
-    } catch (error) {
-      logError('Failed to get Delta Exchange account info', 'DeltaExchange', error);
-      throw error;
-    }
-  }
-
-  async getBalances(): Promise<Balance[]> {
-    try {
-      const response = await this.makeRequest('GET', '/v2/portfolio/balances');
-      return response.result.map((balance: any) => ({
-        asset: balance.asset.symbol,
-        free: balance.available_balance,
-        locked: balance.reserved_balance,
-        total: balance.total_balance,
-      }));
-    } catch (error) {
-      logError('Failed to get Delta Exchange balances', 'DeltaExchange', error);
-      throw error;
-    }
-  }
-
-  async getBalance(asset: string): Promise<Balance> {
-    try {
-      const balances = await this.getBalances();
-      const balance = balances.find(b => b.asset === asset);
-      if (!balance) {
-        return {
-          asset,
-          free: '0',
-          locked: '0',
-          total: '0',
-        };
+      if (!response.ok) {
+        throw new Error(`Failed to create order: ${response.statusText}`);
       }
-      return balance;
-    } catch (error) {
-      logError('Failed to get Delta Exchange balance', 'DeltaExchange', error);
-      throw error;
-    }
-  }
 
-  async createOrder(order: OrderRequest): Promise<OrderResponse> {
-    try {
-      const formattedSymbol = this.formatSymbol(order.symbol);
-      const orderData = {
-        product_id: formattedSymbol,
-        side: order.side.toLowerCase(),
-        order_type: order.type.toLowerCase(),
-        size: order.quantity.toString(),
-        ...(order.price && { limit_price: order.price.toString() }),
-        ...(order.stopPrice && { stop: order.stopPrice.toString() }),
-        ...(order.timeInForce && { time_in_force: order.timeInForce }),
+      const data = await response.json();
+
+      return {
+        orderId: data.result.id.toString(),
+        symbol: orderRequest.symbol,
+        status: data.result.state,
+        side: data.result.side,
+        type: data.result.order_type,
+        quantity: parseFloat(data.result.size || '0'),
+        price: parseFloat(data.result.limit_price || '0'),
+        executedQuantity: parseFloat(data.result.filled_size || '0'),
         timestamp: Date.now(),
-      };
-
-      const response = await this.makeRequest('POST', '/v2/orders', orderData);
-
-      return {
-        orderId: response.result.id.toString(),
-        symbol: response.result.product_id,
-        side: response.result.side.toUpperCase(),
-        type: response.result.order_type.toUpperCase(),
-        quantity: parseFloat(response.result.size),
-        price: parseFloat(response.result.limit_price || '0'),
-        status: this.mapOrderStatus(response.result.state),
-        executedQty: parseFloat(response.result.filled_size || '0'),
-        cummulativeQuoteQty: parseFloat(response.result.filled_size || '0') * parseFloat(response.result.limit_price || '0'),
-        timestamp: response.result.created_at,
-        clientOrderId: response.result.client_order_id,
+        clientOrderId: data.result.id.toString()
       };
     } catch (error) {
-      logError('Failed to create Delta Exchange order', 'DeltaExchange', error);
-      throw error;
+      throw new Error(`Failed to create order: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
-  async cancelOrder(symbol: string, orderId: string): Promise<boolean> {
+  async cancelOrder(orderId: string, symbol: string): Promise<OrderResponse> {
     try {
-      const formattedSymbol = this.formatSymbol(symbol);
-      await this.makeRequest('DELETE', '/v2/orders', {
-        product_id: formattedSymbol,
-        order_id: orderId,
-      });
-      return true;
-    } catch (error) {
-      logError('Failed to cancel Delta Exchange order', 'DeltaExchange', error);
-      return false;
-    }
-  }
+      const timestamp = Date.now();
+      const signature = await this.createSignature('DELETE', `/v2/orders/${orderId}`, '', timestamp);
+      const url = `${this.baseUrl}/v2/orders/${orderId}`;
 
-  async getOrder(symbol: string, orderId: string): Promise<OrderResponse> {
-    try {
-      const formattedSymbol = this.formatSymbol(symbol);
-      const response = await this.makeRequest('GET', '/v2/orders', {
-        product_id: formattedSymbol,
-        order_id: orderId,
+      const response = await fetch(url, {
+        method: 'DELETE',
+        headers: {
+          'api-key': this.credentials.apiKey,
+          'signature': signature,
+          'timestamp': timestamp.toString(),
+          'Content-Type': 'application/json'
+        }
       });
 
-      const order = response.result[0];
+      if (!response.ok) {
+        throw new Error(`Failed to cancel order: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
       return {
-        orderId: order.id.toString(),
-        symbol: order.product_id,
-        side: order.side.toUpperCase(),
-        type: order.order_type.toUpperCase(),
-        quantity: parseFloat(order.size),
-        price: parseFloat(order.limit_price || '0'),
-        status: this.mapOrderStatus(order.state),
-        executedQty: parseFloat(order.filled_size || '0'),
-        cummulativeQuoteQty: parseFloat(order.filled_size || '0') * parseFloat(order.limit_price || '0'),
-        timestamp: order.created_at,
-        clientOrderId: order.client_order_id,
+        orderId: data.result.id.toString(),
+        symbol: symbol,
+        status: data.result.state,
+        side: data.result.side,
+        type: data.result.order_type,
+        quantity: parseFloat(data.result.size || '0'),
+        price: parseFloat(data.result.limit_price || '0'),
+        executedQuantity: parseFloat(data.result.filled_size || '0'),
+        timestamp: Date.now(),
+        clientOrderId: data.result.id.toString()
       };
     } catch (error) {
-      logError('Failed to get Delta Exchange order', 'DeltaExchange', error);
-      throw error;
+      throw new Error(`Failed to cancel order: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
-  async getOpenOrders(symbol?: string): Promise<OrderResponse[]> {
+  async getOrderStatus(orderId: string, symbol: string): Promise<OrderResponse> {
     try {
-      const params: any = { state: 'open' };
-      if (symbol) {
-        params.product_id = this.formatSymbol(symbol);
+      const timestamp = Date.now();
+      const signature = await this.createSignature('GET', `/v2/orders/${orderId}`, '', timestamp);
+      const url = `${this.baseUrl}/v2/orders/${orderId}?timestamp=${timestamp}`;
+
+      const response = await fetch(url, {
+        headers: {
+          'api-key': this.credentials.apiKey,
+          'signature': signature,
+          'timestamp': timestamp.toString(),
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to get order status: ${response.statusText}`);
       }
 
-      const response = await this.makeRequest('GET', '/v2/orders', params);
+      const data = await response.json();
 
-      return response.result.map((order: any) => ({
-        orderId: order.id.toString(),
-        symbol: order.product_id,
-        side: order.side.toUpperCase(),
-        type: order.order_type.toUpperCase(),
-        quantity: parseFloat(order.size),
-        price: parseFloat(order.limit_price || '0'),
-        status: this.mapOrderStatus(order.state),
-        executedQty: parseFloat(order.filled_size || '0'),
-        cummulativeQuoteQty: parseFloat(order.filled_size || '0') * parseFloat(order.limit_price || '0'),
-        timestamp: order.created_at,
-        clientOrderId: order.client_order_id,
-      }));
+      return {
+        orderId: data.result.id.toString(),
+        symbol: symbol,
+        status: data.result.state,
+        side: data.result.side,
+        type: data.result.order_type,
+        quantity: parseFloat(data.result.size || '0'),
+        price: parseFloat(data.result.limit_price || '0'),
+        executedQuantity: parseFloat(data.result.filled_size || '0'),
+        timestamp: Date.now(),
+        clientOrderId: data.result.id.toString()
+      };
     } catch (error) {
-      logError('Failed to get Delta Exchange open orders', 'DeltaExchange', error);
-      throw error;
+      throw new Error(`Failed to get order status: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-  }
-
-  async getOrderHistory(symbol?: string, limit: number = 50): Promise<OrderResponse[]> {
-    try {
-      const params: any = { limit };
-      if (symbol) {
-        params.product_id = this.formatSymbol(symbol);
-      }
-
-      const response = await this.makeRequest('GET', '/v2/orders', params);
-
-      return response.result.map((order: any) => ({
-        orderId: order.id.toString(),
-        symbol: order.product_id,
-        side: order.side.toUpperCase(),
-        type: order.order_type.toUpperCase(),
-        quantity: parseFloat(order.size),
-        price: parseFloat(order.limit_price || '0'),
-        status: this.mapOrderStatus(order.state),
-        executedQty: parseFloat(order.filled_size || '0'),
-        cummulativeQuoteQty: parseFloat(order.filled_size || '0') * parseFloat(order.limit_price || '0'),
-        timestamp: order.created_at,
-        clientOrderId: order.client_order_id,
-      }));
-    } catch (error) {
-      logError('Failed to get Delta Exchange order history', 'DeltaExchange', error);
-      throw error;
-    }
-  }
-
-  getExchangeInfo(): ExchangeInfo {
-    return {
-      name: 'Delta Exchange',
-      country: 'India',
-      isIndiaApproved: true,
-      supportedPairs: [
-        'BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'ADAUSDT', 'SOLUSDT',
-        'XRPUSDT', 'DOTUSDT', 'DOGEUSDT', 'AVAXUSDT', 'MATICUSDT',
-      ],
-      tradingFees: {
-        maker: 0.5,
-        taker: 0.5,
-      },
-      withdrawalFees: {
-        'BTC': 0.5,
-        'ETH': 0.1,
-        'USDT': 1.0,
-      },
-      minOrderSize: {
-        'BTCUSDT': 0.1,
-        'ETHUSDT': 0.1,
-      },
-      maxOrderSize: {
-        'BTCUSDT': 100,
-        'ETHUSDT': 1000,
-      },
-      supportedOrderTypes: ['MARKET', 'LIMIT', 'STOP-LOSS', 'STOP_LOSS-LIMIT'],
-      apiLimits: {
-        requestsPerMinute: 1000,
-        ordersPerSecond: 10,
-      },
-    };
-  }
-
-  validateSymbol(symbol: string): boolean {
-    const formattedSymbol = this.formatSymbol(symbol);
-    const supportedPairs = this.getExchangeInfo().supportedPairs;
-    return supportedPairs.includes(formattedSymbol);
   }
 
   formatSymbol(symbol: string): string {
-    return symbol.replace('/', '').toUpperCase();
+    // Delta Exchange uses specific format
+    return symbol.toUpperCase();
   }
 
-  private mapOrderStatus(status: string): 'NEW' | 'PARTIALLY-FILLED' | 'FILLED' | 'CANCELED' | 'REJECTED' | 'EXPIRED' {
-    const statusMap: { [key: string]: 'NEW' | 'PARTIALLY-FILLED' | 'FILLED' | 'CANCELED' | 'REJECTED' | 'EXPIRED' } = {
-      'open': 'NEW',
-      'partially-filled': 'PARTIALLY-FILLED',
-      'filled': 'FILLED',
-      'cancelled': 'CANCELED',
-      'rejected': 'REJECTED',
-      'expired': 'EXPIRED',
-    };
-    return statusMap[status.toLowerCase()] || 'NEW';
-  }
-
-  private async makeRequest(method: string, endpoint: string, params: any = {}): Promise<any> {
-    // Rate limiting
-    await this.checkRateLimit();
-
-    const url = new URL(this.baseUrl + endpoint);
-
-    // Add query parameters for GET requests
-    if (method === 'GET') {
-      Object.keys(params).forEach(key => {
-        url.searchParams.append(key, params[key]);
-      });
-    }
-
-    const headers: any = {
-      'api-key': this.config.apiKey,
-      'Content-Type': 'application/json',
-    };
-
-    // Add signature for authenticated requests
-    if (endpoint.includes('/v2/') && !endpoint.includes('/tickers')) {
-      const queryString = new URLSearchParams(params).toString();
-      const signature = await this.generateSignature(queryString);
-      headers['signature'] = signature;
-    }
-
-    const requestOptions: RequestInit = {
-      method,
-      headers,
-    };
-
-    if (method === 'POST' && Object.keys(params).length > 0) {
-      requestOptions.body = JSON.stringify(params);
-    }
-
+  private async getProductId(symbol: string): Promise<number> {
     try {
-      const response = await fetch(url.toString(), requestOptions);
-
+      const response = await fetch(`${this.baseUrl}/v2/products`);
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`Delta Exchange API Error: ${errorData.message || response.statusText}`);
+        throw new Error(`Failed to fetch products: ${response.statusText}`);
       }
-
-      return await response.json();
+      
+      const data = await response.json();
+      const product = data.result.find((p: any) => p.symbol === symbol.toUpperCase());
+      
+      if (!product) {
+        throw new Error(`Product not found for symbol: ${symbol}`);
+      }
+      
+      return product.id;
     } catch (error) {
-      logError(`Delta Exchange API request failed: ${method} ${endpoint}`, 'DeltaExchange', error);
-      throw error;
+      throw new Error(`Failed to get product ID: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
-  private async generateSignature(queryString: string): Promise<string> {
-    // Use Web Crypto API for frontend compatibility
+  private async createSignature(method: string, path: string, body: string, timestamp: number): Promise<string> {
+    const message = `${timestamp}${method}${path}${body}`;
+    
+    // Use Web Crypto API for HMAC-SHA256 in browser environment
     const encoder = new TextEncoder();
-    const keyData = encoder.encode(this.config.apiSecret);
-    const messageData = encoder.encode(queryString);
+    const keyData = encoder.encode(this.credentials.apiSecret);
+    const messageData = encoder.encode(message);
 
-    const key = await crypto.subtle.importKey(
+    const cryptoKey = await crypto.subtle.importKey(
       'raw',
       keyData,
       { name: 'HMAC', hash: 'SHA-256' },
       false,
-      ['sign'],
+      ['sign']
     );
 
-    const signature = await crypto.subtle.sign('HMAC', key, messageData);
+    const signature = await crypto.subtle.sign('HMAC', cryptoKey, messageData);
     const hashArray = Array.from(new Uint8Array(signature));
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
   }
-
-  private async checkRateLimit(): Promise<void> {
-    const now = Date.now();
-    const windowStart = now - this.RATE_LIMIT_WINDOW;
-
-    // Clean old entries
-    for (const [timestamp] of this.rateLimiter) {
-      if (timestamp < windowStart) {
-        this.rateLimiter.delete(timestamp);
-      }
-    }
-
-    // Check if we're within limits
-    if (this.rateLimiter.size >= this.MAX_REQUESTS_PER_MINUTE) {
-      const oldestRequest = Math.min(...this.rateLimiter.keys());
-      const waitTime = this.RATE_LIMIT_WINDOW - (now - oldestRequest);
-
-      if (waitTime > 0) {
-        logWarn(`Rate limit reached, waiting ${waitTime}ms`, 'DeltaExchange');
-        await new Promise(resolve => setTimeout(resolve, waitTime));
-      }
-    }
-
-    this.rateLimiter.set(now, 1);
-  }
+}
 }

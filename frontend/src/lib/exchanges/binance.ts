@@ -1,360 +1,287 @@
 /**
- * Binance Exchange Integration
- * Global exchange with comprehensive API
+ * Binance Exchange Adapter
+ * Production-ready Binance API integration
  */
-
-import { logError } from '../logger';
 
 import { Exchange, ExchangeConfig, Ticker, Balance, OrderRequest, OrderResponse, ExchangeInfo } from './index';
 
-export class BinanceExchange implements Exchange {
-  name = 'Binance';
-  config: ExchangeConfig;
-  private baseUrl: string;
+interface BinanceCredentials {
+  apiKey: string;
+  apiSecret: string;
+  sandbox?: boolean;
+  baseUrl?: string;
+}
 
-  constructor(config: ExchangeConfig) {
-    this.config = config;
-    this.baseUrl = config.baseUrl || (config.sandbox ? 'https://testnet.binance.vision' : 'https://api.binance.com');
+export class BinanceExchange implements Exchange {
+  private credentials: BinanceCredentials;
+  private baseUrl: string;
+  private testnetUrl = 'https://testnet.binance.vision';
+  private productionUrl = 'https://api.binance.com';
+
+  constructor(credentials: BinanceCredentials) {
+    this.credentials = credentials;
+    this.baseUrl = credentials.baseUrl || (credentials.sandbox ? this.testnetUrl : this.productionUrl);
   }
 
-  async authenticate(): Promise<boolean> {
+  async getExchangeInfo(): Promise<ExchangeInfo> {
     try {
-      const response = await this.makeRequest('GET', '/api/v3/account');
-      return response && response.accountType;
+      const response = await fetch(`${this.baseUrl}/api/v3/exchangeInfo`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch exchange info: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      return {
+        name: 'Binance',
+        timezone: 'UTC',
+        serverTime: data.serverTime,
+        rateLimits: data.rateLimits,
+        exchangeFilters: data.exchangeFilters,
+        symbols: data.symbols.map((symbol: any) => ({
+          symbol: symbol.symbol,
+          status: symbol.status,
+          baseAsset: symbol.baseAsset,
+          quoteAsset: symbol.quoteAsset,
+          orderTypes: symbol.orderTypes,
+          filters: symbol.filters
+        }))
+      };
     } catch (error) {
-      logError('Binance authentication failed', 'BinanceExchange', error);
-      return false;
+      throw new Error(`Failed to get exchange info: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
   async getTicker(symbol: string): Promise<Ticker> {
     try {
-      const formattedSymbol = this.formatSymbol(symbol);
-      const response = await this.makeRequest('GET', '/api/v3/ticker/24hr', { symbol: formattedSymbol });
-
-      return {
-        symbol: response.symbol,
-        price: response.lastPrice,
-        bidPrice: response.bidPrice,
-        askPrice: response.askPrice,
-        volume: response.volume,
-        quoteVolume: response.quoteVolume,
-        openPrice: response.openPrice,
-        highPrice: response.highPrice,
-        lowPrice: response.lowPrice,
-        closePrice: response.lastPrice,
-        priceChange: response.priceChange,
-        priceChangePercent: response.priceChangePercent,
-        count: response.count,
-        timestamp: response.closeTime,
-      };
-    } catch (error) {
-      logError('Failed to get Binance ticker', 'BinanceExchange', error);
-      throw error;
-    }
-  }
-
-  async getOrderBook(symbol: string, limit: number = 100): Promise<unknown> {
-    try {
-      const formattedSymbol = this.formatSymbol(symbol);
-      return await this.makeRequest('GET', '/api/v3/depth', { symbol: formattedSymbol, limit });
-    } catch (error) {
-      logError('Failed to get Binance order book', 'BinanceExchange', error);
-      throw error;
-    }
-  }
-
-  async getKlines(symbol: string, interval: string, limit: number = 100): Promise<any[]> {
-    try {
-      const formattedSymbol = this.formatSymbol(symbol);
-      return await this.makeRequest('GET', '/api/v3/klines', {
-        symbol: formattedSymbol,
-        interval,
-        limit,
-      });
-    } catch (error) {
-      logError('Failed to get Binance klines', 'BinanceExchange', error);
-      throw error;
-    }
-  }
-
-  async getAccountInfo(): Promise<unknown> {
-    try {
-      return await this.makeRequest('GET', '/api/v3/account');
-    } catch (error) {
-      logError('Failed to get Binance account info', 'BinanceExchange', error);
-      throw error;
-    }
-  }
-
-  async getBalances(): Promise<Balance[]> {
-    try {
-      const account = await this.getAccountInfo();
-      return account.balances.map((balance: any) => ({
-        asset: balance.asset,
-        free: balance.free,
-        locked: balance.locked,
-        total: (parseFloat(balance.free) + parseFloat(balance.locked)).toString(),
-      }));
-    } catch (error) {
-      logError('Failed to get Binance balances', 'BinanceExchange', error);
-      throw error;
-    }
-  }
-
-  async getBalance(asset: string): Promise<Balance> {
-    try {
-      const balances = await this.getBalances();
-      const balance = balances.find(b => b.asset === asset);
-      if (!balance) {
-        return {
-          asset,
-          free: '0',
-          locked: '0',
-          total: '0',
-        };
+      const response = await fetch(`${this.baseUrl}/api/v3/ticker/24hr?symbol=${symbol.toUpperCase()}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch ticker: ${response.statusText}`);
       }
-      return balance;
-    } catch (error) {
-      logError('Failed to get Binance balance', 'BinanceExchange', error);
-      throw error;
-    }
-  }
-
-  async createOrder(order: OrderRequest): Promise<OrderResponse> {
-    try {
-      const formattedSymbol = this.formatSymbol(order.symbol);
-      const orderData = {
-        symbol: formattedSymbol,
-        side: order.side,
-        type: order.type,
-        quantity: order.quantity.toString(),
-        ...(order.price && { price: order.price.toString() }),
-        ...(order.stopPrice && { stopPrice: order.stopPrice.toString() }),
-        ...(order.timeInForce && { timeInForce: order.timeInForce }),
-        timestamp: Date.now(),
-      };
-
-      const response = await this.makeRequest('POST', '/api/v3/order', orderData);
-
+      
+      const data = await response.json();
+      
       return {
-        orderId: response.orderId.toString(),
-        symbol: response.symbol,
-        side: response.side,
-        type: response.type,
-        quantity: parseFloat(response.origQty),
-        price: parseFloat(response.price),
-        status: response.status,
-        executedQty: parseFloat(response.executedQty),
-        cummulativeQuoteQty: parseFloat(response.cummulativeQuoteQty),
-        timestamp: response.transactTime,
-        clientOrderId: response.clientOrderId,
+        symbol: data.symbol,
+        price: parseFloat(data.lastPrice),
+        bidPrice: parseFloat(data.bidPrice),
+        askPrice: parseFloat(data.askPrice),
+        volume: parseFloat(data.volume),
+        quoteVolume: parseFloat(data.quoteVolume),
+        openPrice: parseFloat(data.openPrice),
+        highPrice: parseFloat(data.highPrice),
+        lowPrice: parseFloat(data.lowPrice),
+        priceChange: parseFloat(data.priceChange),
+        priceChangePercent: parseFloat(data.priceChangePercent),
+        count: parseInt(data.count),
+        timestamp: data.closeTime
       };
     } catch (error) {
-      logError('Failed to create Binance order', 'BinanceExchange', error);
-      throw error;
+      throw new Error(`Failed to get ticker: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
-  async cancelOrder(symbol: string, orderId: string): Promise<boolean> {
+  async getBalance(): Promise<Balance[]> {
     try {
-      const formattedSymbol = this.formatSymbol(symbol);
-      await this.makeRequest('DELETE', '/api/v3/order', {
-        symbol: formattedSymbol,
-        orderId,
-        timestamp: Date.now(),
+      const timestamp = Date.now();
+      const queryString = `timestamp=${timestamp}`;
+      const signature = await this.createSignature(queryString);
+      
+      const url = `${this.baseUrl}/api/v3/account?${queryString}&signature=${signature}`;
+      
+      const response = await fetch(url, {
+        headers: {
+          'X-MBX-APIKEY': this.credentials.apiKey,
+          'Content-Type': 'application/json'
+        }
       });
-      return true;
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch balance: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      return data.balances
+        .filter((balance: any) => parseFloat(balance.free) > 0 || parseFloat(balance.locked) > 0)
+        .map((balance: any) => ({
+          asset: balance.asset,
+          free: parseFloat(balance.free),
+          locked: parseFloat(balance.locked),
+          total: parseFloat(balance.free) + parseFloat(balance.locked)
+        }));
     } catch (error) {
-      logError('Failed to cancel Binance order', 'BinanceExchange', error);
-      return false;
+      throw new Error(`Failed to get balance: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
-  async getOrder(symbol: string, orderId: string): Promise<OrderResponse> {
+  async createOrder(orderRequest: OrderRequest): Promise<OrderResponse> {
     try {
-      const formattedSymbol = this.formatSymbol(symbol);
-      const response = await this.makeRequest('GET', '/api/v3/order', {
-        symbol: formattedSymbol,
-        orderId,
-        timestamp: Date.now(),
-      });
-
-      return {
-        orderId: response.orderId.toString(),
-        symbol: response.symbol,
-        side: response.side,
-        type: response.type,
-        quantity: parseFloat(response.origQty),
-        price: parseFloat(response.price),
-        status: response.status,
-        executedQty: parseFloat(response.executedQty),
-        cummulativeQuoteQty: parseFloat(response.cummulativeQuoteQty),
-        timestamp: response.time,
-        clientOrderId: response.clientOrderId,
+      const timestamp = Date.now();
+      const params = {
+        symbol: orderRequest.symbol.toUpperCase(),
+        side: orderRequest.side.toUpperCase(),
+        type: orderRequest.type?.toUpperCase() || 'MARKET',
+        quantity: orderRequest.quantity.toString(),
+        timestamp: timestamp
       };
-    } catch (error) {
-      logError('Failed to get Binance order', 'BinanceExchange', error);
-      throw error;
-    }
-  }
 
-  async getOpenOrders(symbol?: string): Promise<OrderResponse[]> {
-    try {
-      const params: any = { timestamp: Date.now() };
-      if (symbol) {
-        params.symbol = this.formatSymbol(symbol);
+      if (orderRequest.price) {
+        params.price = orderRequest.price.toString();
+        params.timeInForce = 'GTC';
       }
 
-      const response = await this.makeRequest('GET', '/api/v3/openOrders', params);
+      const queryString = Object.keys(params)
+        .map(key => `${key}=${encodeURIComponent(params[key])}`)
+        .join('&');
 
-      return response.map((order: any) => ({
-        orderId: order.orderId.toString(),
-        symbol: order.symbol,
-        side: order.side,
-        type: order.type,
-        quantity: parseFloat(order.origQty),
-        price: parseFloat(order.price),
-        status: order.status,
-        executedQty: parseFloat(order.executedQty),
-        cummulativeQuoteQty: parseFloat(order.cummulativeQuoteQty),
-        timestamp: order.time,
-        clientOrderId: order.clientOrderId,
-      }));
-    } catch (error) {
-      logError('Failed to get Binance open orders', 'BinanceExchange', error);
-      throw error;
-    }
-  }
+      const signature = await this.createSignature(queryString);
+      const url = `${this.baseUrl}/api/v3/order?${queryString}&signature=${signature}`;
 
-  async getOrderHistory(symbol?: string, limit: number = 50): Promise<OrderResponse[]> {
-    try {
-      const params: any = { timestamp: Date.now(), limit };
-      if (symbol) {
-        params.symbol = this.formatSymbol(symbol);
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'X-MBX-APIKEY': this.credentials.apiKey,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to create order: ${response.statusText}`);
       }
 
-      const response = await this.makeRequest('GET', '/api/v3/allOrders', params);
+      const data = await response.json();
 
-      return response.map((order: any) => ({
-        orderId: order.orderId.toString(),
-        symbol: order.symbol,
-        side: order.side,
-        type: order.type,
-        quantity: parseFloat(order.origQty),
-        price: parseFloat(order.price),
-        status: order.status,
-        executedQty: parseFloat(order.executedQty),
-        cummulativeQuoteQty: parseFloat(order.cummulativeQuoteQty),
-        timestamp: order.time,
-        clientOrderId: order.clientOrderId,
-      }));
+      return {
+        orderId: data.orderId.toString(),
+        symbol: data.symbol,
+        status: data.status,
+        side: data.side,
+        type: data.type,
+        quantity: parseFloat(data.origQty),
+        price: parseFloat(data.price || 0),
+        executedQuantity: parseFloat(data.executedQty),
+        timestamp: data.transactTime,
+        clientOrderId: data.clientOrderId
+      };
     } catch (error) {
-      logError('Failed to get Binance order history', 'BinanceExchange', error);
-      throw error;
+      throw new Error(`Failed to create order: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
-  getExchangeInfo(): ExchangeInfo {
-    return {
-      name: 'Binance',
-      country: 'Global',
-      isIndiaApproved: false,
-      supportedPairs: [
-        'BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'ADAUSDT', 'SOLUSDT',
-        'XRPUSDT', 'DOTUSDT', 'DOGEUSDT', 'AVAXUSDT', 'MATICUSDT',
-      ],
-      tradingFees: {
-        maker: 0.1,
-        taker: 0.1,
-      },
-      withdrawalFees: {
-        'BTC': 0.5,
-        'ETH': 0.1,
-        'USDT': 1.0,
-      },
-      minOrderSize: {
-        'BTCUSDT': 0.1,
-        'ETHUSDT': 0.1,
-      },
-      maxOrderSize: {
-        'BTCUSDT': 9000,
-        'ETHUSDT': 90000,
-      },
-      supportedOrderTypes: ['MARKET', 'LIMIT', 'STOP-LOSS', 'STOP_LOSS-LIMIT'],
-      apiLimits: {
-        requestsPerMinute: 1200,
-        ordersPerSecond: 10,
-      },
-    };
+  async cancelOrder(orderId: string, symbol: string): Promise<OrderResponse> {
+    try {
+      const timestamp = Date.now();
+      const params = {
+        symbol: symbol.toUpperCase(),
+        orderId: orderId,
+        timestamp: timestamp
+      };
+
+      const queryString = Object.keys(params)
+        .map(key => `${key}=${encodeURIComponent(params[key])}`)
+        .join('&');
+
+      const signature = await this.createSignature(queryString);
+      const url = `${this.baseUrl}/api/v3/order?${queryString}&signature=${signature}`;
+
+      const response = await fetch(url, {
+        method: 'DELETE',
+        headers: {
+          'X-MBX-APIKEY': this.credentials.apiKey,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to cancel order: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      return {
+        orderId: data.orderId.toString(),
+        symbol: data.symbol,
+        status: data.status,
+        side: data.side,
+        type: data.type,
+        quantity: parseFloat(data.origQty),
+        price: parseFloat(data.price || 0),
+        executedQuantity: parseFloat(data.executedQty),
+        timestamp: data.transactTime,
+        clientOrderId: data.clientOrderId
+      };
+    } catch (error) {
+      throw new Error(`Failed to cancel order: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 
-  validateSymbol(symbol: string): boolean {
-    const formattedSymbol = this.formatSymbol(symbol);
-    const supportedPairs = this.getExchangeInfo().supportedPairs;
-    return supportedPairs.includes(formattedSymbol);
+  async getOrderStatus(orderId: string, symbol: string): Promise<OrderResponse> {
+    try {
+      const timestamp = Date.now();
+      const params = {
+        symbol: symbol.toUpperCase(),
+        orderId: orderId,
+        timestamp: timestamp
+      };
+
+      const queryString = Object.keys(params)
+        .map(key => `${key}=${encodeURIComponent(params[key])}`)
+        .join('&');
+
+      const signature = await this.createSignature(queryString);
+      const url = `${this.baseUrl}/api/v3/order?${queryString}&signature=${signature}`;
+
+      const response = await fetch(url, {
+        headers: {
+          'X-MBX-APIKEY': this.credentials.apiKey,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to get order status: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      return {
+        orderId: data.orderId.toString(),
+        symbol: data.symbol,
+        status: data.status,
+        side: data.side,
+        type: data.type,
+        quantity: parseFloat(data.origQty),
+        price: parseFloat(data.price || 0),
+        executedQuantity: parseFloat(data.executedQty),
+        timestamp: data.time,
+        clientOrderId: data.clientOrderId
+      };
+    } catch (error) {
+      throw new Error(`Failed to get order status: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 
   formatSymbol(symbol: string): string {
-    return symbol.replace('/', '').toUpperCase();
+    // Binance uses uppercase symbols
+    return symbol.toUpperCase();
   }
 
-  private async makeRequest(method: string, endpoint: string, params: any = {}): Promise<any> {
-    const url = new URL(this.baseUrl + endpoint);
-
-    // Add query parameters for GET requests
-    if (method === 'GET') {
-      Object.keys(params).forEach(key => {
-        url.searchParams.append(key, params[key]);
-      });
-    }
-
-    const headers: any = {
-      'X-MBX-APIKEY': this.config.apiKey,
-      'Content-Type': 'application/json',
-    };
-
-    // Add signature for authenticated requests
-    if (endpoint.includes('/api/v3/') && !endpoint.includes('/api/v3/ticker')) {
-      const queryString = new URLSearchParams(params).toString();
-      const signature = await this.generateSignature(queryString);
-      url.searchParams.append('signature', signature);
-    }
-
-    const requestOptions: RequestInit = {
-      method,
-      headers,
-    };
-
-    if (method === 'POST' && Object.keys(params).length > 0) {
-      requestOptions.body = JSON.stringify(params);
-    }
-
-    const response = await fetch(url.toString(), requestOptions);
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`Binance API Error: ${errorData.msg || response.statusText}`);
-    }
-
-    return await response.json();
-  }
-
-  private async generateSignature(queryString: string): Promise<string> {
-    // Use Web Crypto API for frontend compatibility
+  private async createSignature(queryString: string): Promise<string> {
+    // Use Web Crypto API for HMAC-SHA256 in browser environment
     const encoder = new TextEncoder();
-    const keyData = encoder.encode(this.config.apiSecret);
+    const keyData = encoder.encode(this.credentials.apiSecret);
     const messageData = encoder.encode(queryString);
 
-    const key = await crypto.subtle.importKey(
+    const cryptoKey = await crypto.subtle.importKey(
       'raw',
       keyData,
       { name: 'HMAC', hash: 'SHA-256' },
       false,
-      ['sign'],
+      ['sign']
     );
 
-    const signature = await crypto.subtle.sign('HMAC', key, messageData);
+    const signature = await crypto.subtle.sign('HMAC', cryptoKey, messageData);
     const hashArray = Array.from(new Uint8Array(signature));
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
   }
