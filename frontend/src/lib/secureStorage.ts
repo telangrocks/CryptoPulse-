@@ -104,6 +104,7 @@ export function validateAPISecret(secret: string): boolean {
 export const apiRateLimiter = {
   canMakeRequest: () => true, // Simplified implementation
   recordRequest: () => {},
+  isAllowed: () => true,
 };
 
 export default secureStorage;

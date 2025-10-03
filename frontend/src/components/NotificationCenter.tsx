@@ -6,7 +6,7 @@ import {
   XCircle,
   Info,
 } from 'lucide-react';
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
@@ -84,11 +84,11 @@ const mockNotifications: Notification[] = [
 export default function NotificationCenter() {
   const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedTradeDetails, setSelectedTradeDetails] = useState<TradeDetails | null>(null);
+  const [, setSelectedTradeDetails] = useState<TradeDetails | null>(null);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
-  const markAsRead = (id: string) => {
+  const _markAsRead = (id: string) => {
     setNotifications(prev =>
       prev.map(notification =>
         notification.id === id
@@ -108,7 +108,7 @@ export default function NotificationCenter() {
     setNotifications(prev => prev.filter(notification => notification.id !== id));
   };
 
-  const handleViewTradeDetails = (tradeDetails: TradeDetails) => {
+  const _handleViewTradeDetails = (tradeDetails: TradeDetails) => {
     setSelectedTradeDetails(tradeDetails);
   };
 
@@ -151,7 +151,7 @@ export default function NotificationCenter() {
     return `${days}d ago`;
   };
 
-  const getRiskColor = (riskLevel: string) => {
+  const _getRiskColor = (riskLevel: string) => {
     switch (riskLevel) {
       case 'low': return 'text-green-500';
       case 'medium': return 'text-yellow-500';
@@ -160,7 +160,7 @@ export default function NotificationCenter() {
     }
   };
 
-  const getConfidenceColor = (confidence: number) => {
+  const _getConfidenceColor = (confidence: number) => {
     if (confidence >= 80) return 'text-green-500';
     if (confidence >= 60) return 'text-yellow-500';
     return 'text-red-500';

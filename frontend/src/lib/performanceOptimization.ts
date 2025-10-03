@@ -3,9 +3,7 @@
  */
 
 import { debounce as lodashDebounce, throttle as lodashThrottle } from 'es-toolkit';
-
-// Re-export from React for convenience
-import React from 'react';
+import React, { useCallback, useMemo, useRef } from 'react';
 
 /**
  * Debounce function - delays execution until after delay has passed
@@ -125,3 +123,40 @@ export function calculateVisibleItems(
   };
 }
 export const { memo, useMemo, useCallback, startTransition } = React;
+
+/**
+ * Hook for performance optimization
+ */
+export function usePerformanceOptimization() {
+  const renderCount = useRef(0);
+  renderCount.current += 1;
+
+  const optimizedCallback = useCallback((fn: () => void) => {
+    return useMemo(() => fn, [fn]);
+  }, []);
+
+  return {
+    renderCount: renderCount.current,
+    optimizedCallback,
+  };
+}
+
+/**
+ * Create memoized callback
+ */
+export function createMemoizedCallback<T extends (...args: any[]) => any>(
+  fn: T,
+  deps: React.DependencyList = []
+): T {
+  return useCallback(fn, deps) as T;
+}
+
+/**
+ * Create memoized value
+ */
+export function createMemoizedValue<T>(
+  factory: () => T,
+  deps: React.DependencyList = []
+): T {
+  return useMemo(factory, deps);
+}

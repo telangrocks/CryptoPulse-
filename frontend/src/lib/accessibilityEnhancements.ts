@@ -285,6 +285,53 @@ export const formA11y = {
   },
 };
 
+// Hook exports
+export function useAccessibility() {
+  return {
+    createAriaAttributes,
+    focusManager,
+    announcer,
+    keyboardNav,
+    colorContrast,
+    motionPreferences,
+    highContrast,
+    formA11y,
+  };
+}
+
+export function useModalAccessibility() {
+  return {
+    trapFocus: focusManager.trapFocus,
+    announce: announcer.announce,
+    createAriaAttributes,
+  };
+}
+
+export function useFormAccessibility() {
+  return {
+    validateField: formA11y.validateField,
+    showError: formA11y.showError,
+    clearError: formA11y.clearError,
+    createAriaAttributes,
+  };
+}
+
+export function useLoadingAccessibility() {
+  return {
+    announce: announcer.announce,
+    createAriaAttributes,
+  };
+}
+
+export function useErrorAccessibility() {
+  return {
+    announce: announcer.announce,
+    createAriaAttributes,
+  };
+}
+
+// SkipLink is exported from components/SkipLink.tsx
+
 // Export all utilities
 export default {
   createAriaAttributes,
@@ -295,4 +342,9 @@ export default {
   motionPreferences,
   highContrast,
   formA11y,
+  useAccessibility,
+  useModalAccessibility,
+  useFormAccessibility,
+  useLoadingAccessibility,
+  useErrorAccessibility,
 };

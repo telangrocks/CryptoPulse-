@@ -1,2 +1,369 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef, useMemo } from 'react';
-interface TradeDetails {  pair: string;  entry: number;  stopLoss: number;  takeProfit: number;  strategy: string;  confidence: number;  riskLevel: 'low' | 'medium' | 'high';  quantity: number;  side: 'BUY' | 'SELL';  timestamp: Date;}interface NotificationAction {  label: string;  onClick: () => void;}interface Notification {  id: string;  type: 'success' | 'error' | 'warning' | 'info';  title: string;  message: string;  timestamp: Date;  read: boolean;  tradeDetails?: TradeDetails;  action?: NotificationAction;}interface UserPreferences {  theme: 'light' | 'dark' | 'system';  language: string;  timezone: string;  notifications: {    email: boolean;    push: boolean;    sound: boolean;  };  trading: {    defaultTimeframe: string;    riskLevel: 'low' | 'medium' | 'high';    autoTrading: boolean;  };}interface AppState {  isLoading: boolean;  isOnline: boolean;  lastActivity: Date;  notifications: Notification[];  userPreferences: UserPreferences;}interface AppStateContextType {  state: AppState;  setLoading: (loading: boolean) => void;  setOnline: (online: boolean) => void;  updateActivity: () => void;  addNotification: (notification: Omit<Notification, 'id' | 'timestamp'>) => Promise<void>;  addTradeSignalNotification: (tradeDetails: TradeDetails) => Promise<void>;  removeNotification: (id: string) => Promise<void>;  markNotificationRead: (id: string) => Promise<void>;  clearAllNotifications: () => Promise<void>;  updatePreferences: (preferences: Partial<UserPreferences>) => Promise<void>;  resetState: () => void;}const AppStateContext = createContext<AppStateContextType | undefined>(undefined);interface AppStateProviderProps {  children: ReactNode;}const defaultPreferences: UserPreferences = {  theme: 'system',  language: 'en',  timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,  notifications: {    email: true,    push: true,    sound: true,  },  trading: {    defaultTimeframe: '15m',    riskLevel: 'medium',    autoTrading: false,  },};// Utility functions for validation and sanitizationconst sanitizeString = (str: string): string => {  return str.replace(/[<>]/g, '').trim();};const validateNotification = (notification: Omit<Notification, 'id' | 'timestamp'>): boolean => {  return !!(    notification.type &&    notification.title &&    notification.message &&    ['success', 'error', 'warning', 'info'].includes(notification.type) &&    typeof notification.read === 'boolean'  );};const generateSecureId = (): string => {  return `${Date.now()}-${crypto.getRandomValues(new Uint32Array(1))[0]}`;};export function AppStateProvider({ children }: AppStateProviderProps) {  const [state, setState] = useState<AppState>(() => {    // Initialize with safe defaults    const initialState: AppState = {      isLoading: false,      isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,      lastActivity: new Date(),      notifications: [],      userPreferences: defaultPreferences,    };    return initialState;  });  // Refs for cleanup and performance optimization  const timeoutRefs = useRef<Map<string, NodeJS.Timeout>>(new Map());  const activityTimeoutRef = useRef<NodeJS.Timeout | null>(null);  const isMountedRef = useRef(true);  // Cleanup function  useEffect(() => {    return () => {      isMountedRef.current = false;      // Clear all timeouts      timeoutRefs.current.forEach(timeout => clearTimeout(timeout));      timeoutRefs.current.clear();      if (activityTimeoutRef.current) {        clearTimeout(activityTimeoutRef.current);      }    };  }, []);  const setLoading = useCallback((loading: boolean) => {    if (!isMountedRef.current) return;    setState(prev => ({ ...prev, isLoading: loading }));  }, []);  const setOnline = useCallback((online: boolean) => {    if (!isMountedRef.current) return;    setState(prev => ({ ...prev, isOnline: online }));  }, []);  const updateActivity = useCallback(() => {    if (!isMountedRef.current) return;    // Debounce activity updates to prevent excessive re-renders    if (activityTimeoutRef.current) {      clearTimeout(activityTimeoutRef.current);    }    activityTimeoutRef.current = setTimeout(() => {      if (isMountedRef.current) {        setState(prev => ({ ...prev, lastActivity: new Date() }));      }    }, 100);  }, []);  const addNotification = useCallback(async (notification: Omit<Notification, 'id' | 'timestamp'>): Promise<void> => {    try {      // Validate notification data      if (!validateNotification(notification)) {        return;      }      // Sanitize notification content      const sanitizedNotification = {        ...notification,        title: sanitizeString(notification.title),        message: sanitizeString(notification.message),      };      const newNotification: Notification = {        ...sanitizedNotification,        id: generateSecureId(),        timestamp: new Date(),      };      if (!isMountedRef.current) return;      setState(prev => ({        ...prev,        notifications: [newNotification, ...prev.notifications].slice(0, 50), // Keep only last 50      }));      // Auto-remove success notifications after 5 seconds with proper cleanup      if (notification.type === 'success') {        const timeoutId = setTimeout(() => {          if (isMountedRef.current) {            setState(prev => ({              ...prev,              notifications: prev.notifications.filter(n => n.id !== newNotification.id),            }));          }          timeoutRefs.current.delete(newNotification.id);        }, 5000);        timeoutRefs.current.set(newNotification.id, timeoutId);      }    } catch (error) {    }  }, []);  const addTradeSignalNotification = useCallback(async (tradeDetails: TradeDetails): Promise<void> => {    try {      // Validate trade details      if (!tradeDetails || !tradeDetails.pair || !tradeDetails.side || typeof tradeDetails.entry !== 'number') {        return;      }      const notification: Omit<Notification, 'id' | 'timestamp'> = {        type: 'success',        title: `Trade Signal Detected - ${sanitizeString(tradeDetails.pair)}`,        message: `${tradeDetails.side} signal for ${sanitizeString(tradeDetails.pair)} at $${tradeDetails.entry.toFixed(2)}`,        read: false,        tradeDetails: {          ...tradeDetails,          pair: sanitizeString(tradeDetails.pair),          strategy: sanitizeString(tradeDetails.strategy),        },        action: {          label: 'View Details',          onClick: () => {            // This will be handled by the notification component            // View trade details - handled by app state context          },        },      };      await addNotification(notification);    } catch (error) {    }  }, [addNotification]);  const removeNotification = useCallback(async (id: string): Promise<void> => {    try {      if (!isMountedRef.current) return;      // Clear any pending timeout for this notification      const timeout = timeoutRefs.current.get(id);      if (timeout) {        clearTimeout(timeout);        timeoutRefs.current.delete(id);      }      setState(prev => ({        ...prev,        notifications: prev.notifications.filter(n => n.id !== id),      }));    } catch (error) {    }  }, []);  const markNotificationRead = useCallback(async (id: string): Promise<void> => {    try {      if (!isMountedRef.current) return;      setState(prev => ({        ...prev,        notifications: prev.notifications.map(n =>          n.id === id ? { ...n, read: true } : n,        ),      }));    } catch (error) {    }  }, []);  const clearAllNotifications = useCallback(async (): Promise<void> => {    try {      if (!isMountedRef.current) return;      // Clear all pending timeouts      timeoutRefs.current.forEach(timeout => clearTimeout(timeout));      timeoutRefs.current.clear();      setState(prev => ({ ...prev, notifications: [] }));    } catch (error) {    }  }, []);  const updatePreferences = useCallback(async (preferences: Partial<UserPreferences>): Promise<void> => {    try {      if (!isMountedRef.current) return;      // Validate preferences      const validatedPreferences = { ...preferences };      if (validatedPreferences.theme && !['light', 'dark', 'system'].includes(validatedPreferences.theme)) {        delete validatedPreferences.theme;      }      if (validatedPreferences.language && typeof validatedPreferences.language !== 'string') {        delete validatedPreferences.language;      }      if (validatedPreferences.trading?.riskLevel && !['low', 'medium', 'high'].includes(validatedPreferences.trading.riskLevel)) {        validatedPreferences.trading = { ...validatedPreferences.trading, riskLevel: 'medium' };      }      setState(prev => ({        ...prev,        userPreferences: { ...prev.userPreferences, ...validatedPreferences },      }));    } catch (error) {    }  }, []);  const resetState = useCallback(() => {    if (!isMountedRef.current) return;    // Clear all timeouts    timeoutRefs.current.forEach(timeout => clearTimeout(timeout));    timeoutRefs.current.clear();    setState({      isLoading: false,      isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,      lastActivity: new Date(),      notifications: [],      userPreferences: defaultPreferences,    });  }, []);  // Listen for online/offline events with error handling  useEffect(() => {    if (typeof window === 'undefined') return;    const handleOnline = () => setOnline(true);    const handleOffline = () => setOnline(false);    try {      window.addEventListener('online', handleOnline);      window.addEventListener('offline', handleOffline);    } catch (error) {    }    return () => {      try {        window.removeEventListener('online', handleOnline);        window.removeEventListener('offline', handleOffline);      } catch (error) {      }    };  }, [setOnline]);  // Track user activity with throttling and error handling  useEffect(() => {    if (typeof document === 'undefined') return;    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];    let lastActivityTime = 0;    const THROTTLE_MS = 1000; // Throttle to once per second    const handleActivity = () => {      const now = Date.now();      if (now - lastActivityTime > THROTTLE_MS) {        lastActivityTime = now;        updateActivity();      }    };    try {      events.forEach(event => {        document.addEventListener(event, handleActivity, { passive: true });      });    } catch (error) {    }    return () => {      try {        events.forEach(event => {          document.removeEventListener(event, handleActivity);        });      } catch (error) {      }    };  }, [updateActivity]);  // Memoize context value to prevent unnecessary re-renders  const value: AppStateContextType = useMemo(() => ({    state,    setLoading,    setOnline,    updateActivity,    addNotification,    addTradeSignalNotification,    removeNotification,    markNotificationRead,    clearAllNotifications,    updatePreferences,    resetState,  }), [    state,    setLoading,    setOnline,    updateActivity,    addNotification,    addTradeSignalNotification,    removeNotification,    markNotificationRead,    clearAllNotifications,    updatePreferences,    resetState,  ]);  return (    <AppStateContext.Provider value={value}>      {children}    </AppStateContext.Provider>  );}export function useAppState() {  const context = useContext(AppStateContext);  if (context === undefined) {    throw new Error('useAppState must be used within an AppStateProvider');  }  return context;}
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef, useMemo } from 'react';
+
+interface TradeDetails {
+  pair: string;
+  entry: number;
+  stopLoss: number;
+  takeProfit: number;
+  strategy: string;
+  confidence: number;
+  riskLevel: 'low' | 'medium' | 'high';
+  quantity: number;
+  side: 'BUY' | 'SELL';
+  timestamp: Date;
+}
+interface NotificationAction {
+  label: string;
+  onClick: () => void;
+}
+interface Notification {
+  id: string;
+  type: 'success' | 'error' | 'warning' | 'info';
+  title: string;
+  message: string;
+  timestamp: Date;
+  read: boolean;
+  tradeDetails?: TradeDetails;
+  action?: NotificationAction;
+}
+interface UserPreferences {
+  theme: 'light' | 'dark' | 'system';
+  language: string;
+  timezone: string;
+  notifications: {
+    email: boolean;
+    push: boolean;
+    sound: boolean;
+  };
+  trading: {
+    defaultTimeframe: string;
+    riskLevel: 'low' | 'medium' | 'high';
+    autoTrading: boolean;
+  };
+}
+interface AppState {
+  isLoading: boolean;
+  isOnline: boolean;
+  lastActivity: Date;
+  notifications: Notification[];
+  userPreferences: UserPreferences;
+}
+interface AppStateContextType {
+  state: AppState;
+  setLoading: (loading: boolean) => void;
+  setOnline: (online: boolean) => void;
+  updateActivity: () => void;
+  addNotification: (notification: Omit<Notification, 'id' | 'timestamp'>) => Promise<void>;
+  addTradeSignalNotification: (tradeDetails: TradeDetails) => Promise<void>;
+  removeNotification: (id: string) => Promise<void>;
+  markNotificationRead: (id: string) => Promise<void>;
+  clearAllNotifications: () => Promise<void>;
+  updatePreferences: (preferences: Partial<UserPreferences>) => Promise<void>;
+  resetState: () => void;
+}
+const AppStateContext = createContext<AppStateContextType | undefined>(undefined);
+interface AppStateProviderProps {
+  children: ReactNode;
+}
+const defaultPreferences: UserPreferences = {
+  theme: 'system',
+  language: 'en',
+  timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+  notifications: {
+    email: true,
+    push: true,
+    sound: true,
+  },
+  trading: {
+    defaultTimeframe: '15m',
+    riskLevel: 'medium',
+    autoTrading: false,
+  },
+};
+// Utility functions for validation and sanitization
+const sanitizeString = (str: string): string => {
+  return str.replace(/[<>]/g, '').trim();
+};
+const validateNotification = (notification: Omit<Notification, 'id' | 'timestamp'>): boolean => {
+  return !!(
+    notification.type &&
+    notification.title &&
+    notification.message &&
+    ['success', 'error', 'warning', 'info'].includes(notification.type) &&
+    typeof notification.read === 'boolean'
+  );
+};
+const generateSecureId = (): string => {
+  return `${Date.now()}-${crypto.getRandomValues(new Uint32Array(1))[0]}`;
+};
+export function AppStateProvider({ children }: AppStateProviderProps) {
+  const [state, setState] = useState<AppState>(() => {
+    // Initialize with safe defaults
+    const initialState: AppState = {
+      isLoading: false,
+      isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
+      lastActivity: new Date(),
+      notifications: [],
+      userPreferences: defaultPreferences,
+    };
+    return initialState;
+  });
+  // Refs for cleanup and performance optimization
+  const timeoutRefs = useRef<Map<string, NodeJS.Timeout>>(new Map());
+  const activityTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isMountedRef = useRef(true);
+  // Cleanup function
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+      // Clear all timeouts
+      timeoutRefs.current.forEach(timeout => clearTimeout(timeout));
+      timeoutRefs.current.clear();
+      if (activityTimeoutRef.current) {
+        clearTimeout(activityTimeoutRef.current);
+      }
+    };
+  }, []);
+  const setLoading = useCallback((loading: boolean) => {
+    if (!isMountedRef.current) return;
+    setState(prev => ({ ...prev, isLoading: loading }));
+  }, []);
+  const setOnline = useCallback((online: boolean) => {
+    if (!isMountedRef.current) return;
+    setState(prev => ({ ...prev, isOnline: online }));
+  }, []);
+  const updateActivity = useCallback(() => {
+    if (!isMountedRef.current) return;
+    // Debounce activity updates to prevent excessive re-renders
+    if (activityTimeoutRef.current) {
+      clearTimeout(activityTimeoutRef.current);
+    }
+    activityTimeoutRef.current = setTimeout(() => {
+      if (isMountedRef.current) {
+        setState(prev => ({ ...prev, lastActivity: new Date() }));
+      }
+    }, 100);
+  }, []);
+  const addNotification = useCallback(async (notification: Omit<Notification, 'id' | 'timestamp'>): Promise<void> => {
+    try {
+      // Validate notification data
+      if (!validateNotification(notification)) {
+        return;
+      }
+      // Sanitize notification content
+      const sanitizedNotification = {
+        ...notification,
+        title: sanitizeString(notification.title),
+        message: sanitizeString(notification.message),
+      };
+      const newNotification: Notification = {
+        ...sanitizedNotification,
+        id: generateSecureId(),
+        timestamp: new Date(),
+      };
+      if (!isMountedRef.current) return;
+      setState(prev => ({
+        ...prev,
+        notifications: [newNotification, ...prev.notifications].slice(0, 50), // Keep only last 50
+      }));
+      // Auto-remove success notifications after 5 seconds with proper cleanup
+      if (notification.type === 'success') {
+        const timeoutId = setTimeout(() => {
+          if (isMountedRef.current) {
+            setState(prev => ({
+              ...prev,
+              notifications: prev.notifications.filter(n => n.id !== newNotification.id),
+            }));
+          }
+          timeoutRefs.current.delete(newNotification.id);
+        }, 5000);
+        timeoutRefs.current.set(newNotification.id, timeoutId);
+      }
+    } catch (error) {
+    }
+  }, []);
+  const addTradeSignalNotification = useCallback(async (tradeDetails: TradeDetails): Promise<void> => {
+    try {
+      // Validate trade details
+      if (!tradeDetails || !tradeDetails.pair || !tradeDetails.side || typeof tradeDetails.entry !== 'number') {
+        return;
+      }
+      const notification: Omit<Notification, 'id' | 'timestamp'> = {
+        type: 'success',
+        title: `Trade Signal Detected - ${sanitizeString(tradeDetails.pair)}`,
+        message: `${tradeDetails.side} signal for ${sanitizeString(tradeDetails.pair)} at $${tradeDetails.entry.toFixed(2)}`,
+        read: false,
+        tradeDetails: {
+          ...tradeDetails,
+          pair: sanitizeString(tradeDetails.pair),
+          strategy: sanitizeString(tradeDetails.strategy),
+        },
+        action: {
+          label: 'View Details',
+          onClick: () => {
+            // This will be handled by the notification component
+            // View trade details - handled by app state context
+          },
+        },
+      };
+      await addNotification(notification);
+    } catch (error) {
+    }
+  }, [addNotification]);
+  const removeNotification = useCallback(async (id: string): Promise<void> => {
+    try {
+      if (!isMountedRef.current) return;
+      // Clear any pending timeout for this notification
+      const timeout = timeoutRefs.current.get(id);
+      if (timeout) {
+        clearTimeout(timeout);
+        timeoutRefs.current.delete(id);
+      }
+      setState(prev => ({
+        ...prev,
+        notifications: prev.notifications.filter(n => n.id !== id),
+      }));
+    } catch (error) {
+    }
+  }, []);
+  const markNotificationRead = useCallback(async (id: string): Promise<void> => {
+    try {
+      if (!isMountedRef.current) return;
+      setState(prev => ({
+        ...prev,
+        notifications: prev.notifications.map(n =>
+          n.id === id ? { ...n, read: true } : n,
+        ),
+      }));
+    } catch (error) {
+    }
+  }, []);
+  const clearAllNotifications = useCallback(async (): Promise<void> => {
+    try {
+      if (!isMountedRef.current) return;
+      // Clear all pending timeouts
+      timeoutRefs.current.forEach(timeout => clearTimeout(timeout));
+      timeoutRefs.current.clear();
+      setState(prev => ({ ...prev, notifications: [] }));
+    } catch (error) {
+    }
+  }, []);
+  const updatePreferences = useCallback(async (preferences: Partial<UserPreferences>): Promise<void> => {
+    try {
+      if (!isMountedRef.current) return;
+      // Validate preferences
+      const validatedPreferences = { ...preferences };
+      if (validatedPreferences.theme && !['light', 'dark', 'system'].includes(validatedPreferences.theme)) {
+        delete validatedPreferences.theme;
+      }
+      if (validatedPreferences.language && typeof validatedPreferences.language !== 'string') {
+        delete validatedPreferences.language;
+      }
+      if (validatedPreferences.trading?.riskLevel && !['low', 'medium', 'high'].includes(validatedPreferences.trading.riskLevel)) {
+        validatedPreferences.trading = { ...validatedPreferences.trading, riskLevel: 'medium' };
+      }
+      setState(prev => ({
+        ...prev,
+        userPreferences: { ...prev.userPreferences, ...validatedPreferences },
+      }));
+    } catch (error) {
+    }
+  }, []);
+  const resetState = useCallback(() => {
+    if (!isMountedRef.current) return;
+    // Clear all timeouts
+    timeoutRefs.current.forEach(timeout => clearTimeout(timeout));
+    timeoutRefs.current.clear();
+    setState({
+      isLoading: false,
+      isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
+      lastActivity: new Date(),
+      notifications: [],
+      userPreferences: defaultPreferences,
+    });
+  }, []);
+  // Listen for online/offline events with error handling
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleOnline = () => setOnline(true);
+    const handleOffline = () => setOnline(false);
+    try {
+      window.addEventListener('online', handleOnline);
+      window.addEventListener('offline', handleOffline);
+    } catch (error) {
+    }
+    return () => {
+      try {
+        window.removeEventListener('online', handleOnline);
+        window.removeEventListener('offline', handleOffline);
+      } catch (error) {
+      }
+    };
+  }, [setOnline]);
+  // Track user activity with throttling and error handling
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+    let lastActivityTime = 0;
+    const THROTTLE_MS = 1000; // Throttle to once per second
+    const handleActivity = () => {
+      const now = Date.now();
+      if (now - lastActivityTime > THROTTLE_MS) {
+        lastActivityTime = now;
+        updateActivity();
+      }
+    };
+    try {
+      events.forEach(event => {
+        document.addEventListener(event, handleActivity, { passive: true });
+      });
+    } catch (error) {
+    }
+    return () => {
+      try {
+        events.forEach(event => {
+          document.removeEventListener(event, handleActivity);
+        });
+      } catch (error) {
+      }
+    };
+  }, [updateActivity]);
+  // Memoize context value to prevent unnecessary re-renders
+  const value: AppStateContextType = useMemo(() => ({
+    state,
+    setLoading,
+    setOnline,
+    updateActivity,
+    addNotification,
+    addTradeSignalNotification,
+    removeNotification,
+    markNotificationRead,
+    clearAllNotifications,
+    updatePreferences,
+    resetState,
+  }), [
+    state,
+    setLoading,
+    setOnline,
+    updateActivity,
+    addNotification,
+    addTradeSignalNotification,
+    removeNotification,
+    markNotificationRead,
+    clearAllNotifications,
+    updatePreferences,
+    resetState,
+  ]);
+  return (
+    <AppStateContext.Provider value={value}>
+      {children}
+    </AppStateContext.Provider>
+  );
+}
+export function useAppState() {
+  const context = useContext(AppStateContext);
+  if (context === undefined) {
+    throw new Error('useAppState must be used within an AppStateProvider');
+  }
+  return context;
+}

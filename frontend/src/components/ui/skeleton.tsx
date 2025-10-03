@@ -38,4 +38,3 @@ const Skeleton = React.forwardRef<HTMLDivElement, SkeletonProps>(
 Skeleton.displayName = 'Skeleton';
 
 export { Skeleton, skeletonVariants };
-export type { SkeletonProps };

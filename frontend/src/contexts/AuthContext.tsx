@@ -1,6 +1,6 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 
-import { config } from '../lib/config';
+import config from '../lib/config';
 import { logInfo, logWarn, logError } from '../lib/logger';
 import { createSession, getCurrentSession, clearSession, initializeSessionManagement } from '../lib/sessionManager';
 

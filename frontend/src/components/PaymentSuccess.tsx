@@ -1,5 +1,5 @@
 import { CheckCircle, AlertCircle, ArrowRight } from 'lucide-react';
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 
 import { Button } from './ui/button';

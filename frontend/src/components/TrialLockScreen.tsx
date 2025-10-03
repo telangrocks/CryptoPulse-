@@ -8,7 +8,6 @@ import {
   AlertTriangle,
   Star,
 } from 'lucide-react';
-import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { Badge } from './ui/badge';

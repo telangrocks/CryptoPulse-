@@ -1,89 +1,81 @@
 /**
- * Logging utilities for CryptoPulse
+ * Logging System
+ * Centralized logging with different levels
  */
 
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
-
-interface LogEntry {
-  level: LogLevel;
-  message: string;
-  timestamp: Date;
-  data?: any;
+export enum LogLevel {
+  DEBUG = 0,
+  INFO = 1,
+  WARN = 2,
+  ERROR = 3,
 }
 
 class Logger {
-  private logs: LogEntry[] = [];
-  private maxLogs = 1000;
-  private level: LogLevel = 'info';
+  private logLevel: LogLevel = LogLevel.INFO;
 
-  setLevel(level: LogLevel): void {
-    this.level = level;
+  constructor() {
+    // Set log level based on environment
+    if (import.meta.env.MODE === 'development') {
+      this.logLevel = LogLevel.DEBUG;
+    } else if (import.meta.env.MODE === 'production') {
+      this.logLevel = LogLevel.WARN;
+    }
   }
 
   private shouldLog(level: LogLevel): boolean {
-    const levels: Record<LogLevel, number> = {
-      debug: 0,
-      info: 1,
-      warn: 2,
-      error: 3,
-    };
-    return levels[level] >= levels[this.level];
+    return level >= this.logLevel;
   }
 
-  private log(level: LogLevel, message: string, data?: any): void {
-    if (!this.shouldLog(level)) return;
+  private formatMessage(level: string, message: string, context?: any): string {
+    const timestamp = new Date().toISOString();
+    const contextStr = context ? JSON.stringify(context) : '';
+    return `[${timestamp}] ${level}: ${message} ${contextStr}`;
+  }
 
-    const entry: LogEntry = {
-      level,
-      message,
-      timestamp: new Date(),
-      data,
-    };
-
-    this.logs.push(entry);
-    if (this.logs.length > this.maxLogs) {
-      this.logs = this.logs.slice(-this.maxLogs);
-    }
-
-    // Console output
-    const method = level === 'debug' ? 'log' : level;
-    if (console[method]) {
-      console[method](`[${level.toUpperCase()}] ${message}`, data || '');
+  debug(message: string, context?: any): void {
+    if (this.shouldLog(LogLevel.DEBUG)) {
+      console.debug(this.formatMessage('DEBUG', message, context));
     }
   }
 
-  debug(message: string, data?: any): void {
-    this.log('debug', message, data);
+  info(message: string, context?: any): void {
+    if (this.shouldLog(LogLevel.INFO)) {
+      console.info(this.formatMessage('INFO', message, context));
+    }
   }
 
-  info(message: string, data?: any): void {
-    this.log('info', message, data);
+  warn(message: string, context?: any): void {
+    if (this.shouldLog(LogLevel.WARN)) {
+      console.warn(this.formatMessage('WARN', message, context));
+    }
   }
 
-  warn(message: string, data?: any): void {
-    this.log('warn', message, data);
-  }
-
-  error(message: string, data?: any): void {
-    this.log('error', message, data);
-  }
-
-  getLogs(): LogEntry[] {
-    return [...this.logs];
-  }
-
-  clearLogs(): void {
-    this.logs = [];
+  error(message: string, error?: Error, context?: any): void {
+    if (this.shouldLog(LogLevel.ERROR)) {
+      const errorInfo = error ? `\nError: ${error.message}\nStack: ${error.stack}` : '';
+      console.error(this.formatMessage('ERROR', message, context) + errorInfo);
+    }
   }
 }
 
-// Global logger instance
-const globalLogger = new Logger();
+// Create singleton instance
+const logger = new Logger();
 
-export const logDebug = globalLogger.debug.bind(globalLogger);
-export const logInfo = globalLogger.info.bind(globalLogger);
-export const logWarn = globalLogger.warn.bind(globalLogger);
-export const logError = globalLogger.error.bind(globalLogger);
+// Export convenience functions
+export const logDebug = (message: string, context?: any): void => {
+  logger.debug(message, context);
+};
 
-export { globalLogger as logger };
-export default globalLogger;
+export const logInfo = (message: string, context?: any): void => {
+  logger.info(message, context);
+};
+
+export const logWarn = (message: string, context?: any): void => {
+  logger.warn(message, context);
+};
+
+export const logError = (message: string, error?: Error, context?: any): void => {
+  logger.error(message, error, context);
+};
+
+export default logger;

@@ -20,7 +20,7 @@ export function handleAuthError(error: Error, context?: ErrorContext): void {
   });
 
   // In production, you would send this to your error monitoring service
-  if (process.env.NODE_ENV === 'production') {
+  if (import.meta.env.PROD) {
     // sendToErrorService(error, context);
   }
 }
@@ -34,7 +34,7 @@ export function handleValidationError(error: Error, context?: ErrorContext): voi
   });
 
   // In production, you would send this to your error monitoring service
-  if (process.env.NODE_ENV === 'production') {
+  if (import.meta.env.PROD) {
     // sendToErrorService(error, context);
   }
 }
@@ -73,6 +73,19 @@ export const errorMonitoring = {
   logAuth: handleAuthError,
   logValidation: handleValidationError,
   logNetwork: handleNetworkError,
+  retryOperation: async (operation: () => Promise<any>, maxRetries = 3) => {
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        return await operation();
+      } catch (error) {
+        if (i === maxRetries - 1) throw error;
+        await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, i)));
+      }
+    }
+  },
+  reportError: (error: Error, context?: ErrorContext) => {
+    logError('Error reported', error, context);
+  },
 };
 
 export default errorMonitoring;
