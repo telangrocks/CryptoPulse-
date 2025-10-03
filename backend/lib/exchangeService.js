@@ -34,7 +34,7 @@ class ExchangeService {
       });
 
       const result = await exchangeService.executeTrade(tradeData);
-      
+
       logger.info(`Trade executed successfully on ${exchange}:`, {
         orderId: result.orderId,
         status: result.status,
@@ -105,7 +105,7 @@ class BinanceExchange {
   async executeTrade(tradeData) {
     const { symbol, side, amount, price, apiKey, secretKey, isTestnet = false } = tradeData;
     const baseUrl = isTestnet ? this.testnetUrl : this.baseUrl;
-    
+
     const timestamp = Date.now();
     const params = {
       symbol: symbol.toUpperCase(),
@@ -254,7 +254,7 @@ class WazirxExchange {
 
   async executeTrade(tradeData) {
     const { symbol, side, amount, price, apiKey, secretKey } = tradeData;
-    
+
     const timestamp = Date.now();
     const params = {
       symbol: symbol.toUpperCase(),
@@ -409,7 +409,7 @@ class CoinDCXExchange {
 
   async executeTrade(tradeData) {
     const { symbol, side, amount, price, apiKey, secretKey } = tradeData;
-    
+
     const timestamp = Date.now();
     const body = {
       side: side.toLowerCase(),
@@ -548,38 +548,38 @@ class CoinDCXExchange {
 
 // Delta Exchange Implementation (placeholder)
 class DeltaExchange {
-  async executeTrade(tradeData) {
+  async executeTrade(_tradeData) {
     throw new Error('Delta Exchange integration not implemented yet');
   }
 
-  async getBalance(apiKey, secretKey) {
+  async getBalance(_apiKey, _secretKey) {
     throw new Error('Delta Exchange integration not implemented yet');
   }
 
-  async getOrderStatus(orderId, symbol, apiKey, secretKey) {
+  async getOrderStatus(_orderId, _symbol, _apiKey, _secretKey) {
     throw new Error('Delta Exchange integration not implemented yet');
   }
 
-  async cancelOrder(orderId, symbol, apiKey, secretKey) {
+  async cancelOrder(_orderId, _symbol, _apiKey, _secretKey) {
     throw new Error('Delta Exchange integration not implemented yet');
   }
 }
 
 // Coinbase Exchange Implementation (placeholder)
 class CoinbaseExchange {
-  async executeTrade(tradeData) {
+  async executeTrade(_tradeData) {
     throw new Error('Coinbase Exchange integration not implemented yet');
   }
 
-  async getBalance(apiKey, secretKey) {
+  async getBalance(_apiKey, _secretKey) {
     throw new Error('Coinbase Exchange integration not implemented yet');
   }
 
-  async getOrderStatus(orderId, symbol, apiKey, secretKey) {
+  async getOrderStatus(_orderId, _symbol, _apiKey, _secretKey) {
     throw new Error('Coinbase Exchange integration not implemented yet');
   }
 
-  async cancelOrder(orderId, symbol, apiKey, secretKey) {
+  async cancelOrder(_orderId, _symbol, _apiKey, _secretKey) {
     throw new Error('Coinbase Exchange integration not implemented yet');
   }
 }

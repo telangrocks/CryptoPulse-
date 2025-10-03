@@ -29,10 +29,10 @@ class AppError extends Error {
     this.isOperational = isOperational;
     this.timestamp = new Date().toISOString();
     this.errorId = this.generateErrorId();
-    
+
     Error.captureStackTrace(this, this.constructor);
   }
-  
+
   generateErrorId() {
     return createHash('md5')
       .update(`${this.message}-${this.timestamp}-${Math.random()}`)
@@ -109,7 +109,7 @@ const errorLogger = winston.createLogger({
     winston.format.json()
   ),
   transports: [
-    new winston.transports.File({ 
+    new winston.transports.File({
       filename: 'logs/error.log',
       maxsize: 5242880, // 5MB
       maxFiles: 5
@@ -141,22 +141,22 @@ const errorMonitor = {
         method: context.method || 'unknown'
       }
     };
-    
+
     // Log error
     errorLogger.error('Application Error', errorData);
-    
+
     // Send to monitoring service (e.g., Sentry, DataDog)
     if (process.env.SENTRY_DSN) {
       // Sentry integration would go here
-      console.log('Sending error to Sentry:', errorData.errorId);
+      // console.log('Sending error to Sentry:', errorData.errorId);
     }
-    
+
     // Send alerts for critical errors
     if (error.statusCode >= 500) {
       sendCriticalErrorAlert(errorData);
     }
   },
-  
+
   trackPerformance: (operation, duration, context = {}) => {
     if (duration > 1000) { // Log slow operations
       errorLogger.warn('Slow Operation', {
@@ -170,15 +170,15 @@ const errorMonitor = {
 };
 
 // Critical error alerting
-function sendCriticalErrorAlert(errorData) {
+function sendCriticalErrorAlert(_errorData) {
   // In production, this would send alerts via email, Slack, PagerDuty, etc.
-  console.error('🚨 CRITICAL ERROR ALERT:', {
-    errorId: errorData.errorId,
-    message: errorData.message,
-    statusCode: errorData.statusCode,
-    timestamp: errorData.timestamp
-  });
-  
+  // console.error('🚨 CRITICAL ERROR ALERT:', {
+  //   errorId: errorData.errorId,
+  //   message: errorData.message,
+  //   statusCode: errorData.statusCode,
+  //   timestamp: errorData.timestamp
+  // });
+
   // Example: Send to Slack webhook
   if (process.env.SLACK_WEBHOOK_URL) {
     // Slack notification would go here
@@ -194,24 +194,24 @@ const formatErrorResponse = (error, isDevelopment = false) => {
     timestamp: error.timestamp,
     type: error.errorType
   };
-  
+
   // Add additional details in development
   if (isDevelopment) {
     baseResponse.stack = error.stack;
     baseResponse.details = error.details || null;
     baseResponse.originalError = error.originalError || null;
   }
-  
+
   // Add retry information for rate limits
   if (error instanceof RateLimitError) {
     baseResponse.retryAfter = 60; // seconds
   }
-  
+
   return baseResponse;
 };
 
 // Global error handler middleware
-const globalErrorHandler = (error, req, res, next) => {
+const globalErrorHandler = (error, req, res, _next) => {
   // Track error with context
   errorMonitor.trackError(error, {
     ip: req.ip,
@@ -223,7 +223,7 @@ const globalErrorHandler = (error, req, res, next) => {
     params: req.params,
     userId: req.user?.userId || 'anonymous'
   });
-  
+
   // Determine if error is operational
   if (!error.isOperational) {
     // Log unexpected errors
@@ -236,13 +236,13 @@ const globalErrorHandler = (error, req, res, next) => {
         method: req.method
       }
     });
-    
+
     // Don't leak error details in production
     if (process.env.NODE_ENV === 'production') {
       error = new AppError('Internal server error', 500, 'InternalError');
     }
   }
-  
+
   // Format and send response
   const response = formatErrorResponse(error, process.env.NODE_ENV === 'development');
   res.status(error.statusCode || 500).json(response);
@@ -263,7 +263,7 @@ process.on('unhandledRejection', (reason, promise) => {
     promise: promise.toString(),
     timestamp: new Date().toISOString()
   });
-  
+
   // In production, you might want to exit the process
   if (process.env.NODE_ENV === 'production') {
     process.exit(1);
@@ -277,7 +277,7 @@ process.on('uncaughtException', (error) => {
     stack: error.stack,
     timestamp: new Date().toISOString()
   });
-  
+
   // Always exit on uncaught exceptions
   process.exit(1);
 });
@@ -289,14 +289,14 @@ const handleValidationError = (errors) => {
     message: error.msg,
     value: error.value
   }));
-  
+
   return new ValidationError('Validation failed', details);
 };
 
 // Database error handler
 const handleDatabaseError = (error, operation) => {
   let message = 'Database operation failed';
-  
+
   if (error.code === '23505') {
     message = 'Duplicate entry found';
   } else if (error.code === '23503') {
@@ -308,14 +308,14 @@ const handleDatabaseError = (error, operation) => {
   } else if (error.code === '42703') {
     message = 'Column does not exist';
   }
-  
+
   return new DatabaseError(message, operation, error);
 };
 
 // External API error handler
 const handleExternalAPIError = (error, service) => {
   let message = `External API error: ${service}`;
-  
+
   if (error.response) {
     message = `${service} API returned ${error.response.status}: ${error.response.statusText}`;
   } else if (error.request) {
@@ -323,7 +323,7 @@ const handleExternalAPIError = (error, service) => {
   } else {
     message = `Error configuring ${service} API request`;
   }
-  
+
   return new ExternalAPIError(message, service, error);
 };
 
@@ -345,10 +345,10 @@ module.exports = {
   ExternalAPIError,
   DatabaseError,
   ServiceUnavailableError,
-  
+
   // Error types
   ERROR_TYPES,
-  
+
   // Error handlers
   globalErrorHandler,
   asyncHandler,
@@ -356,10 +356,10 @@ module.exports = {
   handleDatabaseError,
   handleExternalAPIError,
   handleHealthCheckError,
-  
+
   // Error monitoring
   errorMonitor,
-  
+
   // Utilities
   formatErrorResponse
 };

@@ -519,26 +519,26 @@ const TradingStrategy = {
     }));
   },
 
-  async findByIdAndUpdate(filter, updates, options = {}) {
+  async findByIdAndUpdate(filter, updates, _options = {}) {
     const { _id, userId } = filter;
     const setClause = Object.keys(updates)
       .map((key, index) => `${key} = $${index + 3}`)
       .join(', ');
-    
+
     const queryText = `
       UPDATE trading_strategies 
       SET ${setClause}, updated_at = NOW()
       WHERE id = $1 AND user_id = $2
       RETURNING *
     `;
-    
+
     const values = [_id, userId, ...Object.values(updates)];
     const result = await query(queryText, values);
-    
+
     if (result.rows.length === 0) {
       return null;
     }
-    
+
     const row = result.rows[0];
     return {
       ...row,
@@ -550,11 +550,11 @@ const TradingStrategy = {
     const { _id, userId } = filter;
     const queryText = 'DELETE FROM trading_strategies WHERE id = $1 AND user_id = $2 RETURNING *';
     const result = await query(queryText, [_id, userId]);
-    
+
     if (result.rows.length === 0) {
       return null;
     }
-    
+
     const row = result.rows[0];
     return {
       ...row,

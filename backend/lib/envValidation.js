@@ -5,7 +5,7 @@
 // Ensures all required secrets and configuration are properly set
 
 const { cleanEnv, str, bool, num, makeValidator } = require('envalid');
-const logger = require('./logging');
+const { logger } = require('./logging');
 
 // Custom validators
 const nonEmptyString = makeValidator((x) => {

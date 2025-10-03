@@ -5,7 +5,7 @@
 
 const request = require('supertest');
 const app = require('../index');
-const { User, Trade, ExchangeConfig } = require('../lib/database');
+const { User: _User, Trade, ExchangeConfig } = require('../lib/database');
 
 // Mock external dependencies
 jest.mock('../lib/database');
@@ -17,7 +17,7 @@ describe('API Endpoints', () => {
   });
 
   describe('GET /api/status', () => {
-    it('should return API status', async () => {
+    it('should return API status', async() => {
       const response = await request(app)
         .get('/api/status')
         .expect(200);
@@ -29,7 +29,7 @@ describe('API Endpoints', () => {
   });
 
   describe('GET /health', () => {
-    it('should return health status', async () => {
+    it('should return health status', async() => {
       // Mock database query
       const { query } = require('../lib/database');
       query.mockResolvedValue([{ result: 1 }]);
@@ -51,7 +51,7 @@ describe('API Endpoints', () => {
       expect(response.body.services.redis).toBe('Connected');
     });
 
-    it('should return degraded status when database is down', async () => {
+    it('should return degraded status when database is down', async() => {
       // Mock database query to fail
       const { query } = require('../lib/database');
       query.mockRejectedValue(new Error('Database connection failed'));
@@ -73,7 +73,7 @@ describe('API Endpoints', () => {
   });
 
   describe('GET /health/detailed', () => {
-    it('should return detailed health status', async () => {
+    it('should return detailed health status', async() => {
       // Mock database query
       const { query } = require('../lib/database');
       query.mockResolvedValue([{ result: 1 }]);
@@ -98,7 +98,7 @@ describe('API Endpoints', () => {
   });
 
   describe('POST /api/v1/exchanges/balances', () => {
-    it('should return exchange balances', async () => {
+    it('should return exchange balances', async() => {
       // Mock authentication
       const { authenticateToken } = require('../lib/auth');
       authenticateToken.mockImplementation((req, res, next) => {
@@ -112,18 +112,18 @@ describe('API Endpoints', () => {
         secretKey: 'test-secret-key'
       };
 
-      const response = await request(app)
+      const _response = await request(app)
         .post('/api/v1/exchanges/balances')
         .send(balanceData)
         .expect(200);
 
-      expect(response.body.success).toBe(true);
-      expect(response.body.data.exchange).toBe('binance');
-      expect(response.body.data.balances).toBeInstanceOf(Array);
-      expect(response.body.data.balances.length).toBeGreaterThan(0);
+      expect(_response.body.success).toBe(true);
+      expect(_response.body.data.exchange).toBe('binance');
+      expect(_response.body.data.balances).toBeInstanceOf(Array);
+      expect(_response.body.data.balances.length).toBeGreaterThan(0);
     });
 
-    it('should return 400 for missing exchange', async () => {
+    it('should return 400 for missing exchange', async() => {
       // Mock authentication
       const { authenticateToken } = require('../lib/auth');
       authenticateToken.mockImplementation((req, res, next) => {
@@ -140,14 +140,14 @@ describe('API Endpoints', () => {
       expect(response.body.error).toBe('Exchange is required');
     });
 
-    it('should return 401 for unauthenticated request', async () => {
+    it('should return 401 for unauthenticated request', async() => {
       const balanceData = {
         exchange: 'binance',
         apiKey: 'test-api-key',
         secretKey: 'test-secret-key'
       };
 
-      const response = await request(app)
+      const _response = await request(app)
         .post('/api/v1/exchanges/balances')
         .send(balanceData)
         .expect(401);
@@ -155,7 +155,7 @@ describe('API Endpoints', () => {
   });
 
   describe('POST /api/v1/trades/execute', () => {
-    it('should execute trade successfully', async () => {
+    it('should execute trade successfully', async() => {
       // Mock authentication
       const { authenticateToken } = require('../lib/auth');
       authenticateToken.mockImplementation((req, res, next) => {
@@ -196,7 +196,7 @@ describe('API Endpoints', () => {
       expect(response.body.data.symbol).toBe('BTCUSDT');
     });
 
-    it('should return 400 for missing trade parameters', async () => {
+    it('should return 400 for missing trade parameters', async() => {
       // Mock authentication
       const { authenticateToken } = require('../lib/auth');
       authenticateToken.mockImplementation((req, res, next) => {
@@ -213,7 +213,7 @@ describe('API Endpoints', () => {
       expect(response.body.error).toBe('Missing required trade parameters');
     });
 
-    it('should return 400 for invalid trade side', async () => {
+    it('should return 400 for invalid trade side', async() => {
       // Mock authentication
       const { authenticateToken } = require('../lib/auth');
       authenticateToken.mockImplementation((req, res, next) => {
@@ -241,7 +241,7 @@ describe('API Endpoints', () => {
   });
 
   describe('GET /api/v1/trades/history', () => {
-    it('should return trading history', async () => {
+    it('should return trading history', async() => {
       // Mock authentication
       const { authenticateToken } = require('../lib/auth');
       authenticateToken.mockImplementation((req, res, next) => {
@@ -285,15 +285,15 @@ describe('API Endpoints', () => {
       expect(response.body.data.trades[1].tradeId).toBe('trade2');
     });
 
-    it('should return 401 for unauthenticated request', async () => {
-      const response = await request(app)
+    it('should return 401 for unauthenticated request', async() => {
+      const _response = await request(app)
         .get('/api/v1/trades/history')
         .expect(401);
     });
   });
 
   describe('GET /api/v1/portfolio/summary', () => {
-    it('should return portfolio summary', async () => {
+    it('should return portfolio summary', async() => {
       // Mock authentication
       const { authenticateToken } = require('../lib/auth');
       authenticateToken.mockImplementation((req, res, next) => {
@@ -312,15 +312,15 @@ describe('API Endpoints', () => {
       expect(response.body.data).toHaveProperty('assets');
     });
 
-    it('should return 401 for unauthenticated request', async () => {
-      const response = await request(app)
+    it('should return 401 for unauthenticated request', async() => {
+      const _response = await request(app)
         .get('/api/v1/portfolio/summary')
         .expect(401);
     });
   });
 
   describe('POST /api/v1/exchanges/configure', () => {
-    it('should configure exchange successfully', async () => {
+    it('should configure exchange successfully', async() => {
       // Mock authentication
       const { authenticateToken } = require('../lib/auth');
       authenticateToken.mockImplementation((req, res, next) => {
@@ -352,7 +352,7 @@ describe('API Endpoints', () => {
       expect(response.body.data.status).toBe('connected');
     });
 
-    it('should return 400 for missing required fields', async () => {
+    it('should return 400 for missing required fields', async() => {
       // Mock authentication
       const { authenticateToken } = require('../lib/auth');
       authenticateToken.mockImplementation((req, res, next) => {
@@ -369,7 +369,7 @@ describe('API Endpoints', () => {
       expect(response.body.error).toBe('Exchange, API key, and secret key are required');
     });
 
-    it('should return 400 for invalid exchange', async () => {
+    it('should return 400 for invalid exchange', async() => {
       // Mock authentication
       const { authenticateToken } = require('../lib/auth');
       authenticateToken.mockImplementation((req, res, next) => {
@@ -394,7 +394,7 @@ describe('API Endpoints', () => {
   });
 
   describe('GET /api/v1/exchanges/configured', () => {
-    it('should return configured exchanges', async () => {
+    it('should return configured exchanges', async() => {
       // Mock authentication
       const { authenticateToken } = require('../lib/auth');
       authenticateToken.mockImplementation((req, res, next) => {
@@ -428,8 +428,8 @@ describe('API Endpoints', () => {
       expect(response.body.data.exchanges[0].status).toBe('connected');
     });
 
-    it('should return 401 for unauthenticated request', async () => {
-      const response = await request(app)
+    it('should return 401 for unauthenticated request', async() => {
+      const _response = await request(app)
         .get('/api/v1/exchanges/configured')
         .expect(401);
     });

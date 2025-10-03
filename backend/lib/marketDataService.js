@@ -27,29 +27,29 @@ class MarketDataService {
         lastRequest: 0
       }
     };
-    
+
     this.wsConnections = new Map();
     this.priceData = new Map();
     this.klineData = new Map();
     this.orderBookData = new Map();
     this.subscribers = new Map();
-    
+
     this.startDataCollection();
   }
 
   // Rate limiting helper
   async rateLimit(exchange) {
     const config = this.exchanges[exchange];
-    if (!config) return;
-    
+    if (!config) {return;}
+
     const now = Date.now();
     const timeSinceLastRequest = now - config.lastRequest;
     const minInterval = 60000 / config.rateLimit; // Convert to milliseconds
-    
+
     if (timeSinceLastRequest < minInterval) {
       await new Promise(resolve => setTimeout(resolve, minInterval - timeSinceLastRequest));
     }
-    
+
     config.lastRequest = Date.now();
   }
 
@@ -57,29 +57,31 @@ class MarketDataService {
   async getTickerData(exchange, symbol) {
     try {
       await this.rateLimit(exchange);
-      
+
       let url, response;
-      
+
       switch (exchange) {
-        case 'binance':
-          url = `${this.exchanges.binance.baseUrl}/api/v3/ticker/24hr?symbol=${symbol}`;
-          response = await axios.get(url);
-          return this.parseBinanceTicker(response.data);
-          
-        case 'wazirx':
-          url = `${this.exchanges.wazirx.baseUrl}/ticker/24hr`;
-          response = await axios.get(url);
-          const wazirxData = response.data.find(item => item.symbol === symbol);
-          return wazirxData ? this.parseWazirxTicker(wazirxData) : null;
-          
-        case 'coindcx':
-          url = `${this.exchanges.coindcx.baseUrl}/ticker`;
-          response = await axios.get(url);
-          const coindcxData = response.data.find(item => item.market === symbol);
-          return coindcxData ? this.parseCoindcxTicker(coindcxData) : null;
-          
-        default:
-          throw new Error(`Unsupported exchange: ${exchange}`);
+      case 'binance':
+        url = `${this.exchanges.binance.baseUrl}/api/v3/ticker/24hr?symbol=${symbol}`;
+        response = await axios.get(url);
+        return this.parseBinanceTicker(response.data);
+
+      case 'wazirx': {
+        url = `${this.exchanges.wazirx.baseUrl}/ticker/24hr`;
+        response = await axios.get(url);
+        const wazirxData = response.data.find(item => item.symbol === symbol);
+        return wazirxData ? this.parseWazirxTicker(wazirxData) : null;
+      }
+
+      case 'coindcx': {
+        url = `${this.exchanges.coindcx.baseUrl}/ticker`;
+        response = await axios.get(url);
+        const coindcxData = response.data.find(item => item.market === symbol);
+        return coindcxData ? this.parseCoindcxTicker(coindcxData) : null;
+      }
+
+      default:
+        throw new Error(`Unsupported exchange: ${exchange}`);
       }
     } catch (error) {
       logger.error(`Failed to fetch ticker data from ${exchange}:`, error);
@@ -91,27 +93,29 @@ class MarketDataService {
   async getKlineData(exchange, symbol, interval = '1m', limit = 100) {
     try {
       await this.rateLimit(exchange);
-      
+
       let url, response;
-      
+
       switch (exchange) {
-        case 'binance':
-          url = `${this.exchanges.binance.baseUrl}/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
-          response = await axios.get(url);
-          return this.parseBinanceKlines(response.data, symbol, interval);
-          
-        case 'wazirx':
-          // WazirX doesn't have kline API, use ticker data
-          const ticker = await this.getTickerData('wazirx', symbol);
-          return ticker ? [this.createKlineFromTicker(ticker, interval)] : [];
-          
-        case 'coindcx':
-          url = `${this.exchanges.coindcx.baseUrl}/candles?market=${symbol}&interval=${interval}&limit=${limit}`;
-          response = await axios.get(url);
-          return this.parseCoindcxKlines(response.data, symbol, interval);
-          
-        default:
-          throw new Error(`Unsupported exchange: ${exchange}`);
+      case 'binance':
+        url = `${this.exchanges.binance.baseUrl}/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
+        response = await axios.get(url);
+        return this.parseBinanceKlines(response.data, symbol, interval);
+
+      case 'wazirx': {
+        // WazirX doesn't have kline API, use ticker data
+        const ticker = await this.getTickerData('wazirx', symbol);
+        return ticker ? [this.createKlineFromTicker(ticker, interval)] : [];
+      }
+
+      case 'coindcx': {
+        url = `${this.exchanges.coindcx.baseUrl}/candles?market=${symbol}&interval=${interval}&limit=${limit}`;
+        response = await axios.get(url);
+        return this.parseCoindcxKlines(response.data, symbol, interval);
+      }
+
+      default:
+        throw new Error(`Unsupported exchange: ${exchange}`);
       }
     } catch (error) {
       logger.error(`Failed to fetch kline data from ${exchange}:`, error);
@@ -123,27 +127,27 @@ class MarketDataService {
   async getOrderBookData(exchange, symbol, limit = 100) {
     try {
       await this.rateLimit(exchange);
-      
+
       let url, response;
-      
+
       switch (exchange) {
-        case 'binance':
-          url = `${this.exchanges.binance.baseUrl}/api/v3/depth?symbol=${symbol}&limit=${limit}`;
-          response = await axios.get(url);
-          return this.parseBinanceOrderBook(response.data);
-          
-        case 'wazirx':
-          url = `${this.exchanges.wazirx.baseUrl}/depth?symbol=${symbol}`;
-          response = await axios.get(url);
-          return this.parseWazirxOrderBook(response.data);
-          
-        case 'coindcx':
-          url = `${this.exchanges.coindcx.baseUrl}/orderbook?market=${symbol}`;
-          response = await axios.get(url);
-          return this.parseCoindcxOrderBook(response.data);
-          
-        default:
-          throw new Error(`Unsupported exchange: ${exchange}`);
+      case 'binance':
+        url = `${this.exchanges.binance.baseUrl}/api/v3/depth?symbol=${symbol}&limit=${limit}`;
+        response = await axios.get(url);
+        return this.parseBinanceOrderBook(response.data);
+
+      case 'wazirx':
+        url = `${this.exchanges.wazirx.baseUrl}/depth?symbol=${symbol}`;
+        response = await axios.get(url);
+        return this.parseWazirxOrderBook(response.data);
+
+      case 'coindcx':
+        url = `${this.exchanges.coindcx.baseUrl}/orderbook?market=${symbol}`;
+        response = await axios.get(url);
+        return this.parseCoindcxOrderBook(response.data);
+
+      default:
+        throw new Error(`Unsupported exchange: ${exchange}`);
       }
     } catch (error) {
       logger.error(`Failed to fetch order book data from ${exchange}:`, error);
@@ -155,20 +159,20 @@ class MarketDataService {
   startWebSocketConnections(symbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT']) {
     // Binance WebSocket
     this.startBinanceWebSocket(symbols);
-    
+
     // Add other exchange WebSockets as needed
   }
 
   startBinanceWebSocket(symbols) {
     const streams = symbols.map(symbol => `${symbol.toLowerCase()}@ticker`).join('/');
     const wsUrl = `${this.exchanges.binance.wsUrl}/${streams}`;
-    
+
     const ws = new WebSocket(wsUrl);
-    
+
     ws.on('open', () => {
       logger.info('Binance WebSocket connected');
     });
-    
+
     ws.on('message', (data) => {
       try {
         const message = JSON.parse(data);
@@ -177,23 +181,23 @@ class MarketDataService {
         logger.error('Error parsing WebSocket message:', error);
       }
     });
-    
+
     ws.on('error', (error) => {
       logger.error('Binance WebSocket error:', error);
     });
-    
+
     ws.on('close', () => {
       logger.info('Binance WebSocket disconnected, reconnecting...');
       setTimeout(() => this.startBinanceWebSocket(symbols), 5000);
     });
-    
+
     this.wsConnections.set('binance', ws);
   }
 
   handleBinanceTickerUpdate(data) {
     const ticker = this.parseBinanceTicker(data);
     this.priceData.set(ticker.symbol, ticker);
-    
+
     // Notify subscribers
     this.notifySubscribers('ticker', ticker);
   }
@@ -308,10 +312,10 @@ class MarketDataService {
   // Start continuous data collection
   startDataCollection() {
     // Collect ticker data every 5 seconds
-    setInterval(async () => {
+    setInterval(async() => {
       try {
         const symbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'ADAUSDT', 'XRPUSDT'];
-        
+
         for (const symbol of symbols) {
           for (const exchange of Object.keys(this.exchanges)) {
             try {
@@ -367,39 +371,39 @@ class MarketDataService {
 
   // Calculate technical indicators
   calculateRSI(prices, period = 14) {
-    if (prices.length < period + 1) return null;
-    
+    if (prices.length < period + 1) {return null;}
+
     let gains = 0;
     let losses = 0;
-    
+
     for (let i = 1; i <= period; i++) {
       const change = prices[i] - prices[i - 1];
-      if (change > 0) gains += change;
-      else losses -= change;
+      if (change > 0) {gains += change;}
+      else {losses -= change;}
     }
-    
+
     const avgGain = gains / period;
     const avgLoss = losses / period;
-    
-    if (avgLoss === 0) return 100;
-    
+
+    if (avgLoss === 0) {return 100;}
+
     const rs = avgGain / avgLoss;
     return 100 - (100 / (1 + rs));
   }
 
-  calculateMACD(prices, fastPeriod = 12, slowPeriod = 26, signalPeriod = 9) {
-    if (prices.length < slowPeriod) return null;
-    
+  calculateMACD(prices, fastPeriod = 12, slowPeriod = 26, _signalPeriod = 9) {
+    if (prices.length < slowPeriod) {return null;}
+
     const emaFast = this.calculateEMA(prices, fastPeriod);
     const emaSlow = this.calculateEMA(prices, slowPeriod);
-    
-    if (!emaFast || !emaSlow) return null;
-    
+
+    if (!emaFast || !emaSlow) {return null;}
+
     const macdLine = emaFast - emaSlow;
     // For simplicity, we'll use a basic signal line calculation
     const signalLine = macdLine * 0.9; // Simplified signal line
     const histogram = macdLine - signalLine;
-    
+
     return {
       macd: macdLine,
       signal: signalLine,
@@ -408,27 +412,27 @@ class MarketDataService {
   }
 
   calculateEMA(prices, period) {
-    if (prices.length < period) return null;
-    
+    if (prices.length < period) {return null;}
+
     const multiplier = 2 / (period + 1);
     let ema = prices[0];
-    
+
     for (let i = 1; i < prices.length; i++) {
       ema = (prices[i] * multiplier) + (ema * (1 - multiplier));
     }
-    
+
     return ema;
   }
 
   calculateBollingerBands(prices, period = 20, stdDev = 2) {
-    if (prices.length < period) return null;
-    
+    if (prices.length < period) {return null;}
+
     const recentPrices = prices.slice(-period);
     const sma = recentPrices.reduce((sum, price) => sum + price, 0) / period;
-    
+
     const variance = recentPrices.reduce((sum, price) => sum + Math.pow(price - sma, 2), 0) / period;
     const standardDeviation = Math.sqrt(variance);
-    
+
     return {
       upper: sma + (stdDev * standardDeviation),
       middle: sma,

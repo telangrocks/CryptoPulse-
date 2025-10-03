@@ -334,7 +334,7 @@ importers:
         version: 8.18.1(eslint@9.36.0(jiti@1.21.7))(typescript@5.7.2)
       '@vitejs/plugin-react':
         specifier: 4.3.4
-        version: 4.3.4(vite@5.4.20(@types/node@22.10.2)(terser@5.37.0))
+        version: 4.3.4(vite@7.1.8(@types/node@22.10.2)(jiti@1.21.7)(terser@5.37.0)(yaml@2.8.1))
       '@vitest/coverage-v8':
         specifier: 2.1.9
         version: 2.1.9(vitest@2.1.9(@types/node@22.10.2)(jsdom@25.0.1)(terser@5.37.0))
@@ -398,6 +398,9 @@ importers:
       typescript:
         specifier: 5.7.2
         version: 5.7.2
+      vite:
+        specifier: 7.1.8
+        version: 7.1.8(@types/node@22.10.2)(jiti@1.21.7)(terser@5.37.0)(yaml@2.8.1)
       vite-bundle-analyzer:
         specifier: 0.18.0
         version: 0.18.0
@@ -5020,6 +5023,10 @@ packages:
     resolution: {integrity: sha512-6oz2beyjc5VMn/KV1pPw8fliQkhBXrVn1Z3TVyqZxU8kZpzEKhBdmCFqI6ZbmGtamQvQGuU1sgPTk8ZrXDD7jQ==}
     engines: {node: ^10 || ^12 || >=14}
 
+  postcss@8.5.6:
+    resolution: {integrity: sha512-3Ybi1tAuwAP9s0r1UQ2J4n5Y0G05bJkpUIO0/bI9MhwmD70S5aTWbXGBwxHrelT+XM1k6dM0pk+SwNkpTRN7Pg==}
+    engines: {node: ^10 || ^12 || >=14}
+
   postgres-array@2.0.0:
     resolution: {integrity: sha512-VpZrUqU5A69eQyW2c5CA1jtLecCsN2U/bD6VilrFDWq5+5UIEVO7nazS3TEcHf1zuPYO/sqGvUvW62g86RXZuA==}
     engines: {node: '>=4'}
@@ -6050,6 +6057,46 @@ packages:
       sugarss:
         optional: true
       terser:
+        optional: true
+
+  vite@7.1.8:
+    resolution: {integrity: sha512-oBXvfSHEOL8jF+R9Am7h59Up07kVVGH1NrFGFoEG6bPDZP3tGpQhvkBpy5x7U6+E6wZCu9OihsWgJqDbQIm8LQ==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    hasBin: true
+    peerDependencies:
+      '@types/node': ^20.19.0 || >=22.12.0
+      jiti: '>=1.21.0'
+      less: ^4.0.0
+      lightningcss: ^1.21.0
+      sass: ^1.70.0
+      sass-embedded: ^1.70.0
+      stylus: '>=0.54.8'
+      sugarss: ^5.0.0
+      terser: ^5.16.0
+      tsx: ^4.8.1
+      yaml: ^2.4.2
+    peerDependenciesMeta:
+      '@types/node':
+        optional: true
+      jiti:
+        optional: true
+      less:
+        optional: true
+      lightningcss:
+        optional: true
+      sass:
+        optional: true
+      sass-embedded:
+        optional: true
+      stylus:
+        optional: true
+      sugarss:
+        optional: true
+      terser:
+        optional: true
+      tsx:
+        optional: true
+      yaml:
         optional: true
 
   vitest@2.1.9:
@@ -8233,14 +8280,14 @@ snapshots:
   '@unrs/resolver-binding-win32-x64-msvc@1.11.1':
     optional: true
 
-  '@vitejs/plugin-react@4.3.4(vite@5.4.20(@types/node@22.10.2)(terser@5.37.0))':
+  '@vitejs/plugin-react@4.3.4(vite@7.1.8(@types/node@22.10.2)(jiti@1.21.7)(terser@5.37.0)(yaml@2.8.1))':
     dependencies:
       '@babel/core': 7.28.4
       '@babel/plugin-transform-react-jsx-self': 7.27.1(@babel/core@7.28.4)
       '@babel/plugin-transform-react-jsx-source': 7.27.1(@babel/core@7.28.4)
       '@types/babel__core': 7.20.5
       react-refresh: 0.14.2
-      vite: 5.4.20(@types/node@22.10.2)(terser@5.37.0)
+      vite: 7.1.8(@types/node@22.10.2)(jiti@1.21.7)(terser@5.37.0)(yaml@2.8.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -11337,6 +11384,12 @@ snapshots:
       picocolors: 1.1.1
       source-map-js: 1.2.1
 
+  postcss@8.5.6:
+    dependencies:
+      nanoid: 3.3.11
+      picocolors: 1.1.1
+      source-map-js: 1.2.1
+
   postgres-array@2.0.0: {}
 
   postgres-array@3.0.4: {}
@@ -12475,6 +12528,21 @@ snapshots:
       '@types/node': 22.10.2
       fsevents: 2.3.3
       terser: 5.37.0
+
+  vite@7.1.8(@types/node@22.10.2)(jiti@1.21.7)(terser@5.37.0)(yaml@2.8.1):
+    dependencies:
+      esbuild: 0.25.0
+      fdir: 6.5.0(picomatch@4.0.3)
+      picomatch: 4.0.3
+      postcss: 8.5.6
+      rollup: 4.52.3
+      tinyglobby: 0.2.15
+    optionalDependencies:
+      '@types/node': 22.10.2
+      fsevents: 2.3.3
+      jiti: 1.21.7
+      terser: 5.37.0
+      yaml: 2.8.1
 
   vitest@2.1.9(@types/node@22.10.2)(jsdom@25.0.1)(terser@5.37.0):
     dependencies:

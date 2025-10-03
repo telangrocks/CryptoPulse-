@@ -5,7 +5,7 @@
 
 const marketDataService = require('./marketDataService');
 const { logger } = require('./logging');
-const { User, Trade, TradingStrategy, ExchangeConfig } = require('./database');
+const { User: _User, Trade, TradingStrategy, ExchangeConfig: _ExchangeConfig } = require('./database');
 
 class TradingBot {
   constructor() {
@@ -16,7 +16,7 @@ class TradingBot {
     this.riskManager = new RiskManager();
     this.signalGenerator = new SignalGenerator();
     this.backtester = new Backtester();
-    
+
     // Bot configuration
     this.config = {
       maxConcurrentTrades: 5,
@@ -27,7 +27,7 @@ class TradingBot {
       checkInterval: 30000, // 30 seconds
       backtestPeriod: 30 // days
     };
-    
+
     this.dailyStats = {
       trades: 0,
       wins: 0,
@@ -46,16 +46,16 @@ class TradingBot {
 
     logger.info('Starting trading bot...');
     this.isRunning = true;
-    
+
     // Load active strategies
     await this.loadActiveStrategies();
-    
+
     // Start main trading loop
     this.tradingLoop();
-    
+
     // Start signal processing
     this.signalProcessingLoop();
-    
+
     logger.info('Trading bot started successfully');
   }
 
@@ -70,7 +70,7 @@ class TradingBot {
   async loadActiveStrategies() {
     try {
       const strategies = await TradingStrategy.findActive();
-      
+
       for (const strategy of strategies) {
         this.activeStrategies.set(strategy.id, {
           ...strategy,
@@ -84,7 +84,7 @@ class TradingBot {
           }
         });
       }
-      
+
       logger.info(`Loaded ${strategies.length} active strategies`);
     } catch (error) {
       logger.error('Failed to load strategies:', error);
@@ -97,16 +97,16 @@ class TradingBot {
       try {
         // Check for new signals
         await this.checkForSignals();
-        
+
         // Process pending signals
         await this.processSignalQueue();
-        
+
         // Update strategy performance
         await this.updateStrategyPerformance();
-        
+
         // Risk management checks
         await this.performRiskChecks();
-        
+
         // Wait before next iteration
         await new Promise(resolve => setTimeout(resolve, this.config.checkInterval));
       } catch (error) {
@@ -124,7 +124,7 @@ class TradingBot {
           const signal = this.signalQueue.shift();
           await this.processSignal(signal);
         }
-        
+
         await new Promise(resolve => setTimeout(resolve, 1000)); // Check every second
       } catch (error) {
         logger.error('Signal processing error:', error);
@@ -136,21 +136,21 @@ class TradingBot {
   async checkForSignals() {
     try {
       const symbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'ADAUSDT', 'XRPUSDT'];
-      
+
       for (const symbol of symbols) {
         // Get current market data
         const marketData = marketDataService.getCurrentPrice(symbol);
-        if (!marketData) continue;
-        
+        if (!marketData) {continue;}
+
         // Get historical data for analysis
         const klineData = await marketDataService.getKlineData('binance', symbol, '1h', 100);
-        if (!klineData || klineData.length < 50) continue;
-        
+        if (!klineData || klineData.length < 50) {continue;}
+
         // Generate signals for each active strategy
         for (const [strategyId, strategy] of this.activeStrategies) {
           try {
             const signals = await this.signalGenerator.generateSignals(strategy, symbol, marketData, klineData);
-            
+
             for (const signal of signals) {
               if (signal.confidence >= this.config.signalConfidenceThreshold) {
                 signal.strategyId = strategyId;
@@ -176,26 +176,26 @@ class TradingBot {
         logger.warn('Invalid signal rejected:', signal);
         return;
       }
-      
+
       // Risk management check
       if (!await this.riskManager.validateSignal(signal)) {
         logger.warn('Signal rejected by risk management:', signal);
         return;
       }
-      
+
       // Backtest the signal
       const backtestResult = await this.backtester.testSignal(signal);
       if (!backtestResult.success) {
         logger.warn('Signal failed backtest:', signal);
         return;
       }
-      
+
       // Create trade record
       const trade = await this.createTradeRecord(signal, backtestResult);
-      
+
       // Send notification to user
       await this.sendTradeNotification(signal, trade);
-      
+
       // Add to processed signals
       this.processedSignals.push({
         ...signal,
@@ -203,13 +203,13 @@ class TradingBot {
         processedAt: Date.now(),
         status: 'processed'
       });
-      
+
       logger.info(`Signal processed successfully: ${signal.symbol} ${signal.action}`, {
         signalId: signal.id,
         tradeId: trade.id,
         confidence: signal.confidence
       });
-      
+
     } catch (error) {
       logger.error('Signal processing error:', error);
     }
@@ -220,19 +220,19 @@ class TradingBot {
     if (!signal.symbol || !signal.action || !signal.entry || !signal.stopLoss || !signal.takeProfit) {
       return false;
     }
-    
+
     if (!['BUY', 'SELL'].includes(signal.action)) {
       return false;
     }
-    
+
     if (signal.confidence < 0 || signal.confidence > 100) {
       return false;
     }
-    
+
     if (signal.entry <= 0 || signal.stopLoss <= 0 || signal.takeProfit <= 0) {
       return false;
     }
-    
+
     return true;
   }
 
@@ -254,7 +254,7 @@ class TradingBot {
         status: 'pending',
         createdAt: new Date()
       };
-      
+
       const trade = await Trade.create(tradeData);
       return trade;
     } catch (error) {
@@ -283,7 +283,7 @@ class TradingBot {
       for (const [strategyId, strategy] of this.activeStrategies) {
         const trades = await Trade.findByStrategyId(strategyId);
         const completedTrades = trades.filter(t => t.status === 'completed');
-        
+
         const performance = {
           totalTrades: completedTrades.length,
           wins: completedTrades.filter(t => t.profit > 0).length,
@@ -291,11 +291,11 @@ class TradingBot {
           profit: completedTrades.reduce((sum, t) => sum + (t.profit || 0), 0),
           winRate: 0
         };
-        
+
         if (performance.totalTrades > 0) {
           performance.winRate = (performance.wins / performance.totalTrades) * 100;
         }
-        
+
         strategy.performance = performance;
       }
     } catch (error) {
@@ -311,21 +311,21 @@ class TradingBot {
         logger.warn('Daily trade limit reached');
         return;
       }
-      
+
       // Check current drawdown
       const currentDrawdown = Math.abs(this.dailyStats.profit) / 10000; // Assuming $10k portfolio
       if (currentDrawdown > this.config.maxDrawdown) {
         logger.warn('Maximum drawdown exceeded, pausing trading');
         return;
       }
-      
+
       // Check concurrent trades
       const activeTrades = await Trade.findActive();
       if (activeTrades.length >= this.config.maxConcurrentTrades) {
         logger.warn('Maximum concurrent trades reached');
         return;
       }
-      
+
     } catch (error) {
       logger.error('Risk check error:', error);
     }
@@ -352,61 +352,61 @@ class SignalGenerator {
 
   async generateSignals(strategy, symbol, marketData, klineData) {
     const signals = [];
-    
+
     try {
       switch (strategy.strategyType) {
-        case 'SCALPING':
-          signals.push(...await this.generateScalpingSignals(strategy, symbol, marketData, klineData));
-          break;
-        case 'DAY_TRADING':
-          signals.push(...await this.generateDayTradingSignals(strategy, symbol, marketData, klineData));
-          break;
-        case 'SWING_TRADING':
-          signals.push(...await this.generateSwingTradingSignals(strategy, symbol, marketData, klineData));
-          break;
-        case 'GRID_TRADING':
-          signals.push(...await this.generateGridTradingSignals(strategy, symbol, marketData, klineData));
-          break;
-        case 'DCA':
-          signals.push(...await this.generateDCASignals(strategy, symbol, marketData, klineData));
-          break;
-        case 'ARBITRAGE':
-          signals.push(...await this.generateArbitrageSignals(strategy, symbol, marketData, klineData));
-          break;
-        case 'MOMENTUM':
-          signals.push(...await this.generateMomentumSignals(strategy, symbol, marketData, klineData));
-          break;
-        case 'MEAN_REVERSION':
-          signals.push(...await this.generateMeanReversionSignals(strategy, symbol, marketData, klineData));
-          break;
+      case 'SCALPING':
+        signals.push(...await this.generateScalpingSignals(strategy, symbol, marketData, klineData));
+        break;
+      case 'DAY_TRADING':
+        signals.push(...await this.generateDayTradingSignals(strategy, symbol, marketData, klineData));
+        break;
+      case 'SWING_TRADING':
+        signals.push(...await this.generateSwingTradingSignals(strategy, symbol, marketData, klineData));
+        break;
+      case 'GRID_TRADING':
+        signals.push(...await this.generateGridTradingSignals(strategy, symbol, marketData, klineData));
+        break;
+      case 'DCA':
+        signals.push(...await this.generateDCASignals(strategy, symbol, marketData, klineData));
+        break;
+      case 'ARBITRAGE':
+        signals.push(...await this.generateArbitrageSignals(strategy, symbol, marketData, klineData));
+        break;
+      case 'MOMENTUM':
+        signals.push(...await this.generateMomentumSignals(strategy, symbol, marketData, klineData));
+        break;
+      case 'MEAN_REVERSION':
+        signals.push(...await this.generateMeanReversionSignals(strategy, symbol, marketData, klineData));
+        break;
       }
     } catch (error) {
       logger.error(`Signal generation error for ${strategy.strategyType}:`, error);
     }
-    
+
     return signals;
   }
 
   async generateScalpingSignals(strategy, symbol, marketData, klineData) {
     const signals = [];
     const prices = klineData.map(k => k.close);
-    
+
     // RSI for scalping
     const rsi = marketDataService.calculateRSI(prices, 14);
-    if (!rsi) return signals;
-    
+    if (!rsi) {return signals;}
+
     // MACD for trend confirmation
     const macd = marketDataService.calculateMACD(prices, 12, 26, 9);
-    if (!macd) return signals;
-    
+    if (!macd) {return signals;}
+
     // Bollinger Bands for volatility
     const bb = marketDataService.calculateBollingerBands(prices, 20, 2);
-    if (!bb) return signals;
-    
+    if (!bb) {return signals;}
+
     const currentPrice = marketData.price;
     let signal = null;
-    let confidence = 0;
-    
+    const _confidence = 0;
+
     // Buy signal: RSI oversold + MACD bullish + price near lower BB
     if (rsi < 30 && macd.macd > macd.signal && currentPrice <= bb.lower * 1.02) {
       signal = {
@@ -435,28 +435,28 @@ class SignalGenerator {
         timestamp: Date.now()
       };
     }
-    
+
     if (signal) {
       signals.push(signal);
     }
-    
+
     return signals;
   }
 
   async generateDayTradingSignals(strategy, symbol, marketData, klineData) {
     const signals = [];
     const prices = klineData.map(k => k.close);
-    
+
     // Use 1-hour data for day trading
     const rsi = marketDataService.calculateRSI(prices, 14);
     const macd = marketDataService.calculateMACD(prices, 12, 26, 9);
     const bb = marketDataService.calculateBollingerBands(prices, 20, 2);
-    
-    if (!rsi || !macd || !bb) return signals;
-    
+
+    if (!rsi || !macd || !bb) {return signals;}
+
     const currentPrice = marketData.price;
     let signal = null;
-    
+
     // Day trading signals with higher confidence requirements
     if (rsi < 25 && macd.macd > macd.signal && currentPrice <= bb.lower) {
       signal = {
@@ -483,41 +483,41 @@ class SignalGenerator {
         timestamp: Date.now()
       };
     }
-    
+
     if (signal) {
       signals.push(signal);
     }
-    
+
     return signals;
   }
 
   // Additional strategy implementations would go here...
-  async generateSwingTradingSignals(strategy, symbol, marketData, klineData) {
+  async generateSwingTradingSignals(_strategy, _symbol, _marketData, _klineData) {
     // Implementation for swing trading
     return [];
   }
 
-  async generateGridTradingSignals(strategy, symbol, marketData, klineData) {
+  async generateGridTradingSignals(_strategy, _symbol, _marketData, _klineData) {
     // Implementation for grid trading
     return [];
   }
 
-  async generateDCASignals(strategy, symbol, marketData, klineData) {
+  async generateDCASignals(_strategy, _symbol, _marketData, _klineData) {
     // Implementation for DCA
     return [];
   }
 
-  async generateArbitrageSignals(strategy, symbol, marketData, klineData) {
+  async generateArbitrageSignals(_strategy, _symbol, _marketData, _klineData) {
     // Implementation for arbitrage
     return [];
   }
 
-  async generateMomentumSignals(strategy, symbol, marketData, klineData) {
+  async generateMomentumSignals(_strategy, _symbol, _marketData, _klineData) {
     // Implementation for momentum trading
     return [];
   }
 
-  async generateMeanReversionSignals(strategy, symbol, marketData, klineData) {
+  async generateMeanReversionSignals(_strategy, _symbol, _marketData, _klineData) {
     // Implementation for mean reversion
     return [];
   }
@@ -531,7 +531,7 @@ class RiskManager {
     this.maxDrawdown = 0.1; // 10%
   }
 
-  async validateSignal(signal) {
+  async validateSignal(_signal) {
     // Implement risk validation logic
     return true; // Simplified for now
   }
@@ -539,7 +539,7 @@ class RiskManager {
 
 // Backtester Class
 class Backtester {
-  async testSignal(signal) {
+  async testSignal(_signal) {
     // Implement backtesting logic
     return {
       success: true,

@@ -17,7 +17,7 @@ describe('Authentication Endpoints', () => {
   });
 
   describe('POST /api/v1/auth/register', () => {
-    it('should register a new user successfully', async () => {
+    it('should register a new user successfully', async() => {
       const userData = {
         email: 'test@example.com',
         password: 'SecurePass123!',
@@ -46,7 +46,7 @@ describe('Authentication Endpoints', () => {
       expect(response.body.data).toHaveProperty('refreshToken');
     });
 
-    it('should return 400 for missing required fields', async () => {
+    it('should return 400 for missing required fields', async() => {
       const userData = {
         email: 'test@example.com',
         password: 'SecurePass123!'
@@ -62,7 +62,7 @@ describe('Authentication Endpoints', () => {
       expect(response.body.error).toBe('All fields are required');
     });
 
-    it('should return 400 for invalid email format', async () => {
+    it('should return 400 for invalid email format', async() => {
       const userData = {
         email: 'invalid-email',
         password: 'SecurePass123!',
@@ -79,7 +79,7 @@ describe('Authentication Endpoints', () => {
       expect(response.body.error).toBe('Invalid email format');
     });
 
-    it('should return 400 for weak password', async () => {
+    it('should return 400 for weak password', async() => {
       const userData = {
         email: 'test@example.com',
         password: 'weak',
@@ -96,7 +96,7 @@ describe('Authentication Endpoints', () => {
       expect(response.body.error).toBe('Password validation failed');
     });
 
-    it('should return 409 for existing user', async () => {
+    it('should return 409 for existing user', async() => {
       const userData = {
         email: 'existing@example.com',
         password: 'SecurePass123!',
@@ -120,7 +120,7 @@ describe('Authentication Endpoints', () => {
   });
 
   describe('POST /api/v1/auth/login', () => {
-    it('should login user successfully', async () => {
+    it('should login user successfully', async() => {
       const loginData = {
         email: 'test@example.com',
         password: 'SecurePass123!'
@@ -135,7 +135,7 @@ describe('Authentication Endpoints', () => {
       };
 
       User.findByEmail.mockResolvedValue(mockUser);
-      
+
       // Mock password comparison
       const { comparePassword } = require('../lib/auth');
       comparePassword.mockResolvedValue(true);
@@ -151,7 +151,7 @@ describe('Authentication Endpoints', () => {
       expect(response.body.data).toHaveProperty('refreshToken');
     });
 
-    it('should return 400 for missing credentials', async () => {
+    it('should return 400 for missing credentials', async() => {
       const response = await request(app)
         .post('/api/v1/auth/login')
         .send({})
@@ -161,7 +161,7 @@ describe('Authentication Endpoints', () => {
       expect(response.body.error).toBe('Email and password are required');
     });
 
-    it('should return 401 for invalid credentials', async () => {
+    it('should return 401 for invalid credentials', async() => {
       const loginData = {
         email: 'test@example.com',
         password: 'WrongPassword123!'
@@ -178,7 +178,7 @@ describe('Authentication Endpoints', () => {
       expect(response.body.error).toBe('Invalid credentials');
     });
 
-    it('should return 401 for wrong password', async () => {
+    it('should return 401 for wrong password', async() => {
       const loginData = {
         email: 'test@example.com',
         password: 'WrongPassword123!'
@@ -191,7 +191,7 @@ describe('Authentication Endpoints', () => {
       };
 
       User.findByEmail.mockResolvedValue(mockUser);
-      
+
       // Mock password comparison to return false
       const { comparePassword } = require('../lib/auth');
       comparePassword.mockResolvedValue(false);
@@ -207,7 +207,7 @@ describe('Authentication Endpoints', () => {
   });
 
   describe('POST /api/v1/auth/logout', () => {
-    it('should logout user successfully', async () => {
+    it('should logout user successfully', async() => {
       const response = await request(app)
         .post('/api/v1/auth/logout')
         .expect(200);
