@@ -1,0 +1,100 @@
+# =============================================================================
+# CryptoPulse Production Dockerfile - 100% Production Ready
+# =============================================================================
+# Multi-stage production Dockerfile with security and performance optimizations
+
+# =========================================================================
+# Base Stage - Common dependencies and setup
+# =========================================================================
+FROM node:20-alpine AS base
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apk add --no-cache \
+    dumb-init \
+    curl \
+    ca-certificates \
+    tzdata \
+    && rm -rf /var/cache/apk/*
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S cryptopulse -u 1001
+
+# Set timezone
+ENV TZ=UTC
+
+# =========================================================================
+# Dependencies Stage - Install dependencies
+# =========================================================================
+FROM base AS dependencies
+
+# Copy package files
+COPY package*.json pnpm-lock.yaml ./
+
+# Install pnpm
+RUN npm install -g pnpm@10.18.0
+
+# Install dependencies
+RUN pnpm install --frozen-lockfile --production=false
+
+# =========================================================================
+# Build Stage - Build application
+# =========================================================================
+FROM dependencies AS build
+
+# Copy source code
+COPY . .
+
+# Build application
+RUN pnpm run build
+
+# =========================================================================
+# Production Stage - Final production image
+# =========================================================================
+FROM base AS production
+
+# Set environment variables
+ENV NODE_ENV=production
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+
+# Install pnpm
+RUN npm install -g pnpm@10.18.0
+
+# Copy package files
+COPY package*.json pnpm-lock.yaml ./
+
+# Install only production dependencies
+RUN pnpm install --frozen-lockfile --production
+
+# Copy built application from build stage
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/build ./build
+
+# Copy source code (for non-built applications)
+COPY . .
+
+# Create necessary directories
+RUN mkdir -p /app/logs /app/uploads /app/backups /app/tmp
+
+# Set ownership
+RUN chown -R cryptopulse:nodejs /app
+
+# Switch to non-root user
+USER cryptopulse
+
+# Expose port
+EXPOSE 1337
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:${PORT:-1337}/health || exit 1
+
+# Use dumb-init to handle signals properly
+ENTRYPOINT ["dumb-init", "--"]
+
+# Start the application
+CMD ["node", "index.js"]

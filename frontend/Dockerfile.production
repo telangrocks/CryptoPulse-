@@ -1,0 +1,99 @@
+# =============================================================================
+# CryptoPulse Frontend Production Dockerfile - 100% Production Ready
+# =============================================================================
+# Multi-stage production Dockerfile for React frontend
+
+# =========================================================================
+# Base Stage - Common dependencies and setup
+# =========================================================================
+FROM node:20-alpine AS base
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apk add --no-cache \
+    dumb-init \
+    curl \
+    ca-certificates \
+    tzdata \
+    && rm -rf /var/cache/apk/*
+
+# Set timezone
+ENV TZ=UTC
+
+# =========================================================================
+# Dependencies Stage - Install dependencies
+# =========================================================================
+FROM base AS dependencies
+
+# Copy package files
+COPY package*.json pnpm-lock.yaml ./
+
+# Install pnpm
+RUN npm install -g pnpm@10.18.0
+
+# Install dependencies
+RUN pnpm install --frozen-lockfile --production=false
+
+# =========================================================================
+# Build Stage - Build React application
+# =========================================================================
+FROM dependencies AS build
+
+# Copy source code
+COPY . .
+
+# Build application
+RUN pnpm run build
+
+# =========================================================================
+# Nginx Stage - Serve with Nginx
+# =========================================================================
+FROM nginx:alpine AS production
+
+# Install additional tools
+RUN apk add --no-cache \
+    curl \
+    ca-certificates \
+    tzdata \
+    && rm -rf /var/cache/apk/*
+
+# Set timezone
+ENV TZ=UTC
+
+# Copy custom nginx configuration
+COPY nginx.conf /etc/nginx/nginx.conf
+
+# Copy built application
+COPY --from=build /app/dist /usr/share/nginx/html
+
+# Create nginx user and set permissions
+RUN addgroup -g 1001 -S nginx && \
+    adduser -S nginx -u 1001 -G nginx
+
+# Set ownership
+RUN chown -R nginx:nginx /usr/share/nginx/html && \
+    chown -R nginx:nginx /var/cache/nginx && \
+    chown -R nginx:nginx /var/log/nginx && \
+    chown -R nginx:nginx /etc/nginx/conf.d
+
+# Create necessary directories
+RUN mkdir -p /var/cache/nginx/client_temp && \
+    mkdir -p /var/cache/nginx/proxy_temp && \
+    mkdir -p /var/cache/nginx/fastcgi_temp && \
+    mkdir -p /var/cache/nginx/uwsgi_temp && \
+    mkdir -p /var/cache/nginx/scgi_temp
+
+# Switch to non-root user
+USER nginx
+
+# Expose port
+EXPOSE 80
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost/health || exit 1
+
+# Start nginx
+CMD ["nginx", "-g", "daemon off;"]
