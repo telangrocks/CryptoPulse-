@@ -1,183 +1,157 @@
-name: 🤖 CryptoPulse-AI-Automation-Pipeline
+Deploy to Northflank (Staging & Production)
 
 on:
   push:
-    branches: [ main, develop, feature/* ]
-  pull_request:
-    branches: [ main, develop ]
-  schedule:
-    - cron: '0 2 * * *'
-    - cron: '*/15 * * * *'
+    branches:
+      - main
 
-env:
-  NODE_VERSION: '20.x'
-  FRONTEND_PORT: '3000'
-  BACKEND_PORT: '1337'
-  CLOUD_PORT: '3001'
+  workflow_dispatch:  # Allow manual trigger for testing
 
 jobs:
-  setup-all:
+  validate-and-build:
+    name: Validate & Build
     runs-on: ubuntu-latest
-    outputs:
-      backend-changed: ${{ steps.detect.outputs.backend }}
-      frontend-changed: ${{ steps.detect.outputs.frontend }}
-      cloud-changed: ${{ steps.detect.outputs.cloud }}
-      trading-changed: ${{ steps.detect.outputs.trading }}
-      ai-changed: ${{ steps.detect.outputs.ai }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install CLI tools
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y jq bc gh
-
-      - name: Detect changes
-        id: detect
-        uses: dorny/paths-filter@v3
-        with:
-          filters: |
-            backend:
-              - 'backend/**'
-            frontend:
-              - 'frontend/**'
-            cloud:
-              - 'cloud/**'
-            trading:
-              - '**/trading*'
-            ai:
-              - '**/ai*'
-
-  security-autofix:
-    runs-on: ubuntu-latest
-    needs: setup-all
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: '18'
 
-      - name: Install pnpm
-        run: npm install -g pnpm@10.18.0
+      - name: Install dependencies
+        run: npm ci
 
-      - name: Auto-fix backend
-        if: needs.setup-all.outputs.backend-changed == 'true'
-        run: |
-          cd backend
-          pnpm install || true
-          pnpm audit fix || true
-          pnpm run lint:fix || true
-          pnpm run test:ci || true
+      - name: Run linting
+        run: npm run lint
 
-      - name: Auto-fix frontend
-        if: needs.setup-all.outputs.frontend-changed == 'true'
-        run: |
-          cd frontend
-          pnpm install || true
-          pnpm audit fix || true
-          pnpm run lint:fix || true
-          pnpm run format || true
-          pnpm run test:run || true
+      - name: Run tests
+        run: npm test
 
-      - name: Auto-fix cloud
-        if: needs.setup-all.outputs.cloud-changed == 'true'
-        run: |
-          cd cloud
-          pnpm install || true
-          pnpm audit fix || true
-          pnpx eslint . --ext .js --fix || true
-
-      - name: Commit and push autofix changes
+      - name: Run security scan (Snyk)
+        uses: snyk/actions/node@master
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          git config user.name "CryptoPulse-AutoFix-Bot"
-          git config user.email "autofix@cryptopulse.ai"
-          git add -A
-          if ! git diff --cached --quiet; then
-            git commit -m "[AUTOFIX] Automated fixes and upgrades by CryptoPulse Pipeline"
-            git push origin HEAD:${GITHUB_REF_NAME} || echo "Push failed, branch protection may be enabled"
-          else
-            echo "No autofixes to commit"
-          fi
-
-  test-and-build:
-    runs-on: ubuntu-latest
-    needs: [setup-all, security-autofix]
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          args: --severity-threshold=high
 
-      - name: Install pnpm
-        run: npm install -g pnpm@10.18.0
-
-      - name: Install backend deps
-        if: needs.setup-all.outputs.backend-changed == 'true'
+      - name: Build Docker image
         run: |
-          cd backend
-          pnpm install || true
+          docker build -t ${{ secrets.NORTHFLANK_REGISTRY }}/${{ secrets.PROJECT_NAME }}:${{ github.sha }} .
+          docker login -u ${{ secrets.NORTHFLANK_REGISTRY_USER }} -p ${{ secrets.NORTHFLANK_REGISTRY_TOKEN }} ${{ secrets.NORTHFLANK_REGISTRY }}
 
-      - name: Install frontend deps
-        if: needs.setup-all.outputs.frontend-changed == 'true'
+      - name: Push image to Northflank Registry
         run: |
-          cd frontend
-          pnpm install || true
+          docker push ${{ secrets.NORTHFLANK_REGISTRY }}/${{ secrets.PROJECT_NAME }}:${{ github.sha }}
 
-      - name: Test backend
-        if: needs.setup-all.outputs.backend-changed == 'true'
-        run: |
-          cd backend
-          pnpm run test:ci || true
-
-      - name: Test frontend
-        if: needs.setup-all.outputs.frontend-changed == 'true'
-        run: |
-          cd frontend
-          pnpm run test:run || true
-
-      - name: Build backend
-        if: needs.setup-all.outputs.backend-changed == 'true'
-        run: |
-          cd backend
-          pnpm run build || true
-
-      - name: Build frontend
-        if: needs.setup-all.outputs.frontend-changed == 'true'
-        run: |
-          cd frontend
-          pnpm run build || true
-
-      - name: Build cloud
-        if: needs.setup-all.outputs.cloud-changed == 'true'
-        run: |
-          cd cloud
-          pnpx eslint . --ext .js || true
-
-  deploy:
+  deploy-staging:
+    name: Deploy to Staging
+    needs: validate-and-build
     runs-on: ubuntu-latest
-    needs: test-and-build
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Deploy to production
+      - name: Deploy to Staging using Northflank CLI
         run: |
-          echo "Deploying CryptoPulse to production..."
-          # Add deployment logic here (e.g., upload to cloud, trigger serverless, etc.)
-          echo "✅ Deployment complete!"
+          # Install Northflank CLI
+          curl -fsSL https://get.northflank.com | bash
+          export PATH=$HOME/.northflank:$PATH
 
-      - name: Notify successful deployment
+          # Authenticate with Northflank
+          northflank login --api-key ${{ secrets.NORTHFLANK_API_KEY }}
+
+          # Trigger release flow for staging
+          northflank release-flow run \
+            --project-id ${{ secrets.NORTHFLANK_PROJECT_ID }} \
+            --flow-name "Deploy to Staging" \
+            --image-tag ${{ secrets.PROJECT_NAME }}:${{ github.sha }} \
+            --env-vars "NODE_ENV=staging"
+
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NORTHFLANK_API_KEY: ${{ secrets.NORTHFLANK_API_KEY }}
+          NORTHFLANK_PROJECT_ID: ${{ secrets.NORTHFLANK_PROJECT_ID }}
+          PROJECT_NAME: ${{ secrets.PROJECT_NAME }}
+
+  deploy-production:
+    name: Deploy to Production (Manual Approval)
+    needs: deploy-staging
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Request Approval
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { context } = require('github-script');
+            const issue = context.payload.issue;
+            const comment = `✅ Staging deployment successful. Ready for production approval.`;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              body: comment
+            });
+
+      - name: Wait for Approval
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { context } = require('github-script');
+            const issue = context.payload.issue;
+            const comment = `@${context.payload.sender.login} has requested approval for production deployment.`;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              body: comment
+            });
+
+            // Wait for "/approve" comment
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number
+            });
+
+            const approved = comments.data.some(c => 
+              c.user.login === context.payload.sender.login && 
+              c.body.trim() === '/approve'
+            );
+
+            if (!approved) {
+              throw new Error('Deployment not approved. Please comment "/approve" to proceed.');
+            }
+
+      - name: Deploy to Production
         run: |
-          gh auth login --with-token < <(echo $GITHUB_TOKEN)
-          gh issue create --title "🚀 Deployment Success [${{ github.sha }}]" --body "CryptoPulse deployed successfully!" --label "deployment,success" || true
+          curl -fsSL https://get.northflank.com | bash
+          export PATH=$HOME/.northflank:$PATH
+
+          northflank login --api-key ${{ secrets.NORTHFLANK_API_KEY }}
+
+          northflank release-flow run \
+            --project-id ${{ secrets.NORTHFLANK_PROJECT_ID }} \
+            --flow-name "Deploy to Production" \
+            --image-tag ${{ secrets.PROJECT_NAME }}:${{ github.sha }} \
+            --env-vars "NODE_ENV=production"
+
+  security-scan-scheduled:
+    name: Daily Security Scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    schedule:
+      - cron: '0 2 * * *'  # Runs daily at 2 AM UTC
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Snyk Security Scan
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high --file=package.json
