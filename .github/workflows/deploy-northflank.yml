@@ -1,0 +1,140 @@
+name: Deploy to Northflank (Staging & Production)
+
+on:
+  push:
+    branches:
+      - main
+
+  workflow_dispatch: # Allow manual trigger for testing
+
+  schedule:
+    - cron: '0 2 * * *' # Runs daily at 2 AM UTC
+
+jobs:
+  validate-and-build:
+    name: Validate & Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run linting
+        run: npm run lint
+
+      - name: Run tests
+        run: npm test
+
+      - name: Run security scan (Snyk)
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high
+
+      - name: Build Docker image
+        run: |
+          docker build -t ${{ secrets.NORTHFLANK_REGISTRY }}/${{ secrets.PROJECT_NAME }}:${{ github.sha }} .
+          docker login -u ${{ secrets.NORTHFLANK_REGISTRY_USER }} -p ${{ secrets.NORTHFLANK_REGISTRY_TOKEN }} ${{ secrets.NORTHFLANK_REGISTRY }}
+
+      - name: Push image to Northflank Registry
+        run: |
+          docker push ${{ secrets.NORTHFLANK_REGISTRY }}/${{ secrets.PROJECT_NAME }}:${{ github.sha }}
+
+  deploy-staging:
+    name: Deploy to Staging
+    needs: validate-and-build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Staging using Northflank CLI
+        run: |
+          curl -fsSL https://get.northflank.com | bash
+          export PATH=$HOME/.northflank:$PATH
+
+          northflank login --api-key ${{ secrets.NORTHFLANK_API_KEY }}
+
+          northflank release-flow run \
+            --project-id ${{ secrets.NORTHFLANK_PROJECT_ID }} \
+            --flow-name "Deploy to Staging" \
+            --image-tag ${{ secrets.PROJECT_NAME }}:${{ github.sha }} \
+            --env-vars "NODE_ENV=staging"
+
+        env:
+          NORTHFLANK_API_KEY: ${{ secrets.NORTHFLANK_API_KEY }}
+          NORTHFLANK_PROJECT_ID: ${{ secrets.NORTHFLANK_PROJECT_ID }}
+          PROJECT_NAME: ${{ secrets.PROJECT_NAME }}
+
+  deploy-production:
+    name: Deploy to Production (Manual Approval)
+    needs: deploy-staging
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Request Approval
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { context } = require('github-script');
+            const comment = `✅ Staging deployment successful. Ready for production approval.`;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: comment
+            });
+
+      - name: Wait for Approval
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number
+            });
+
+            const approved = comments.data.some(c => c.body.trim() === '/approve');
+
+            if (!approved) {
+              throw new Error('Deployment not approved. Please comment "/approve" to proceed.');
+            }
+
+      - name: Deploy to Production
+        run: |
+          curl -fsSL https://get.northflank.com | bash
+          export PATH=$HOME/.northflank:$PATH
+
+          northflank login --api-key ${{ secrets.NORTHFLANK_API_KEY }}
+
+          northflank release-flow run \
+            --project-id ${{ secrets.NORTHFLANK_PROJECT_ID }} \
+            --flow-name "Deploy to Production" \
+            --image-tag ${{ secrets.PROJECT_NAME }}:${{ github.sha }} \
+            --env-vars "NODE_ENV=production"
+
+  security-scan-scheduled:
+    name: Daily Security Scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Snyk Security Scan
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high --file=package.json

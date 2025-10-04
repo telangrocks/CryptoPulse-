@@ -626,3 +626,4 @@ describe('Responsive Design', () => {
     expect(screen.getByTestId('tablet-layout')).toBeInTheDocument();
   });
 });
+

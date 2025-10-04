@@ -775,3 +775,4 @@ class KYCAMLCompliance {
 // Export singleton instance
 const kycAmlCompliance = new KYCAMLCompliance();
 module.exports = { kycAmlCompliance, KYCAMLCompliance };
+
